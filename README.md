@@ -208,8 +208,10 @@ npm run db:run-sql -- supabase/seeds/seed_minimal.sql
 
 Important pour `seed_minimal.sql`:
 
-- Remplacer `AUTH_USER_ID_MERCHANT` et `AUTH_USER_ID_ADMIN` avant execution.
 - Creer les utilisateurs Auth correspondants dans Supabase avant le seed.
+- Le seed recupere automatiquement les UUID via email:
+  - `jean.merchant@example.com`
+  - `admin.biltoki@example.com`
 
 ## Questions metier bloquantes (a trancher)
 

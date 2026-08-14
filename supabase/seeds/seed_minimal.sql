@@ -41,35 +41,59 @@ values
 on conflict (id) do nothing;
 
 -- 3) Profiles linked to auth.users.
--- Replace AUTH_USER_ID_MERCHANT and AUTH_USER_ID_ADMIN before execution.
-insert into public.profiles (id, email, first_name, last_name, role, merchant_id)
-values
-  (
-    'AUTH_USER_ID_MERCHANT',
-    'jean.merchant@example.com',
-    'Jean',
-    'Dupont',
-    'merchant',
-    '00000000-0000-0000-0000-000000000101'
-  ),
-  (
-    'AUTH_USER_ID_ADMIN',
-    'admin.biltoki@example.com',
-    'Admin',
-    'Biltoki',
-    'admin',
-    null
-  )
-on conflict (id) do update set
-  email = excluded.email,
-  first_name = excluded.first_name,
-  last_name = excluded.last_name,
-  role = excluded.role,
-  merchant_id = excluded.merchant_id;
+-- The auth users must exist with these emails before running this seed.
+do $$
+declare
+  merchant_user_id uuid;
+  admin_user_id uuid;
+begin
+  select id into merchant_user_id
+  from auth.users
+  where lower(email) = 'jean.merchant@example.com'
+  limit 1;
 
-insert into public.admin_hall_permissions (profile_id, hall_id)
-values ('AUTH_USER_ID_ADMIN', '00000000-0000-0000-0000-000000000010')
-on conflict (profile_id, hall_id) do nothing;
+  select id into admin_user_id
+  from auth.users
+  where lower(email) = 'admin.biltoki@example.com'
+  limit 1;
+
+  if merchant_user_id is null then
+    raise exception 'Auth user not found: jean.merchant@example.com';
+  end if;
+
+  if admin_user_id is null then
+    raise exception 'Auth user not found: admin.biltoki@example.com';
+  end if;
+
+  insert into public.profiles (id, email, first_name, last_name, role, merchant_id)
+  values
+    (
+      merchant_user_id,
+      'jean.merchant@example.com',
+      'Jean',
+      'Dupont',
+      'merchant',
+      '00000000-0000-0000-0000-000000000101'
+    ),
+    (
+      admin_user_id,
+      'admin.biltoki@example.com',
+      'Admin',
+      'Biltoki',
+      'admin',
+      null
+    )
+  on conflict (id) do update set
+    email = excluded.email,
+    first_name = excluded.first_name,
+    last_name = excluded.last_name,
+    role = excluded.role,
+    merchant_id = excluded.merchant_id;
+
+  insert into public.admin_hall_permissions (profile_id, hall_id)
+  values (admin_user_id, '00000000-0000-0000-0000-000000000010')
+  on conflict (profile_id, hall_id) do nothing;
+end $$;
 
 -- 4) Stands.
 insert into public.stands (
