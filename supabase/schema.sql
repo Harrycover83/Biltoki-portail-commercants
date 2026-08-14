@@ -158,6 +158,8 @@ create or replace function public.is_admin_user()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -171,6 +173,8 @@ create or replace function public.can_access_hall(target_hall_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select (
     exists (
