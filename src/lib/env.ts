@@ -3,6 +3,7 @@ export type RuntimeConfig = {
   supabaseAnonKey: string | null
 }
 
+// build: 2026-08-14-v2
 const LEGACY_SUPABASE_REF = 'pxjikfmdrzqzccuulxda'
 const FORCED_SUPABASE_URL = 'https://ocgesbspdhxisnrzotfx.supabase.co'
 const FORCED_SUPABASE_ANON_KEY =
