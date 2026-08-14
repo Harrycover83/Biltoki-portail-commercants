@@ -28,3 +28,21 @@ export type ChargeLine = {
   totalCents: number
   allocatedCents: number
 }
+
+export type MerchantHistoryRow = {
+  periodId: string
+  periodLabel: string
+  totalAllocatedCents: number
+  periodEnd: string
+}
+
+export type MerchantChargePeriodDetail = {
+  periodId: string
+  periodLabel: string
+  totalCommonChargesCents: number
+  totalAllocatedCents: number
+  linearMeters: number
+  totalLinearMeters: number
+  allocationPercentage: number
+  lines: ChargeLine[]
+}

@@ -13,6 +13,7 @@ Ce repository contient une V1 technique executable avec:
 - Securite: RLS activee sur toutes les tables metier
 - Calcul metier: moteur d'allocation teste avec arrondi deterministe
 - Deploiement: configuration Netlify SPA
+- Pages merchant connectees aux donnees Supabase (plus de mock hardcode)
 
 Important:
 
@@ -62,6 +63,7 @@ Fichiers:
 
 - `supabase/schema.sql`
 - `supabase/migrations/20260814124000_init.sql`
+- `supabase/seeds/seed_minimal.sql`
 
 Tables principales:
 
@@ -185,6 +187,29 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+## Execution migration/seed a distance
+
+Variables requises:
+
+- `SUPABASE_DB_URL` (URL pooler recommandee)
+
+Appliquer la migration initiale:
+
+```bash
+npm run db:migrate:remote
+```
+
+Executer un fichier SQL arbitraire (ex: seed):
+
+```bash
+npm run db:run-sql -- supabase/seeds/seed_minimal.sql
+```
+
+Important pour `seed_minimal.sql`:
+
+- Remplacer `AUTH_USER_ID_MERCHANT` et `AUTH_USER_ID_ADMIN` avant execution.
+- Creer les utilisateurs Auth correspondants dans Supabase avant le seed.
 
 ## Questions metier bloquantes (a trancher)
 
