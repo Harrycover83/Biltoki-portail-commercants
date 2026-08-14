@@ -10,9 +10,9 @@ export function AppHeader() {
       : 'rounded-full px-3 py-2 text-sm font-semibold text-[#2a3242] hover:bg-[#13223a14]'
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[#13223a26] bg-[#fff9f0]/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 md:px-6">
-        <Link to="/dashboard" className="brand-title text-lg font-semibold tracking-tight text-[#13223a]">
+    <header className="sticky top-0 z-20 border-b border-[#13223a1f] bg-[#fff8ef]/88 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-6">
+        <Link to="/dashboard" className="brand-display text-[1.35rem] font-semibold leading-none">
           Biltoki Commercants
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
@@ -39,7 +39,7 @@ export function AppHeader() {
           {user ? <span className="hidden text-xs text-[#4a5261] md:inline">{user.email}</span> : null}
           <button
             type="button"
-            className="rounded-full border border-[#13223a40] px-3 py-2 text-sm font-medium text-[#13223a] hover:bg-[#13223a10]"
+            className="rounded-full border border-[#13223a3b] px-3 py-2 text-sm font-medium text-[#13223a] hover:bg-[#13223a0f]"
             onClick={() => {
               void signOut()
             }}

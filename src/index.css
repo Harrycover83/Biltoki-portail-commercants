@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f7f2e9;
-  --bg-soft: #efe9db;
+  --bg: #f6f0e4;
+  --bg-soft: #efe6d5;
   --ink: #101928;
   --ink-soft: #3a4352;
   --navy: #13223a;
@@ -26,9 +26,9 @@ body {
   font-family: 'Manrope', sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at 8% 12%, rgba(211, 95, 63, 0.26) 0%, transparent 35%),
-    radial-gradient(circle at 88% 84%, rgba(79, 122, 79, 0.24) 0%, transparent 28%),
-    radial-gradient(circle at 72% 18%, rgba(243, 181, 77, 0.18) 0%, transparent 24%),
+    radial-gradient(circle at 8% 12%, rgba(211, 95, 63, 0.22) 0%, transparent 34%),
+    radial-gradient(circle at 88% 84%, rgba(79, 122, 79, 0.18) 0%, transparent 28%),
+    radial-gradient(circle at 72% 18%, rgba(243, 181, 77, 0.16) 0%, transparent 24%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
 }
 
@@ -56,16 +56,17 @@ h3 {
     background-image:
       linear-gradient(rgba(19, 34, 58, 0.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(19, 34, 58, 0.06) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
+    background-size: 44px 44px;
+    opacity: 0.28;
+    mask-image: radial-gradient(circle at center, black 30%, transparent 84%);
   }
 
   .brand-card {
-    @apply rounded-2xl border p-5 shadow-sm;
-    border-color: rgba(19, 34, 58, 0.16);
-    background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 253, 248, 0.9));
+    @apply rounded-[1.6rem] border p-5 shadow-sm;
+    border-color: rgba(19, 34, 58, 0.14);
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 253, 248, 0.92));
     box-shadow:
-      0 10px 30px rgba(19, 34, 58, 0.08),
+      0 12px 32px rgba(19, 34, 58, 0.08),
       0 2px 6px rgba(19, 34, 58, 0.06);
   }
 
@@ -87,8 +88,8 @@ h3 {
   }
 
   .brand-button {
-    @apply rounded-xl px-4 py-2 text-sm font-semibold text-white transition;
-    background: linear-gradient(135deg, var(--navy), #1f365b);
+    @apply rounded-full px-4 py-2 text-sm font-semibold text-white transition;
+    background: linear-gradient(135deg, var(--navy), #20395f);
   }
 
   .brand-button:hover {
@@ -98,7 +99,18 @@ h3 {
 
   .brand-badge {
     @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide;
-    background: rgba(243, 181, 77, 0.2);
+    background: rgba(243, 181, 77, 0.22);
     color: var(--navy);
+  }
+
+  .brand-section-title {
+    @apply text-sm font-semibold uppercase tracking-[0.22em];
+    color: var(--terracotta);
+  }
+
+  .brand-display {
+    font-family: 'Fraunces', serif;
+    color: var(--navy);
+    letter-spacing: -0.03em;
   }
 }

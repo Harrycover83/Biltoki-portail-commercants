@@ -32,18 +32,18 @@ export function HistoryPage() {
       ) : null}
 
       {history.length > 0 ? (
-      <Card title="Historique des frais">
-        <ul className="divide-y divide-slate-100">
-          {history.map((row) => (
-            <li key={row.periodId} className="flex items-center justify-between py-3">
-              <Link to={`/frais/${row.periodId}`} className="font-medium text-slate-800 hover:underline">
-                {row.periodLabel}
-              </Link>
-              <span className="text-slate-700">{formatEuroFromCents(row.totalAllocatedCents)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
+        <Card title="Historique des frais">
+          <ul className="divide-y divide-[#13223a14]">
+            {history.map((row) => (
+              <li key={row.periodId} className="flex items-center justify-between py-4">
+                <Link to={`/frais/${row.periodId}`} className="font-medium text-[#13223a] hover:underline underline-offset-2">
+                  {row.periodLabel}
+                </Link>
+                <span className="text-sm font-semibold text-[#4d5562]">{formatEuroFromCents(row.totalAllocatedCents)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
       ) : null}
     </PageContainer>
   )

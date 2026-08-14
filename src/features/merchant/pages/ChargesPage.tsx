@@ -49,35 +49,35 @@ export function ChargesPage() {
       ) : null}
 
       {detail ? (
-      <Card title="Detail des frais" subtitle={`Periode ${detail.periodLabel}`}>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2">Poste</th>
-                <th className="py-2 text-right">Total</th>
-                <th className="py-2 text-right">Votre part</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.lines.map((line) => (
-                <tr key={line.id} className="border-b border-slate-100">
-                  <td className="py-2">{line.label}</td>
-                  <td className="py-2 text-right">{formatEuroFromCents(line.totalCents)}</td>
-                  <td className="py-2 text-right font-medium text-slate-900">{formatEuroFromCents(line.allocatedCents)}</td>
+        <Card title="Detail des frais" subtitle={`Periode ${detail.periodLabel}`}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#13223a1f] text-[#626a78]">
+                  <th className="py-2">Poste</th>
+                  <th className="py-2 text-right">Total</th>
+                  <th className="py-2 text-right">Votre part</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-4 text-sm text-slate-600">
-          Voir le calcul complet pour cette periode dans{' '}
-          <Link className="underline" to={`/frais/${detail.periodId}`}>
-            la page de detail
-          </Link>
-          .
-        </p>
-      </Card>
+              </thead>
+              <tbody>
+                {detail.lines.map((line) => (
+                  <tr key={line.id} className="border-b border-slate-100/80 last:border-b-0">
+                    <td className="py-3">{line.label}</td>
+                    <td className="py-3 text-right">{formatEuroFromCents(line.totalCents)}</td>
+                    <td className="py-3 text-right font-semibold text-[#13223a]">{formatEuroFromCents(line.allocatedCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-sm text-[#4d5562]">
+            Voir le calcul complet pour cette periode dans{' '}
+            <Link className="font-semibold text-[#13223a] underline underline-offset-2" to={`/frais/${detail.periodId}`}>
+              la page de detail
+            </Link>
+            .
+          </p>
+        </Card>
       ) : null}
     </PageContainer>
   )

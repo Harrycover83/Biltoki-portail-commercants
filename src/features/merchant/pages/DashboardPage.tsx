@@ -35,38 +35,48 @@ export function DashboardPage() {
       ) : null}
 
       {summary ? (
-      <div className="space-y-6">
-        <Card>
-          <p className="text-sm text-slate-500">Bonjour</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{summary.merchantName}</h1>
-          <div className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-            <p>
-              Stand : <span className="font-medium">{summary.standName}</span>
-            </p>
-            <p>
-              Numero : <span className="font-medium">{summary.standNumber}</span>
-            </p>
-            <p>
-              Halle : <span className="font-medium">{summary.hallName}</span>
-            </p>
-          </div>
-        </Card>
+        <div className="space-y-6">
+          <Card className="overflow-hidden">
+            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-end">
+              <div>
+                <p className="brand-section-title">Bienvenue</p>
+                <h1 className="brand-display mt-3 text-[2.55rem] leading-[0.95] font-semibold">{summary.merchantName}</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4d5562]">
+                  Un espace simple et lisible pour suivre vos frais, vos périodes et votre part d’allocation.
+                </p>
+              </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card title="Frais de service">
-            <p className="text-2xl font-semibold text-slate-900">{formatEuroFromCents(summary.totalChargesCents)}</p>
+              <div className="rounded-[1.35rem] border border-[#13223a17] bg-white/70 p-4">
+                <div className="grid gap-3 text-sm text-slate-700">
+                  <p>
+                    Stand : <span className="font-semibold text-[#13223a]">{summary.standName}</span>
+                  </p>
+                  <p>
+                    Numero : <span className="font-semibold text-[#13223a]">{summary.standNumber}</span>
+                  </p>
+                  <p>
+                    Halle : <span className="font-semibold text-[#13223a]">{summary.hallName}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
           </Card>
-          <Card title="Periode">
-            <p className="text-lg font-medium text-slate-900">{summary.periodLabel}</p>
-          </Card>
-          <Card title="Votre quote-part">
-            <p className="text-lg font-medium text-slate-900">{formatPercentage(summary.allocationPercentage)}</p>
-          </Card>
-          <Card title="Metres lineaires">
-            <p className="text-lg font-medium text-slate-900">{summary.linearMeters} ml</p>
-          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card title="Frais de service">
+              <p className="text-3xl font-semibold text-[#13223a]">{formatEuroFromCents(summary.totalChargesCents)}</p>
+            </Card>
+            <Card title="Periode">
+              <p className="text-lg font-semibold text-[#13223a]">{summary.periodLabel}</p>
+            </Card>
+            <Card title="Votre quote-part">
+              <p className="text-lg font-semibold text-[#13223a]">{formatPercentage(summary.allocationPercentage)}</p>
+            </Card>
+            <Card title="Metres lineaires">
+              <p className="text-lg font-semibold text-[#13223a]">{summary.linearMeters} ml</p>
+            </Card>
+          </div>
         </div>
-      </div>
       ) : null}
     </PageContainer>
   )

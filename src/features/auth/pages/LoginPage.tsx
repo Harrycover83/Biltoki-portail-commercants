@@ -41,16 +41,18 @@ export function LoginPage() {
   }
 
   return (
-    <div className="brand-shell grid min-h-screen place-items-center px-4 py-8">
-      <div className="brand-card w-full max-w-md p-6 md:p-7">
+    <div className="brand-shell grid min-h-screen place-items-center px-4 py-10">
+      <div className="brand-card w-full max-w-md p-7 md:p-8">
         <p className="brand-badge">Portail Biltoki</p>
-        <h1 className="brand-title mt-3 text-3xl font-semibold">Connexion commercant</h1>
-        <p className="mt-2 text-sm text-[#4d5562]">Accedez a votre espace personnel des Halles de Biltoki.</p>
+        <h1 className="brand-display mt-4 text-[2.3rem] leading-[0.98] font-semibold">Connexion commercant</h1>
+        <p className="mt-3 max-w-sm text-sm leading-6 text-[#4d5562]">
+          Accedez a votre espace personnel des Halles de Biltoki.
+        </p>
 
         {configurationError ? <p className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">{configurationError}</p> : null}
         {error ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
 
-        <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <label className="block">
             <span className="mb-1 block text-sm text-slate-700">Email</span>
             <input
@@ -80,7 +82,7 @@ export function LoginPage() {
           </button>
         </form>
 
-        <Link to="/reset-password" className="mt-4 inline-block text-sm font-medium text-[#13223a] underline underline-offset-2">
+        <Link to="/reset-password" className="mt-5 inline-block text-sm font-medium text-[#13223a] underline underline-offset-2">
           Mot de passe oublie ?
         </Link>
 
