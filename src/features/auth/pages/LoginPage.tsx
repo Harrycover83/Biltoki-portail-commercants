@@ -57,6 +57,7 @@ export function LoginPage() {
             <span className="mb-1 block text-sm text-slate-700">Email</span>
             <input
               type="email"
+              autoComplete="username"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -67,6 +68,7 @@ export function LoginPage() {
             <span className="mb-1 block text-sm text-slate-700">Mot de passe</span>
             <input
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}

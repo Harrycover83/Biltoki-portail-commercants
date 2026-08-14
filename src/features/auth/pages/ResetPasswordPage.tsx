@@ -23,6 +23,7 @@ export function ResetPasswordPage() {
         <form className="mt-5 space-y-4" onSubmit={onSubmit}>
           <input
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required

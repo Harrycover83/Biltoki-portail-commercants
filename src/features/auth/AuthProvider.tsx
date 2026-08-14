@@ -16,10 +16,12 @@ type AuthContextValue = {
   session: Session | null
   profile: Profile | null
   role: UserRole | null
+  mustChangePassword: boolean
   configurationError: string | null
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -50,6 +52,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+
+  const mustChangePassword = user?.user_metadata?.must_change_password === true
 
   const configurationError = client
     ? null
@@ -113,6 +117,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       session,
       profile,
       role: profile?.role ?? null,
+      mustChangePassword,
       configurationError,
       signIn: async (email, password) => {
         if (!client) {
@@ -134,11 +139,33 @@ export function AuthProvider({ children }: PropsWithChildren) {
           return { error: configurationError }
         }
 
-        const { error } = await client.auth.resetPasswordForEmail(email)
+        const redirectTo =
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/reset-password/update`
+            : undefined
+
+        const { error } = await client.auth.resetPasswordForEmail(email, {
+          redirectTo,
+        })
+        return { error: error?.message ?? null }
+      },
+      updatePassword: async (newPassword) => {
+        if (!client || !user) {
+          return { error: configurationError ?? 'Session invalide.' }
+        }
+
+        const { error } = await client.auth.updateUser({
+          password: newPassword,
+          data: {
+            ...user.user_metadata,
+            must_change_password: false,
+          },
+        })
+
         return { error: error?.message ?? null }
       },
     }),
-    [client, configurationError, loading, profile, session, user],
+    [client, configurationError, loading, mustChangePassword, profile, session, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -5,6 +5,8 @@ import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RoleRoute } from './guards/RoleRoute'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
+import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
+import { ResetPasswordUpdatePage } from '../features/auth/pages/ResetPasswordUpdatePage'
 import { DashboardPage } from '../features/merchant/pages/DashboardPage'
 import { ChargesPage } from '../features/merchant/pages/ChargesPage'
 import { ChargeDetailPage } from '../features/merchant/pages/ChargeDetailPage'
@@ -34,6 +36,16 @@ export function AppRouter() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/reset-password/update" element={<ResetPasswordUpdatePage />} />
+
+        <Route
+          path="/security/update-password"
+          element={
+            <ProtectedRoute>
+              <UpdatePasswordPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/dashboard"

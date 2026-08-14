@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
@@ -7,6 +7,7 @@ import { formatEuroFromCents } from '../../../lib/money'
 
 type AdminPeriodOption = {
   id: string
+  hall_id: string
   label: string
   period_end: string
 }
@@ -24,7 +25,13 @@ export function AdminServiceChargesPage() {
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingRows, setLoadingRows] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [newLabel, setNewLabel] = useState('')
+  const [newCategory, setNewCategory] = useState('operation')
+  const [amountExclTax, setAmountExclTax] = useState('0')
+  const [amountTax, setAmountTax] = useState('0')
 
   useEffect(() => {
     const loadPeriods = async () => {
@@ -37,7 +44,7 @@ export function AdminServiceChargesPage() {
 
       const { data, error: periodsError } = await client
         .from('service_charge_periods')
-        .select('id, label, period_end')
+        .select('id, hall_id, label, period_end')
         .order('period_end', { ascending: false })
 
       if (periodsError) {
@@ -96,10 +103,75 @@ export function AdminServiceChargesPage() {
   const selectedPeriodLabel =
     periods.find((period) => period.id === selectedPeriodId)?.label ?? 'Periode'
 
+  const selectedPeriod = periods.find((period) => period.id === selectedPeriodId) ?? null
+
   const totalCents = useMemo(
     () => rows.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
     [rows],
   )
+
+  const onCreateCharge = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedPeriod) {
+      setError('Aucune periode selectionnee.')
+      return
+    }
+
+    const client = getSupabaseClient()
+    if (!client) {
+      setError('Supabase non configure.')
+      return
+    }
+
+    const excl = Number.parseFloat(amountExclTax.replace(',', '.'))
+    const tax = Number.parseFloat(amountTax.replace(',', '.'))
+    if (!Number.isFinite(excl) || !Number.isFinite(tax) || excl < 0 || tax < 0) {
+      setError('Montants invalides. Utilisez des nombres positifs.')
+      return
+    }
+
+    const incl = Math.round((excl + tax) * 100) / 100
+
+    setSaving(true)
+    const { error: insertError } = await client.from('service_charges').insert({
+      hall_id: selectedPeriod.hall_id,
+      period_id: selectedPeriod.id,
+      label: newLabel,
+      category: newCategory,
+      amount_excl_tax: excl,
+      amount_tax: tax,
+      amount_incl_tax: incl,
+      source: 'manual',
+    })
+
+    if (insertError) {
+      setError(insertError.message)
+      setSaving(false)
+      return
+    }
+
+    setNewLabel('')
+    setAmountExclTax('0')
+    setAmountTax('0')
+    setError(null)
+    setSaving(false)
+
+    setLoadingRows(true)
+    const { data, error: rowsError } = await client
+      .from('service_charges')
+      .select('id, label, category, amount_incl_tax')
+      .eq('period_id', selectedPeriod.id)
+      .order('label', { ascending: true })
+
+    if (rowsError) {
+      setError(rowsError.message)
+      setLoadingRows(false)
+      return
+    }
+
+    setRows((data ?? []) as AdminChargeRow[])
+    setLoadingRows(false)
+  }
 
   return (
     <PageContainer>
@@ -127,6 +199,57 @@ export function AdminServiceChargesPage() {
               </select>
             </div>
           ) : null}
+
+          <form className="mb-5 grid gap-3 rounded-2xl border border-[#13223a17] bg-white/70 p-4 md:grid-cols-2" onSubmit={onCreateCharge}>
+            <label className="block text-sm text-[#4d5562] md:col-span-2">
+              Libelle
+              <input
+                className="brand-input mt-1"
+                required
+                value={newLabel}
+                onChange={(event) => setNewLabel(event.target.value)}
+              />
+            </label>
+
+            <label className="block text-sm text-[#4d5562]">
+              Categorie
+              <input
+                className="brand-input mt-1"
+                value={newCategory}
+                onChange={(event) => setNewCategory(event.target.value)}
+              />
+            </label>
+
+            <div />
+
+            <label className="block text-sm text-[#4d5562]">
+              Montant HT
+              <input
+                className="brand-input mt-1"
+                inputMode="decimal"
+                required
+                value={amountExclTax}
+                onChange={(event) => setAmountExclTax(event.target.value)}
+              />
+            </label>
+
+            <label className="block text-sm text-[#4d5562]">
+              TVA
+              <input
+                className="brand-input mt-1"
+                inputMode="decimal"
+                required
+                value={amountTax}
+                onChange={(event) => setAmountTax(event.target.value)}
+              />
+            </label>
+
+            <div className="md:col-span-2">
+              <button className="brand-button" disabled={saving || !selectedPeriodId} type="submit">
+                {saving ? 'Ajout...' : 'Ajouter le frais'}
+              </button>
+            </div>
+          </form>
 
           {rows.length === 0 ? (
             <StateMessage
