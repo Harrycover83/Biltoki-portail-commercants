@@ -21,10 +21,10 @@ import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="brand-shell min-h-screen">
       <AppHeader />
       {children}
-    </>
+    </div>
   )
 }
 

@@ -6,14 +6,14 @@ export function AppHeader() {
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? 'rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white'
-      : 'rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
+      ? 'rounded-full bg-[#13223a] px-3 py-2 text-sm font-semibold text-white shadow-sm'
+      : 'rounded-full px-3 py-2 text-sm font-semibold text-[#2a3242] hover:bg-[#13223a14]'
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-[#13223a26] bg-[#fff9f0]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 md:px-6">
-        <Link to="/dashboard" className="text-lg font-semibold tracking-tight text-slate-900">
-          Portail Commercants
+        <Link to="/dashboard" className="brand-title text-lg font-semibold tracking-tight text-[#13223a]">
+          Biltoki Commercants
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           <NavLink to="/dashboard" className={navClassName}>
@@ -35,10 +35,11 @@ export function AppHeader() {
           ) : null}
         </nav>
         <div className="flex items-center gap-3">
-          {user ? <span className="hidden text-xs text-slate-500 md:inline">{user.email}</span> : null}
+          {profile?.role ? <span className="brand-badge hidden md:inline-flex">{profile.role}</span> : null}
+          {user ? <span className="hidden text-xs text-[#4a5261] md:inline">{user.email}</span> : null}
           <button
             type="button"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-[#13223a40] px-3 py-2 text-sm font-medium text-[#13223a] hover:bg-[#13223a10]"
             onClick={() => {
               void signOut()
             }}

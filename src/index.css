@@ -5,11 +5,15 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f4f5f0;
-  --bg-soft: #eef0e8;
-  --ink: #101b1b;
-  --accent: #0f766e;
-  --accent-soft: #bde4df;
+  --bg: #f7f2e9;
+  --bg-soft: #efe9db;
+  --ink: #101928;
+  --ink-soft: #3a4352;
+  --navy: #13223a;
+  --terracotta: #d35f3f;
+  --sun: #f3b54d;
+  --leaf: #4f7a4f;
+  --paper: #fffdf8;
 }
 
 * {
@@ -22,8 +26,9 @@ body {
   font-family: 'Manrope', sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, #d7eadf 0%, transparent 40%),
-    radial-gradient(circle at bottom right, #f5dfc5 0%, transparent 35%),
+    radial-gradient(circle at 8% 12%, rgba(211, 95, 63, 0.26) 0%, transparent 35%),
+    radial-gradient(circle at 88% 84%, rgba(79, 122, 79, 0.24) 0%, transparent 28%),
+    radial-gradient(circle at 72% 18%, rgba(243, 181, 77, 0.18) 0%, transparent 24%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
 }
 
@@ -35,4 +40,65 @@ h3 {
 
 #root {
   min-height: 100vh;
+}
+
+@layer components {
+  .brand-shell {
+    @apply relative;
+  }
+
+  .brand-shell::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+      linear-gradient(rgba(19, 34, 58, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(19, 34, 58, 0.06) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
+  }
+
+  .brand-card {
+    @apply rounded-2xl border p-5 shadow-sm;
+    border-color: rgba(19, 34, 58, 0.16);
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 253, 248, 0.9));
+    box-shadow:
+      0 10px 30px rgba(19, 34, 58, 0.08),
+      0 2px 6px rgba(19, 34, 58, 0.06);
+  }
+
+  .brand-title {
+    @apply tracking-tight;
+    color: var(--navy);
+    font-family: 'Fraunces', serif;
+  }
+
+  .brand-input {
+    @apply w-full rounded-xl border px-3 py-2 text-sm text-slate-800 outline-none transition;
+    border-color: rgba(19, 34, 58, 0.25);
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+
+  .brand-input:focus {
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(211, 95, 63, 0.18);
+  }
+
+  .brand-button {
+    @apply rounded-xl px-4 py-2 text-sm font-semibold text-white transition;
+    background: linear-gradient(135deg, var(--navy), #1f365b);
+  }
+
+  .brand-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(19, 34, 58, 0.25);
+  }
+
+  .brand-badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide;
+    background: rgba(243, 181, 77, 0.2);
+    color: var(--navy);
+  }
 }
