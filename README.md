@@ -212,6 +212,15 @@ Important pour `seed_minimal.sql`:
 - Le seed recupere automatiquement les UUID via email:
   - `jean.merchant@example.com`
   - `admin.biltoki@example.com`
+- Ne pas inserer ou modifier directement `auth.users`, `auth.identities` ou `auth.instances` via SQL. Utiliser uniquement:
+  - le dashboard `Authentication > Users`
+  - ou l'API Admin officielle Supabase
+
+## Politique Auth
+
+- Les tables `auth.*` sont gerees par Supabase Auth et ne doivent pas etre traitees comme des tables metier.
+- Les tables du projet a manipuler applicativement sont les tables `public.*` (`profiles`, `merchants`, `stands`, `service_charge_periods`, `service_charges`, `allocations`, etc.).
+- Le seed metier lit `auth.users` pour lier les `profiles`, mais n'ecrit jamais dans `auth.*`.
 
 ## Questions metier bloquantes (a trancher)
 
