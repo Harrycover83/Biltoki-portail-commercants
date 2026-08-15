@@ -61,6 +61,14 @@ create table if not exists public.admin_hall_permissions (
   unique (profile_id, hall_id)
 );
 
+create table if not exists public.merchant_hall_permissions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  hall_id uuid not null references public.halls(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (profile_id, hall_id)
+);
+
 create table if not exists public.stands (
   id uuid primary key default gen_random_uuid(),
   hall_id uuid not null references public.halls(id) on delete restrict,
@@ -184,6 +192,14 @@ as $$
       where p.id = auth.uid()
         and p.role = 'merchant'
         and m.hall_id = target_hall_id
+    )
+    or exists (
+      select 1
+      from public.merchant_hall_permissions mhp
+      join public.profiles p on p.id = mhp.profile_id
+      where p.id = auth.uid()
+        and p.role = 'merchant'
+        and mhp.hall_id = target_hall_id
     )
     or exists (
       select 1
@@ -323,6 +339,7 @@ alter table public.halls enable row level security;
 alter table public.merchants enable row level security;
 alter table public.profiles enable row level security;
 alter table public.admin_hall_permissions enable row level security;
+alter table public.merchant_hall_permissions enable row level security;
 alter table public.stands enable row level security;
 alter table public.service_charge_periods enable row level security;
 alter table public.allocation_rules enable row level security;
@@ -431,6 +448,15 @@ create policy "syncs_write_admin"
 
 create policy "admin_hall_permissions_admin_only"
   on public.admin_hall_permissions for all
+  using (public.is_admin_user())
+  with check (public.is_admin_user());
+
+create policy "merchant_hall_permissions_select_own"
+  on public.merchant_hall_permissions for select
+  using (profile_id = auth.uid() or public.is_admin_user());
+
+create policy "merchant_hall_permissions_admin_write"
+  on public.merchant_hall_permissions for all
   using (public.is_admin_user())
   with check (public.is_admin_user());
 

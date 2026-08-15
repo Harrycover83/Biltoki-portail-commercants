@@ -85,6 +85,36 @@ function filterByHall(rows: ServiceChargeRow[], hallId?: string): ServiceChargeR
   return rows.filter((row) => row.hall_id === hallId)
 }
 
+async function fetchCurrentUserDisplayName(): Promise<string> {
+  const client = getSupabaseClient()
+  if (!client) {
+    return 'Commercant'
+  }
+
+  const {
+    data: { user },
+  } = await client.auth.getUser()
+
+  if (!user) {
+    return 'Commercant'
+  }
+
+  const first = (user.user_metadata?.first_name as string | undefined)?.trim()
+  const last = (user.user_metadata?.last_name as string | undefined)?.trim()
+
+  const fullName = [first, last].filter(Boolean).join(' ')
+  if (fullName.length > 0) {
+    return fullName
+  }
+
+  const email = user.email ?? ''
+  if (email.includes('@')) {
+    return email.split('@')[0]
+  }
+
+  return 'Commercant'
+}
+
 async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceChargeRow[]>> {
   const client = getSupabaseClient()
   if (!client) {
@@ -136,7 +166,12 @@ export async function getMerchantHallOptions(): Promise<ServiceResult<MerchantHa
 }
 
 export async function getMerchantDashboardSummary(hallId?: string): Promise<ServiceResult<MerchantDashboardSummary>> {
-  const { data, error } = await fetchVisibleServiceCharges()
+  const [chargesResult, merchantName] = await Promise.all([
+    fetchVisibleServiceCharges(),
+    fetchCurrentUserDisplayName(),
+  ])
+
+  const { data, error } = chargesResult
   if (error) {
     return { data: null, error }
   }
@@ -153,7 +188,6 @@ export async function getMerchantDashboardSummary(hallId?: string): Promise<Serv
     0,
   )
 
-  const merchantName = 'Commercant'
   const first = latestRows[0]
 
   return {
