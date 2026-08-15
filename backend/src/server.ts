@@ -11,8 +11,8 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   app.use(express.json())
 
   // Health check
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  app.get('/health', (_req, res) => {
+    return res.json({ status: 'ok', timestamp: new Date().toISOString() })
   })
 
   // Manual sync endpoint for a specific hall
@@ -34,7 +34,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
 
       const result = await syncService.syncServiceCharges()
 
-      res.status(200).json({
+      return res.status(200).json({
         syncId: result.syncId,
         hallId: result.hallId,
         status: result.status,
@@ -43,7 +43,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       })
     } catch (error) {
       logger.error('Sync error:', error)
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Sync failed',
         message: error instanceof Error ? error.message : 'Unknown error',
       })
@@ -63,24 +63,24 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
         return res.status(404).json({ error: 'Sync not found' })
       }
 
-      res.json(data)
+      return res.json(data)
     } catch (error) {
       logger.error('Error fetching sync:', error)
-      res.status(500).json({ error: 'Failed to fetch sync status' })
+      return res.status(500).json({ error: 'Failed to fetch sync status' })
     }
   })
 
   // List configured halls
-  app.get('/api/halls', (req, res) => {
-    res.json({
+  app.get('/api/halls', (_req, res) => {
+    return res.json({
       halls: config.biltoki.hallsToSync,
       count: config.biltoki.hallsToSync.length,
     })
   })
 
   // 404 handler
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' })
+  app.use((_req, res) => {
+    return res.status(404).json({ error: 'Not found' })
   })
 
   return app
