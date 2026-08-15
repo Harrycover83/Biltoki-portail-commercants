@@ -13,11 +13,9 @@ import { ChargeDetailPage } from '../features/merchant/pages/ChargeDetailPage'
 import { HistoryPage } from '../features/merchant/pages/HistoryPage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
-import { AdminMerchantsPage } from '../features/admin/pages/AdminMerchantsPage'
 import { AdminStandsPage } from '../features/admin/pages/AdminStandsPage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminPeriodsPage } from '../features/admin/pages/AdminPeriodsPage'
-import { AdminAllocationsPage } from '../features/admin/pages/AdminAllocationsPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
@@ -134,9 +132,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <PrivateLayout>
-                  <AdminMerchantsPage />
-                </PrivateLayout>
+                <Navigate to="/admin/stands" replace />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -186,9 +182,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <PrivateLayout>
-                  <AdminAllocationsPage />
-                </PrivateLayout>
+                <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
           }

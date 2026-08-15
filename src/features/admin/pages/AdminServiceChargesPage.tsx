@@ -65,11 +65,17 @@ export function AdminServiceChargesPage() {
       }
 
       const hallOptions = (hallsResponse.data ?? []) as AdminHallOption[]
+      const allPeriods = (periodsResponse.data ?? []) as AdminPeriodOption[]
+
+      const preferredHallId =
+        hallOptions.find((hall) => allPeriods.some((period) => period.hall_id === hall.id))?.id ??
+        hallOptions[0]?.id ??
+        ''
+
       setHalls(hallOptions)
-      const initialHallId = hallOptions[0]?.id ?? ''
+      const initialHallId = preferredHallId
       setSelectedHallId(initialHallId)
 
-      const allPeriods = (periodsResponse.data ?? []) as AdminPeriodOption[]
       const filteredPeriods = initialHallId
         ? allPeriods.filter((period) => period.hall_id === initialHallId)
         : allPeriods
@@ -135,6 +141,7 @@ export function AdminServiceChargesPage() {
         .from('service_charges')
         .select('id, label, category, amount_incl_tax')
         .eq('period_id', selectedPeriodId)
+        .eq('hall_id', selectedHallId)
         .order('label', { ascending: true })
 
       if (rowsError) {
@@ -151,10 +158,10 @@ export function AdminServiceChargesPage() {
     if (!loading) {
       void loadRows()
     }
-  }, [loading, selectedPeriodId])
+  }, [loading, selectedHallId, selectedPeriodId])
 
   const selectedPeriodLabel =
-    periods.find((period) => period.id === selectedPeriodId)?.label ?? 'Periode'
+    periods.find((period) => period.id === selectedPeriodId)?.label ?? 'Aucune periode'
 
   const totalCents = useMemo(
     () => rows.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
@@ -187,7 +194,7 @@ export function AdminServiceChargesPage() {
       {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
 
       {!loading && !error ? (
-        <Card title="Frais de service" subtitle={`Periode ${selectedPeriodLabel}`}>
+        <Card title="Frais de service" subtitle={selectedPeriodLabel}>
           <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#13223a17] bg-white/70 p-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-[#4d5562]">
               Source unique: Pennylane. Cette vue est en lecture et alimentee par la synchronisation.
@@ -282,6 +289,12 @@ export function AdminServiceChargesPage() {
               </p>
             </>
           )}
+
+          {selectedHallId && periods.length === 0 ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Aucune periode disponible pour cette halle. Creez une periode dans "Periodes" puis relancez la synchronisation.
+            </div>
+          ) : null}
         </Card>
       ) : null}
     </PageContainer>

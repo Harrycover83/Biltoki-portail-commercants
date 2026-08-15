@@ -29,9 +29,6 @@ export function AppHeader() {
               <NavLink to="/admin/periodes" className={navClassName}>
                 Periodes
               </NavLink>
-              <NavLink to="/admin/commercants" className={navClassName}>
-                Commercants
-              </NavLink>
               <NavLink to="/admin/stands" className={navClassName}>
                 Stands
               </NavLink>
