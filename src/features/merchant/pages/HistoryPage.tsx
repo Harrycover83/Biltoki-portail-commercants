@@ -28,7 +28,7 @@ export function HistoryPage() {
       {loading ? <StateMessage variant="loading" title="Chargement de l'historique..." /> : null}
       {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
       {!loading && !error && history.length === 0 ? (
-        <StateMessage variant="empty" title="Historique vide" message="Aucune periode calculee pour le moment." />
+        <StateMessage variant="empty" title="Historique vide" message="Aucune periode de frais disponible pour le moment." />
       ) : null}
 
       {history.length > 0 ? (
@@ -39,7 +39,7 @@ export function HistoryPage() {
                 <Link to={`/frais/${row.periodId}`} className="font-medium text-[#13223a] hover:underline underline-offset-2">
                   {row.periodLabel}
                 </Link>
-                <span className="text-sm font-semibold text-[#4d5562]">{formatEuroFromCents(row.totalAllocatedCents)}</span>
+                <span className="text-sm font-semibold text-[#4d5562]">{formatEuroFromCents(row.totalChargesCents)}</span>
               </li>
             ))}
           </ul>

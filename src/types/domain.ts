@@ -12,13 +12,9 @@ export type Profile = {
 export type MerchantDashboardSummary = {
   merchantName: string
   hallName: string
-  standName: string
-  standNumber: string
   periodLabel: string
   totalChargesCents: number
-  allocationPercentage: number
-  linearMeters: number
-  totalLinearMeters: number
+  lineCount: number
 }
 
 export type ChargeLine = {
@@ -26,23 +22,18 @@ export type ChargeLine = {
   label: string
   category: string | null
   totalCents: number
-  allocatedCents: number
 }
 
 export type MerchantHistoryRow = {
   periodId: string
   periodLabel: string
-  totalAllocatedCents: number
+  totalChargesCents: number
   periodEnd: string
 }
 
 export type MerchantChargePeriodDetail = {
   periodId: string
   periodLabel: string
-  totalCommonChargesCents: number
-  totalAllocatedCents: number
-  linearMeters: number
-  totalLinearMeters: number
-  allocationPercentage: number
+  totalChargesCents: number
   lines: ChargeLine[]
 }

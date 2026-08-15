@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
@@ -12,6 +12,11 @@ type AdminPeriodOption = {
   period_end: string
 }
 
+type AdminHallOption = {
+  id: string
+  name: string
+}
+
 type AdminChargeRow = {
   id: string
   label: string
@@ -20,18 +25,15 @@ type AdminChargeRow = {
 }
 
 export function AdminServiceChargesPage() {
+  const [halls, setHalls] = useState<AdminHallOption[]>([])
+  const [selectedHallId, setSelectedHallId] = useState('')
   const [periods, setPeriods] = useState<AdminPeriodOption[]>([])
   const [selectedPeriodId, setSelectedPeriodId] = useState('')
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingRows, setLoadingRows] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const [newLabel, setNewLabel] = useState('')
-  const [newCategory, setNewCategory] = useState('operation')
-  const [amountExclTax, setAmountExclTax] = useState('0')
-  const [amountTax, setAmountTax] = useState('0')
 
   useEffect(() => {
     const loadPeriods = async () => {
@@ -42,27 +44,78 @@ export function AdminServiceChargesPage() {
         return
       }
 
-      const { data, error: periodsError } = await client
-        .from('service_charge_periods')
-        .select('id, hall_id, label, period_end')
-        .order('period_end', { ascending: false })
+      const [periodsResponse, hallsResponse] = await Promise.all([
+        client
+          .from('service_charge_periods')
+          .select('id, hall_id, label, period_end')
+          .order('period_end', { ascending: false }),
+        client.from('halls').select('id, name').order('name', { ascending: true }),
+      ])
 
-      if (periodsError) {
-        setError(periodsError.message)
+      if (periodsResponse.error) {
+        setError(periodsResponse.error.message)
         setLoading(false)
         return
       }
 
-      const options = (data ?? []) as AdminPeriodOption[]
-      setPeriods(options)
-      if (options[0]) {
-        setSelectedPeriodId(options[0].id)
+      if (hallsResponse.error) {
+        setError(hallsResponse.error.message)
+        setLoading(false)
+        return
       }
+
+      const hallOptions = (hallsResponse.data ?? []) as AdminHallOption[]
+      setHalls(hallOptions)
+      const initialHallId = hallOptions[0]?.id ?? ''
+      setSelectedHallId(initialHallId)
+
+      const allPeriods = (periodsResponse.data ?? []) as AdminPeriodOption[]
+      const filteredPeriods = initialHallId
+        ? allPeriods.filter((period) => period.hall_id === initialHallId)
+        : allPeriods
+
+      setPeriods(filteredPeriods)
+      setSelectedPeriodId(filteredPeriods[0]?.id ?? '')
       setLoading(false)
     }
 
     void loadPeriods()
   }, [])
+
+  useEffect(() => {
+    const reloadPeriodsForHall = async () => {
+      if (!selectedHallId) {
+        setPeriods([])
+        setSelectedPeriodId('')
+        return
+      }
+
+      const client = getSupabaseClient()
+      if (!client) {
+        setError('Supabase non configure.')
+        return
+      }
+
+      const { data, error: periodsError } = await client
+        .from('service_charge_periods')
+        .select('id, hall_id, label, period_end')
+        .eq('hall_id', selectedHallId)
+        .order('period_end', { ascending: false })
+
+      if (periodsError) {
+        setError(periodsError.message)
+        return
+      }
+
+      const options = (data ?? []) as AdminPeriodOption[]
+      setPeriods(options)
+      setSelectedPeriodId(options[0]?.id ?? '')
+    }
+
+    if (!loading) {
+      void reloadPeriodsForHall()
+    }
+  }, [loading, selectedHallId])
 
   useEffect(() => {
     const loadRows = async () => {
@@ -103,74 +156,29 @@ export function AdminServiceChargesPage() {
   const selectedPeriodLabel =
     periods.find((period) => period.id === selectedPeriodId)?.label ?? 'Periode'
 
-  const selectedPeriod = periods.find((period) => period.id === selectedPeriodId) ?? null
-
   const totalCents = useMemo(
     () => rows.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
     [rows],
   )
 
-  const onCreateCharge = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedPeriod) {
-      setError('Aucune periode selectionnee.')
-      return
-    }
-
+  const onSyncPennylane = async () => {
     const client = getSupabaseClient()
     if (!client) {
       setError('Supabase non configure.')
       return
     }
 
-    const excl = Number.parseFloat(amountExclTax.replace(',', '.'))
-    const tax = Number.parseFloat(amountTax.replace(',', '.'))
-    if (!Number.isFinite(excl) || !Number.isFinite(tax) || excl < 0 || tax < 0) {
-      setError('Montants invalides. Utilisez des nombres positifs.')
+    setSyncing(true)
+    const { error: syncError } = await client.functions.invoke('pennylane-sync')
+
+    if (syncError) {
+      setError(syncError.message)
+      setSyncing(false)
       return
     }
 
-    const incl = Math.round((excl + tax) * 100) / 100
-
-    setSaving(true)
-    const { error: insertError } = await client.from('service_charges').insert({
-      hall_id: selectedPeriod.hall_id,
-      period_id: selectedPeriod.id,
-      label: newLabel,
-      category: newCategory,
-      amount_excl_tax: excl,
-      amount_tax: tax,
-      amount_incl_tax: incl,
-      source: 'manual',
-    })
-
-    if (insertError) {
-      setError(insertError.message)
-      setSaving(false)
-      return
-    }
-
-    setNewLabel('')
-    setAmountExclTax('0')
-    setAmountTax('0')
     setError(null)
-    setSaving(false)
-
-    setLoadingRows(true)
-    const { data, error: rowsError } = await client
-      .from('service_charges')
-      .select('id, label, category, amount_incl_tax')
-      .eq('period_id', selectedPeriod.id)
-      .order('label', { ascending: true })
-
-    if (rowsError) {
-      setError(rowsError.message)
-      setLoadingRows(false)
-      return
-    }
-
-    setRows((data ?? []) as AdminChargeRow[])
-    setLoadingRows(false)
+    setSyncing(false)
   }
 
   return (
@@ -180,8 +188,43 @@ export function AdminServiceChargesPage() {
 
       {!loading && !error ? (
         <Card title="Frais de service" subtitle={`Periode ${selectedPeriodLabel}`}>
+          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#13223a17] bg-white/70 p-4 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm text-[#4d5562]">
+              Source unique: Pennylane. Cette vue est en lecture et alimentee par la synchronisation.
+            </p>
+            <button
+              className="brand-button w-fit"
+              disabled={syncing}
+              type="button"
+              onClick={() => {
+                void onSyncPennylane()
+              }}
+            >
+              {syncing ? 'Synchronisation...' : 'Synchroniser Pennylane'}
+            </button>
+          </div>
+
           {periods.length > 0 ? (
-            <div className="mb-4">
+            <div className="mb-4 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-hall-select">
+                  Halle
+                </label>
+                <select
+                  id="admin-hall-select"
+                  value={selectedHallId}
+                  onChange={(event) => setSelectedHallId(event.target.value)}
+                  className="brand-input"
+                >
+                  {halls.map((hall) => (
+                    <option key={hall.id} value={hall.id}>
+                      {hall.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
               <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-period-select">
                 Mois a consulter
               </label>
@@ -197,65 +240,15 @@ export function AdminServiceChargesPage() {
                   </option>
                 ))}
               </select>
+              </div>
             </div>
           ) : null}
-
-          <form className="mb-5 grid gap-3 rounded-2xl border border-[#13223a17] bg-white/70 p-4 md:grid-cols-2" onSubmit={onCreateCharge}>
-            <label className="block text-sm text-[#4d5562] md:col-span-2">
-              Libelle
-              <input
-                className="brand-input mt-1"
-                required
-                value={newLabel}
-                onChange={(event) => setNewLabel(event.target.value)}
-              />
-            </label>
-
-            <label className="block text-sm text-[#4d5562]">
-              Categorie
-              <input
-                className="brand-input mt-1"
-                value={newCategory}
-                onChange={(event) => setNewCategory(event.target.value)}
-              />
-            </label>
-
-            <div />
-
-            <label className="block text-sm text-[#4d5562]">
-              Montant HT
-              <input
-                className="brand-input mt-1"
-                inputMode="decimal"
-                required
-                value={amountExclTax}
-                onChange={(event) => setAmountExclTax(event.target.value)}
-              />
-            </label>
-
-            <label className="block text-sm text-[#4d5562]">
-              TVA
-              <input
-                className="brand-input mt-1"
-                inputMode="decimal"
-                required
-                value={amountTax}
-                onChange={(event) => setAmountTax(event.target.value)}
-              />
-            </label>
-
-            <div className="md:col-span-2">
-              <button className="brand-button" disabled={saving || !selectedPeriodId} type="submit">
-                {saving ? 'Ajout...' : 'Ajouter le frais'}
-              </button>
-            </div>
-          </form>
 
           {rows.length === 0 ? (
             <StateMessage
               variant="empty"
               title="Aucun frais pour cette periode"
-              message="Ajoutez ou importez des frais puis selectionnez la periode a consulter."
+              message="Aucun frais synchronise depuis Pennylane pour cette periode."
             />
           ) : (
             <>

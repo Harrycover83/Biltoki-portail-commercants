@@ -11,18 +11,13 @@ type ServiceResult<T> = {
   error: string | null
 }
 
-type AllocationRow = {
+type ServiceChargeRow = {
+  id: string
+  label: string
+  category: string | null
+  amount_incl_tax: number
   period_id: string
-  allocated_amount: number
-  allocation_percentage: number
-  merchant_linear_meters: number
-  total_linear_meters: number
-  service_charges: {
-    id: string
-    label: string
-    category: string | null
-    amount_incl_tax: number
-  } | null
+  created_at: string
   service_charge_periods: {
     id: string
     label: string
@@ -31,26 +26,15 @@ type AllocationRow = {
       name: string
     } | null
   } | null
-  stands: {
-    name: string
-    number: string | null
-  } | null
-  merchants: {
-    trade_name: string | null
-    legal_name: string
-  } | null
 }
 
-type AllocationRowRaw = Omit<
-  AllocationRow,
-  'service_charges' | 'service_charge_periods' | 'stands' | 'merchants'
-> & {
-  service_charges: AllocationRow['service_charges'] | AllocationRow['service_charges'][]
-  service_charge_periods:
-    | AllocationRow['service_charge_periods']
-    | AllocationRow['service_charge_periods'][]
-  stands: AllocationRow['stands'] | AllocationRow['stands'][]
-  merchants: AllocationRow['merchants'] | AllocationRow['merchants'][]
+type ServiceChargeRowRaw = Omit<ServiceChargeRow, 'service_charge_periods'> & {
+  service_charge_periods: ServiceChargeRow['service_charge_periods'] | ServiceChargeRow['service_charge_periods'][]
+}
+
+type MerchantIdentity = {
+  merchantName: string
+  hallName: string
 }
 
 function singleOrNull<T>(value: T | T[] | null): T | null {
@@ -60,13 +44,10 @@ function singleOrNull<T>(value: T | T[] | null): T | null {
   return value
 }
 
-function normalizeAllocationRows(rows: AllocationRowRaw[]): AllocationRow[] {
+function normalizeChargeRows(rows: ServiceChargeRowRaw[]): ServiceChargeRow[] {
   return rows.map((row) => ({
     ...row,
-    service_charges: singleOrNull(row.service_charges),
     service_charge_periods: singleOrNull(row.service_charge_periods),
-    stands: singleOrNull(row.stands),
-    merchants: singleOrNull(row.merchants),
   }))
 }
 
@@ -74,145 +55,181 @@ function toCents(value: number): number {
   return Math.round(value * 100)
 }
 
-function toNumber(value: number): number {
-  return Number(value)
+function mapChargeLines(rows: ServiceChargeRow[]): ChargeLine[] {
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.label,
+    category: row.category,
+    totalCents: toCents(Number(row.amount_incl_tax)),
+  }))
 }
 
-function mapChargeLines(rows: AllocationRow[]): ChargeLine[] {
-  return rows
-    .filter((row) => row.service_charges)
-    .map((row) => ({
-      id: row.service_charges!.id,
-      label: row.service_charges!.label,
-      category: row.service_charges!.category,
-      totalCents: toCents(toNumber(row.service_charges!.amount_incl_tax)),
-      allocatedCents: toCents(toNumber(row.allocated_amount)),
-    }))
+async function fetchMerchantIdentity(): Promise<ServiceResult<MerchantIdentity>> {
+  const client = getSupabaseClient()
+  if (!client) {
+    return { data: null, error: 'Supabase non configure.' }
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser()
+
+  if (authError || !user) {
+    return { data: null, error: authError?.message ?? 'Utilisateur non authentifie.' }
+  }
+
+  const { data, error } = await client
+    .from('profiles')
+    .select(
+      `
+      merchants:merchants!profiles_merchant_id_fkey(
+        trade_name,
+        legal_name,
+        halls:halls!merchants_hall_id_fkey(name)
+      )
+    `,
+    )
+    .eq('id', user.id)
+    .single()
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  const merchantsValue = (data as { merchants: unknown }).merchants as
+    | {
+        trade_name: string | null
+        legal_name: string
+        halls: { name: string } | null
+      }
+    | {
+        trade_name: string | null
+        legal_name: string
+        halls: { name: string } | null
+      }[]
+    | null
+
+  const merchant = singleOrNull(merchantsValue)
+
+  return {
+    data: {
+      merchantName: merchant?.trade_name ?? merchant?.legal_name ?? 'Commercant',
+      hallName: merchant?.halls?.name ?? 'Halle inconnue',
+    },
+    error: null,
+  }
 }
 
-async function fetchMerchantAllocations(): Promise<ServiceResult<AllocationRow[]>> {
+async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceChargeRow[]>> {
   const client = getSupabaseClient()
   if (!client) {
     return { data: null, error: 'Supabase non configure.' }
   }
 
   const { data, error } = await client
-    .from('allocations')
+    .from('service_charges')
     .select(
       `
+      id,
+      label,
+      category,
+      amount_incl_tax,
       period_id,
-      allocated_amount,
-      allocation_percentage,
-      merchant_linear_meters,
-      total_linear_meters,
-      service_charges:service_charges!inner(
-        id,
-        label,
-        category,
-        amount_incl_tax
-      ),
+      created_at,
       service_charge_periods:service_charge_periods!inner(
         id,
         label,
         period_end,
         halls:halls!inner(name)
-      ),
-      stands:stands!inner(name, number),
-      merchants:merchants!inner(trade_name, legal_name)
+      )
     `,
     )
-    .order('created_at', { ascending: false })
+    .order('period_end', {
+      referencedTable: 'service_charge_periods',
+      ascending: false,
+    })
+    .order('label', { ascending: true })
 
   if (error) {
     return { data: null, error: error.message }
   }
 
   return {
-    data: normalizeAllocationRows((data ?? []) as unknown as AllocationRowRaw[]),
+    data: normalizeChargeRows((data ?? []) as unknown as ServiceChargeRowRaw[]),
     error: null,
   }
 }
 
 export async function getMerchantDashboardSummary(): Promise<ServiceResult<MerchantDashboardSummary>> {
-  const { data, error } = await fetchMerchantAllocations()
-  if (error) {
-    return { data: null, error }
+  const [identityResult, chargesResult] = await Promise.all([
+    fetchMerchantIdentity(),
+    fetchVisibleServiceCharges(),
+  ])
+
+  if (identityResult.error) {
+    return { data: null, error: identityResult.error }
   }
 
-  if (!data || data.length === 0) {
+  if (chargesResult.error) {
+    return { data: null, error: chargesResult.error }
+  }
+
+  const rows = chargesResult.data ?? []
+  if (rows.length === 0) {
     return { data: null, error: null }
   }
 
-  const latestRow = data.reduce((latest, row) => {
-    const current = row.service_charge_periods?.period_end ?? ''
-    const candidate = latest.service_charge_periods?.period_end ?? ''
-    return current > candidate ? row : latest
-  }, data[0])
-
-  const latestPeriodId = latestRow.period_id
-  const latestPeriodRows = data.filter((row) => row.period_id === latestPeriodId)
-
-  const totalChargesCents = latestPeriodRows.reduce(
-    (sum, row) => sum + toCents(toNumber(row.allocated_amount)),
+  const latestPeriodId = rows[0].period_id
+  const latestRows = rows.filter((row) => row.period_id === latestPeriodId)
+  const totalChargesCents = latestRows.reduce(
+    (sum, row) => sum + toCents(Number(row.amount_incl_tax)),
     0,
   )
 
-  const first = latestPeriodRows[0]
-  const merchantName =
-    first?.merchants?.trade_name ?? first?.merchants?.legal_name ?? 'Commercant'
-  const hallName = first?.service_charge_periods?.halls?.name ?? 'Halle inconnue'
-  const standName = first?.stands?.name ?? 'Stand inconnu'
-  const standNumber = first?.stands?.number ?? 'N/A'
-  const linearMeters = toNumber(first?.merchant_linear_meters ?? 0)
-  const totalLinearMeters = toNumber(first?.total_linear_meters ?? 0)
-  const allocationPercentage = toNumber(first?.allocation_percentage ?? 0)
-
   return {
     data: {
-      merchantName,
-      hallName,
-      standName,
-      standNumber,
-      periodLabel: first?.service_charge_periods?.label ?? 'Periode inconnue',
+      merchantName: identityResult.data?.merchantName ?? 'Commercant',
+      hallName: identityResult.data?.hallName ?? latestRows[0].service_charge_periods?.halls?.name ?? 'Halle inconnue',
+      periodLabel: latestRows[0].service_charge_periods?.label ?? 'Periode inconnue',
       totalChargesCents,
-      allocationPercentage,
-      linearMeters,
-      totalLinearMeters,
+      lineCount: latestRows.length,
     },
     error: null,
   }
 }
 
 export async function getMerchantHistory(): Promise<ServiceResult<MerchantHistoryRow[]>> {
-  const { data, error } = await fetchMerchantAllocations()
+  const { data, error } = await fetchVisibleServiceCharges()
   if (error) {
     return { data: null, error }
   }
 
-  if (!data || data.length === 0) {
+  const rows = data ?? []
+  if (rows.length === 0) {
     return { data: [], error: null }
   }
 
   const rowsByPeriod = new Map<string, MerchantHistoryRow>()
 
-  for (const row of data) {
+  for (const row of rows) {
     const periodId = row.period_id
     const periodLabel = row.service_charge_periods?.label ?? 'Periode inconnue'
     const periodEnd = row.service_charge_periods?.period_end ?? ''
-    const allocated = toCents(toNumber(row.allocated_amount))
+    const totalCharge = toCents(Number(row.amount_incl_tax))
 
     const existing = rowsByPeriod.get(periodId)
     if (!existing) {
       rowsByPeriod.set(periodId, {
         periodId,
         periodLabel,
-        totalAllocatedCents: allocated,
+        totalChargesCents: totalCharge,
         periodEnd,
       })
       continue
     }
 
-    existing.totalAllocatedCents += allocated
+    existing.totalChargesCents += totalCharge
   }
 
   const history = [...rowsByPeriod.values()].sort((a, b) =>
@@ -225,7 +242,7 @@ export async function getMerchantHistory(): Promise<ServiceResult<MerchantHistor
 export async function getMerchantChargePeriodDetail(
   periodId: string,
 ): Promise<ServiceResult<MerchantChargePeriodDetail>> {
-  const { data, error } = await fetchMerchantAllocations()
+  const { data, error } = await fetchVisibleServiceCharges()
   if (error) {
     return { data: null, error }
   }
@@ -235,27 +252,14 @@ export async function getMerchantChargePeriodDetail(
     return { data: null, error: null }
   }
 
-  const totalAllocatedCents = rows.reduce(
-    (sum, row) => sum + toCents(toNumber(row.allocated_amount)),
-    0,
-  )
-  const totalCommonChargesCents = rows.reduce(
-    (sum, row) => sum + toCents(toNumber(row.service_charges?.amount_incl_tax ?? 0)),
-    0,
-  )
-
-  const first = rows[0]
   const lines = mapChargeLines(rows)
+  const totalChargesCents = lines.reduce((sum, row) => sum + row.totalCents, 0)
 
   return {
     data: {
       periodId,
-      periodLabel: first.service_charge_periods?.label ?? 'Periode inconnue',
-      totalCommonChargesCents,
-      totalAllocatedCents,
-      linearMeters: toNumber(first.merchant_linear_meters),
-      totalLinearMeters: toNumber(first.total_linear_meters),
-      allocationPercentage: toNumber(first.allocation_percentage),
+      periodLabel: rows[0].service_charge_periods?.label ?? 'Periode inconnue',
+      totalChargesCents,
       lines,
     },
     error: null,

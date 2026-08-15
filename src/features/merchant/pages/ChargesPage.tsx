@@ -74,7 +74,7 @@ export function ChargesPage() {
         <StateMessage
           variant="empty"
           title="Aucun frais a afficher"
-          message="Aucune allocation n'est disponible pour votre compte."
+          message="Aucun frais commun n'est disponible pour votre halle."
         />
       ) : null}
 
@@ -105,28 +105,27 @@ export function ChargesPage() {
               <thead>
                 <tr className="border-b border-[#13223a1f] text-[#626a78]">
                   <th className="py-2">Poste</th>
-                  <th className="py-2 text-right">Total</th>
-                  <th className="py-2 text-right">Votre part</th>
+                  <th className="py-2">Categorie</th>
+                  <th className="py-2 text-right">Montant TTC</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.lines.map((line) => (
                   <tr key={line.id} className="border-b border-slate-100/80 last:border-b-0">
                     <td className="py-3">{line.label}</td>
-                    <td className="py-3 text-right">{formatEuroFromCents(line.totalCents)}</td>
-                    <td className="py-3 text-right font-semibold text-[#13223a]">{formatEuroFromCents(line.allocatedCents)}</td>
+                    <td className="py-3">{line.category ?? '-'}</td>
+                    <td className="py-3 text-right font-semibold text-[#13223a]">{formatEuroFromCents(line.totalCents)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-sm text-[#4d5562]">
-            Voir le calcul complet pour cette periode dans{' '}
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <p className="text-[#4d5562]">Vue de transparence des frais communs saisis dans Pennylane.</p>
             <Link className="font-semibold text-[#13223a] underline underline-offset-2" to={`/frais/${detail.periodId}`}>
-              la page de detail
+              Voir la synthese
             </Link>
-            .
-          </p>
+          </div>
         </Card>
       ) : null}
     </PageContainer>

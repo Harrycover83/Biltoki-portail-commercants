@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
-import { formatEuroFromCents, formatPercentage } from '../../../lib/money'
+import { formatEuroFromCents } from '../../../lib/money'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { getMerchantDashboardSummary } from '../services/merchantService'
 import type { MerchantDashboardSummary } from '../../../types/domain'
@@ -30,7 +30,7 @@ export function DashboardPage() {
         <StateMessage
           variant="empty"
           title="Aucune donnee disponible"
-          message="Ajoutez des frais et lancez un calcul d'allocation pour afficher votre dashboard."
+          message="Ajoutez des frais communs dans Pennylane pour afficher votre dashboard."
         />
       ) : null}
 
@@ -42,18 +42,12 @@ export function DashboardPage() {
                 <p className="brand-section-title">Bienvenue</p>
                 <h1 className="brand-display mt-3 text-[2.55rem] leading-[0.95] font-semibold">{summary.merchantName}</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4d5562]">
-                  Un espace simple et lisible pour suivre vos frais, vos périodes et votre part d’allocation.
+                  Un espace de transparence pour suivre les frais communs de votre halle, classes par periode.
                 </p>
               </div>
 
               <div className="rounded-[1.35rem] border border-[#13223a17] bg-white/70 p-4">
                 <div className="grid gap-3 text-sm text-slate-700">
-                  <p>
-                    Stand : <span className="font-semibold text-[#13223a]">{summary.standName}</span>
-                  </p>
-                  <p>
-                    Numero : <span className="font-semibold text-[#13223a]">{summary.standNumber}</span>
-                  </p>
                   <p>
                     Halle : <span className="font-semibold text-[#13223a]">{summary.hallName}</span>
                   </p>
@@ -69,11 +63,8 @@ export function DashboardPage() {
             <Card title="Periode">
               <p className="text-lg font-semibold text-[#13223a]">{summary.periodLabel}</p>
             </Card>
-            <Card title="Votre quote-part">
-              <p className="text-lg font-semibold text-[#13223a]">{formatPercentage(summary.allocationPercentage)}</p>
-            </Card>
-            <Card title="Metres lineaires">
-              <p className="text-lg font-semibold text-[#13223a]">{summary.linearMeters} ml</p>
+            <Card title="Nombre de postes">
+              <p className="text-lg font-semibold text-[#13223a]">{summary.lineCount}</p>
             </Card>
           </div>
         </div>
