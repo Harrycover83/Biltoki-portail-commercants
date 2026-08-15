@@ -1,6 +1,15 @@
-import { PrismaClient } from "@prisma/client";
+import prismaPkg from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const { PrismaClient } = prismaPkg;
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("Missing DATABASE_URL environment variable");
+}
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Ensure organization exists
@@ -27,6 +36,7 @@ async function main() {
   ];
 
   // Upsert all halls (creates if not exists, updates if exists)
+  const syncedHalls: Array<{ id: string; name: string }> = [];
   for (const hallData of hallsData) {
     const hall = await prisma.hall.upsert({
       where: {
@@ -44,18 +54,15 @@ async function main() {
     });
 
     console.log(`✓ Hall "${hall.name}" (${hall.id})`);
+    syncedHalls.push({ id: hall.id, name: hall.name });
   }
 
   console.log(
     "\n✅ Database seeded successfully! All 10 Biltoki halls are ready."
   );
 
-  // Print HALLS_TO_SYNC configuration hint
-  const halls = await prisma.hall.findMany({
-    where: { organizationId: org.id },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  // Print HALLS_TO_SYNC configuration hint for the 10 target halls only.
+  const halls = [...syncedHalls].sort((a, b) => a.name.localeCompare(b.name));
 
   console.log("\n📋 Use this for HALLS_TO_SYNC environment variable:");
   console.log(`\nHALLS_TO_SYNC=${halls.map((h) => h.id).join(",")}`);

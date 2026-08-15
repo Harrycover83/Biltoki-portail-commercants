@@ -19,10 +19,12 @@
     "db:setup": "prisma migrate deploy && prisma db seed"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
     "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "node-cron": "^3.0.3",
+    "pg": "^8.23.0",
     "pino": "^8.16.2"
   },
   "devDependencies": {
