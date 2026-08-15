@@ -7,13 +7,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 // Enums for different statuses and types
 enum UserRole {
   merchant
   admin
+
+  @@map("user_role")
+  @@schema("public")
 }
 
 enum PeriodStatus {
@@ -21,12 +24,18 @@ enum PeriodStatus {
   calculated
   validated
   closed
+
+  @@map("period_status")
+  @@schema("public")
 }
 
 enum SyncStatus {
   running
   success
   error
+
+  @@map("sync_status")
+  @@schema("public")
 }
 
 enum AllocationRuleType {
@@ -34,6 +43,9 @@ enum AllocationRuleType {
   equal_share
   custom_percentage
   specific_merchant
+
+  @@map("allocation_rule_type")
+  @@schema("public")
 }
 
 // Core domain models
@@ -44,6 +56,7 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("organizations")
+  @@schema("public")
 }
 
 model Hall {
@@ -67,6 +80,7 @@ model Hall {
 
   @@unique([organizationId, name])
   @@map("halls")
+  @@schema("public")
 }
 
 model Merchant {
@@ -88,6 +102,7 @@ model Merchant {
   @@unique([hallId, legalName])
   @@unique([hallId, pennylaneid])
   @@map("merchants")
+  @@schema("public")
 }
 
 model Profile {
@@ -104,6 +119,7 @@ model Profile {
   merchantHallPermissions  MerchantHallPermission[]
 
   @@map("profiles")
+  @@schema("public")
 }
 
 model AdminHallPermission {
@@ -116,6 +132,7 @@ model AdminHallPermission {
 
   @@unique([profileId, hallId])
   @@map("admin_hall_permissions")
+  @@schema("public")
 }
 
 model MerchantHallPermission {
@@ -128,6 +145,7 @@ model MerchantHallPermission {
 
   @@unique([profileId, hallId])
   @@map("merchant_hall_permissions")
+  @@schema("public")
 }
 
 model Stand {
@@ -138,7 +156,7 @@ model Stand {
   merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   name           String
   number         String?
-  linearMeters   Decimal  @map("linear_meters") @db.Numeric(10, 3)
+  linearMeters   Decimal  @map("linear_meters") @db.Decimal(10, 3)
   startDate      DateTime @map("start_date") @db.Date
   endDate        DateTime? @map("end_date") @db.Date
   active         Boolean  @default(true)
@@ -147,6 +165,7 @@ model Stand {
   allocations    Allocation[]
 
   @@map("stands")
+  @@schema("public")
 }
 
 model ServiceChargePeriod {
@@ -165,6 +184,7 @@ model ServiceChargePeriod {
 
   @@unique([hallId, label])
   @@map("service_charge_periods")
+  @@schema("public")
 }
 
 model AllocationRule {
@@ -181,6 +201,7 @@ model AllocationRule {
 
   @@unique([hallId, name])
   @@map("allocation_rules")
+  @@schema("public")
 }
 
 model ServiceCharge {
@@ -193,9 +214,9 @@ model ServiceCharge {
   category           String?
   allocationRuleId   String?  @map("allocation_rule_id") @db.Uuid
   allocationRule     AllocationRule? @relation(fields: [allocationRuleId], references: [id], onDelete: SetNull)
-  amountExclTax      Decimal  @map("amount_excl_tax") @db.Numeric(14, 2)
-  amountTax          Decimal  @map("amount_tax") @db.Numeric(14, 2)
-  amountInclTax      Decimal  @map("amount_incl_tax") @db.Numeric(14, 2)
+  amountExclTax      Decimal  @map("amount_excl_tax") @db.Decimal(14, 2)
+  amountTax          Decimal  @map("amount_tax") @db.Decimal(14, 2)
+  amountInclTax      Decimal  @map("amount_incl_tax") @db.Decimal(14, 2)
   pennylaneid        String?  @map("pennylane_id")
   source             String   @default("manual")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -204,6 +225,7 @@ model ServiceCharge {
 
   @@unique([hallId, pennylaneid])
   @@map("service_charges")
+  @@schema("public")
 }
 
 model Allocation {
@@ -216,14 +238,15 @@ model Allocation {
   merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   standId               String   @map("stand_id") @db.Uuid
   stand                 Stand    @relation(fields: [standId], references: [id], onDelete: Restrict)
-  merchantLinearMeters  Decimal  @map("merchant_linear_meters") @db.Numeric(10, 3)
-  totalLinearMeters     Decimal  @map("total_linear_meters") @db.Numeric(10, 3)
-  allocationPercentage  Decimal  @map("allocation_percentage") @db.Numeric(9, 6)
-  allocatedAmount       Decimal  @map("allocated_amount") @db.Numeric(14, 2)
+  merchantLinearMeters  Decimal  @map("merchant_linear_meters") @db.Decimal(10, 3)
+  totalLinearMeters     Decimal  @map("total_linear_meters") @db.Decimal(10, 3)
+  allocationPercentage  Decimal  @map("allocation_percentage") @db.Decimal(9, 6)
+  allocatedAmount       Decimal  @map("allocated_amount") @db.Decimal(14, 2)
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([serviceChargeId, merchantId])
   @@map("allocations")
+  @@schema("public")
 }
 
 model PennylaneSyncs {
@@ -239,4 +262,5 @@ model PennylaneSyncs {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("pennylane_syncs")
+  @@schema("public")
 }
