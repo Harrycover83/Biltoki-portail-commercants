@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for different statuses and types
+enum UserRole {
+  merchant
+  admin
+}
+
+enum PeriodStatus {
+  draft
+  calculated
+  validated
+  closed
+}
+
+enum SyncStatus {
+  running
+  success
+  error
+}
+
+enum AllocationRuleType {
+  linear_meters
+  equal_share
+  custom_percentage
+  specific_merchant
+}
+
+// Core domain models
+model Organization {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique
+  halls     Hall[]
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("organizations")
+}
+
+model Hall {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  name             String
+  city             String?
+  address          String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  merchants                   Merchant[]
+  stands                      Stand[]
+  periods                     ServiceChargePeriod[]
+  charges                     ServiceCharge[]
+  allocationRules             AllocationRule[]
+  adminHallPermissions        AdminHallPermission[]
+  merchantHallPermissions     MerchantHallPermission[]
+  pennylanesyncs              PennylaneSyncs[]
+
+  @@unique([organizationId, name])
+  @@map("halls")
+}
+
+model Merchant {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId        String   @map("hall_id") @db.Uuid
+  hall          Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  legalName     String   @map("legal_name")
+  tradeName     String?  @map("trade_name")
+  email         String?
+  phone         String?
+  pennylaneid   String?  @map("pennylane_id")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  stands        Stand[]
+  allocations   Allocation[]
+  profiles      Profile[]
+
+  @@unique([hallId, legalName])
+  @@unique([hallId, pennylaneid])
+  @@map("merchants")
+}
+
+model Profile {
+  id         String   @id @db.Uuid // references auth.users(id)
+  email      String
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
+  role       UserRole @default(merchant)
+  merchantId String?  @map("merchant_id") @db.Uuid
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  adminHallPermissions     AdminHallPermission[]
+  merchantHallPermissions  MerchantHallPermission[]
+
+  @@map("profiles")
+}
+
+model AdminHallPermission {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  hallId    String   @map("hall_id") @db.Uuid
+  hall      Hall     @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([profileId, hallId])
+  @@map("admin_hall_permissions")
+}
+
+model MerchantHallPermission {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  hallId    String   @map("hall_id") @db.Uuid
+  hall      Hall     @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([profileId, hallId])
+  @@map("merchant_hall_permissions")
+}
+
+model Stand {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId         String   @map("hall_id") @db.Uuid
+  hall           Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  merchantId     String   @map("merchant_id") @db.Uuid
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  name           String
+  number         String?
+  linearMeters   Decimal  @map("linear_meters") @db.Numeric(10, 3)
+  startDate      DateTime @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  allocations    Allocation[]
+
+  @@map("stands")
+}
+
+model ServiceChargePeriod {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId     String       @map("hall_id") @db.Uuid
+  hall       Hall         @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  label      String
+  periodStart DateTime    @map("period_start") @db.Date
+  periodEnd  DateTime     @map("period_end") @db.Date
+  status     PeriodStatus @default(draft)
+  closedAt   DateTime?    @map("closed_at") @db.Timestamptz
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  charges    ServiceCharge[]
+  allocations Allocation[]
+
+  @@unique([hallId, label])
+  @@map("service_charge_periods")
+}
+
+model AllocationRule {
+  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId    String                @map("hall_id") @db.Uuid
+  hall      Hall                  @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  name      String
+  ruleType  AllocationRuleType    @map("rule_type")
+  isDefault Boolean               @map("is_default") @default(false)
+  active    Boolean               @default(true)
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz
+
+  charges   ServiceCharge[]
+
+  @@unique([hallId, name])
+  @@map("allocation_rules")
+}
+
+model ServiceCharge {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId             String   @map("hall_id") @db.Uuid
+  hall               Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  periodId           String   @map("period_id") @db.Uuid
+  period             ServiceChargePeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  label              String
+  category           String?
+  allocationRuleId   String?  @map("allocation_rule_id") @db.Uuid
+  allocationRule     AllocationRule? @relation(fields: [allocationRuleId], references: [id], onDelete: SetNull)
+  amountExclTax      Decimal  @map("amount_excl_tax") @db.Numeric(14, 2)
+  amountTax          Decimal  @map("amount_tax") @db.Numeric(14, 2)
+  amountInclTax      Decimal  @map("amount_incl_tax") @db.Numeric(14, 2)
+  pennylaneid        String?  @map("pennylane_id")
+  source             String   @default("manual")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  allocations        Allocation[]
+
+  @@unique([hallId, pennylaneid])
+  @@map("service_charges")
+}
+
+model Allocation {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  periodId              String   @map("period_id") @db.Uuid
+  period                ServiceChargePeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  serviceChargeId       String   @map("service_charge_id") @db.Uuid
+  serviceCharge         ServiceCharge @relation(fields: [serviceChargeId], references: [id], onDelete: Cascade)
+  merchantId            String   @map("merchant_id") @db.Uuid
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  standId               String   @map("stand_id") @db.Uuid
+  stand                 Stand    @relation(fields: [standId], references: [id], onDelete: Restrict)
+  merchantLinearMeters  Decimal  @map("merchant_linear_meters") @db.Numeric(10, 3)
+  totalLinearMeters     Decimal  @map("total_linear_meters") @db.Numeric(10, 3)
+  allocationPercentage  Decimal  @map("allocation_percentage") @db.Numeric(9, 6)
+  allocatedAmount       Decimal  @map("allocated_amount") @db.Numeric(14, 2)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([serviceChargeId, merchantId])
+  @@map("allocations")
+}
+
+model PennylaneSyncs {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hallId           String   @map("hall_id") @db.Uuid
+  hall             Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  syncType         String   @map("sync_type")
+  status           SyncStatus
+  startedAt        DateTime @default(now()) @map("started_at") @db.Timestamptz
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz
+  recordsProcessed Int      @map("records_processed") @default(0)
+  errorMessage     String?  @map("error_message")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("pennylane_syncs")
+}

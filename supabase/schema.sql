@@ -185,7 +185,8 @@ security definer
 set search_path = public
 as $$
   select (
-    exists (
+    public.is_admin_user()
+    or exists (
       select 1
       from public.profiles p
       join public.merchants m on m.id = p.merchant_id
