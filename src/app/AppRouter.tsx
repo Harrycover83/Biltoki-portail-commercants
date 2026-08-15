@@ -20,6 +20,7 @@ import { AdminPeriodsPage } from '../features/admin/pages/AdminPeriodsPage'
 import { AdminAllocationsPage } from '../features/admin/pages/AdminAllocationsPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
+import { useAuth } from '../features/auth/AuthProvider'
 
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
@@ -28,6 +29,19 @@ function PrivateLayout({ children }: { children: ReactNode }) {
       {children}
     </div>
   )
+}
+
+function HomeRedirect() {
+  const { role } = useAuth()
+  return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
+}
+
+function DashboardEntry() {
+  const { role } = useAuth()
+  if (role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+  return <DashboardPage />
 }
 
 export function AppRouter() {
@@ -52,7 +66,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <PrivateLayout>
-                <DashboardPage />
+                <DashboardEntry />
               </PrivateLayout>
             </ProtectedRoute>
           }
@@ -193,7 +207,14 @@ export function AppRouter() {
           }
         />
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomeRedirect />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
