@@ -204,7 +204,7 @@ export function AdminServiceChargesPage() {
             </button>
           </div>
 
-          {periods.length > 0 ? (
+          {halls.length > 0 ? (
             <div className="mb-4 grid gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-hall-select">
@@ -233,7 +233,9 @@ export function AdminServiceChargesPage() {
                 value={selectedPeriodId}
                 onChange={(event) => setSelectedPeriodId(event.target.value)}
                 className="brand-input max-w-sm"
+                disabled={periods.length === 0}
               >
+                {periods.length === 0 ? <option value="">Aucune periode</option> : null}
                 {periods.map((period) => (
                   <option key={period.id} value={period.id}>
                     {period.label}

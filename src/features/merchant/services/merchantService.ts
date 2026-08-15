@@ -3,6 +3,7 @@ import type {
   ChargeLine,
   MerchantChargePeriodDetail,
   MerchantDashboardSummary,
+  MerchantHallOption,
   MerchantHistoryRow,
 } from '../../../types/domain'
 
@@ -17,24 +18,21 @@ type ServiceChargeRow = {
   category: string | null
   amount_incl_tax: number
   period_id: string
+  hall_id: string
   created_at: string
   service_charge_periods: {
     id: string
     label: string
     period_end: string
-    halls: {
-      name: string
-    } | null
+  } | null
+  halls: {
+    name: string
   } | null
 }
 
-type ServiceChargeRowRaw = Omit<ServiceChargeRow, 'service_charge_periods'> & {
+type ServiceChargeRowRaw = Omit<ServiceChargeRow, 'service_charge_periods' | 'halls'> & {
   service_charge_periods: ServiceChargeRow['service_charge_periods'] | ServiceChargeRow['service_charge_periods'][]
-}
-
-type MerchantIdentity = {
-  merchantName: string
-  hallName: string
+  halls: ServiceChargeRow['halls'] | ServiceChargeRow['halls'][]
 }
 
 function singleOrNull<T>(value: T | T[] | null): T | null {
@@ -48,6 +46,7 @@ function normalizeChargeRows(rows: ServiceChargeRowRaw[]): ServiceChargeRow[] {
   return rows.map((row) => ({
     ...row,
     service_charge_periods: singleOrNull(row.service_charge_periods),
+    halls: singleOrNull(row.halls),
   }))
 }
 
@@ -64,61 +63,26 @@ function mapChargeLines(rows: ServiceChargeRow[]): ChargeLine[] {
   }))
 }
 
-async function fetchMerchantIdentity(): Promise<ServiceResult<MerchantIdentity>> {
-  const client = getSupabaseClient()
-  if (!client) {
-    return { data: null, error: 'Supabase non configure.' }
+function buildHallOptions(rows: ServiceChargeRow[]): MerchantHallOption[] {
+  const byId = new Map<string, MerchantHallOption>()
+
+  for (const row of rows) {
+    if (!byId.has(row.hall_id)) {
+      byId.set(row.hall_id, {
+        hallId: row.hall_id,
+        hallName: row.halls?.name ?? 'Halle inconnue',
+      })
+    }
   }
 
-  const {
-    data: { user },
-    error: authError,
-  } = await client.auth.getUser()
+  return [...byId.values()].sort((a, b) => a.hallName.localeCompare(b.hallName))
+}
 
-  if (authError || !user) {
-    return { data: null, error: authError?.message ?? 'Utilisateur non authentifie.' }
+function filterByHall(rows: ServiceChargeRow[], hallId?: string): ServiceChargeRow[] {
+  if (!hallId) {
+    return rows
   }
-
-  const { data, error } = await client
-    .from('profiles')
-    .select(
-      `
-      merchants:merchants!profiles_merchant_id_fkey(
-        trade_name,
-        legal_name,
-        halls:halls!merchants_hall_id_fkey(name)
-      )
-    `,
-    )
-    .eq('id', user.id)
-    .single()
-
-  if (error) {
-    return { data: null, error: error.message }
-  }
-
-  const merchantsValue = (data as { merchants: unknown }).merchants as
-    | {
-        trade_name: string | null
-        legal_name: string
-        halls: { name: string } | null
-      }
-    | {
-        trade_name: string | null
-        legal_name: string
-        halls: { name: string } | null
-      }[]
-    | null
-
-  const merchant = singleOrNull(merchantsValue)
-
-  return {
-    data: {
-      merchantName: merchant?.trade_name ?? merchant?.legal_name ?? 'Commercant',
-      hallName: merchant?.halls?.name ?? 'Halle inconnue',
-    },
-    error: null,
-  }
+  return rows.filter((row) => row.hall_id === hallId)
 }
 
 async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceChargeRow[]>> {
@@ -136,13 +100,14 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
       category,
       amount_incl_tax,
       period_id,
+      hall_id,
       created_at,
       service_charge_periods:service_charge_periods!inner(
         id,
         label,
-        period_end,
-        halls:halls!inner(name)
-      )
+        period_end
+      ),
+      halls:halls!inner(name)
     `,
     )
     .order('period_end', {
@@ -161,37 +126,42 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
   }
 }
 
-export async function getMerchantDashboardSummary(): Promise<ServiceResult<MerchantDashboardSummary>> {
-  const [identityResult, chargesResult] = await Promise.all([
-    fetchMerchantIdentity(),
-    fetchVisibleServiceCharges(),
-  ])
-
-  if (identityResult.error) {
-    return { data: null, error: identityResult.error }
+export async function getMerchantHallOptions(): Promise<ServiceResult<MerchantHallOption[]>> {
+  const { data, error } = await fetchVisibleServiceCharges()
+  if (error) {
+    return { data: null, error }
   }
 
-  if (chargesResult.error) {
-    return { data: null, error: chargesResult.error }
+  return { data: buildHallOptions(data ?? []), error: null }
+}
+
+export async function getMerchantDashboardSummary(hallId?: string): Promise<ServiceResult<MerchantDashboardSummary>> {
+  const { data, error } = await fetchVisibleServiceCharges()
+  if (error) {
+    return { data: null, error }
   }
 
-  const rows = chargesResult.data ?? []
-  if (rows.length === 0) {
+  const hallRows = filterByHall(data ?? [], hallId)
+  if (hallRows.length === 0) {
     return { data: null, error: null }
   }
 
-  const latestPeriodId = rows[0].period_id
-  const latestRows = rows.filter((row) => row.period_id === latestPeriodId)
+  const latestPeriodId = hallRows[0].period_id
+  const latestRows = hallRows.filter((row) => row.period_id === latestPeriodId)
   const totalChargesCents = latestRows.reduce(
     (sum, row) => sum + toCents(Number(row.amount_incl_tax)),
     0,
   )
 
+  const merchantName = 'Commercant'
+  const first = latestRows[0]
+
   return {
     data: {
-      merchantName: identityResult.data?.merchantName ?? 'Commercant',
-      hallName: identityResult.data?.hallName ?? latestRows[0].service_charge_periods?.halls?.name ?? 'Halle inconnue',
-      periodLabel: latestRows[0].service_charge_periods?.label ?? 'Periode inconnue',
+      merchantName,
+      hallId: first.hall_id,
+      hallName: first.halls?.name ?? 'Halle inconnue',
+      periodLabel: first.service_charge_periods?.label ?? 'Periode inconnue',
       totalChargesCents,
       lineCount: latestRows.length,
     },
@@ -199,13 +169,13 @@ export async function getMerchantDashboardSummary(): Promise<ServiceResult<Merch
   }
 }
 
-export async function getMerchantHistory(): Promise<ServiceResult<MerchantHistoryRow[]>> {
+export async function getMerchantHistory(hallId?: string): Promise<ServiceResult<MerchantHistoryRow[]>> {
   const { data, error } = await fetchVisibleServiceCharges()
   if (error) {
     return { data: null, error }
   }
 
-  const rows = data ?? []
+  const rows = filterByHall(data ?? [], hallId)
   if (rows.length === 0) {
     return { data: [], error: null }
   }
@@ -241,13 +211,14 @@ export async function getMerchantHistory(): Promise<ServiceResult<MerchantHistor
 
 export async function getMerchantChargePeriodDetail(
   periodId: string,
+  hallId?: string,
 ): Promise<ServiceResult<MerchantChargePeriodDetail>> {
   const { data, error } = await fetchVisibleServiceCharges()
   if (error) {
     return { data: null, error }
   }
 
-  const rows = (data ?? []).filter((row) => row.period_id === periodId)
+  const rows = filterByHall(data ?? [], hallId).filter((row) => row.period_id === periodId)
   if (rows.length === 0) {
     return { data: null, error: null }
   }

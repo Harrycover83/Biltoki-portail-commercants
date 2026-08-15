@@ -2,6 +2,7 @@ import type { ChargeLine, MerchantDashboardSummary } from '../../types/domain'
 
 export const sampleSummary: MerchantDashboardSummary = {
   merchantName: 'Jean Dupont',
+  hallId: 'hall-toulon',
   hallName: 'Les Halles de Biltoki Toulon',
   periodLabel: 'Juillet 2026',
   totalChargesCents: 124560,

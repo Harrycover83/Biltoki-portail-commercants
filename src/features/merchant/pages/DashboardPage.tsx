@@ -3,24 +3,50 @@ import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { formatEuroFromCents } from '../../../lib/money'
 import { StateMessage } from '../../../components/ui/StateMessage'
-import { getMerchantDashboardSummary } from '../services/merchantService'
-import type { MerchantDashboardSummary } from '../../../types/domain'
+import { getMerchantDashboardSummary, getMerchantHallOptions } from '../services/merchantService'
+import type { MerchantDashboardSummary, MerchantHallOption } from '../../../types/domain'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<MerchantDashboardSummary | null>(null)
+  const [halls, setHalls] = useState<MerchantHallOption[]>([])
+  const [selectedHallId, setSelectedHallId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const load = async () => {
-      const result = await getMerchantDashboardSummary()
+    const loadHalls = async () => {
+      const hallsResult = await getMerchantHallOptions()
+      if (hallsResult.error) {
+        setError(hallsResult.error)
+        setLoading(false)
+        return
+      }
+
+      const options = hallsResult.data ?? []
+      setHalls(options)
+      setSelectedHallId(options[0]?.hallId ?? '')
+    }
+
+    void loadHalls()
+  }, [])
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      if (!selectedHallId) {
+        setSummary(null)
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      const result = await getMerchantDashboardSummary(selectedHallId)
       setSummary(result.data)
       setError(result.error)
       setLoading(false)
     }
 
-    void load()
-  }, [])
+    void loadSummary()
+  }, [selectedHallId])
 
   return (
     <PageContainer>
@@ -48,9 +74,26 @@ export function DashboardPage() {
 
               <div className="rounded-[1.35rem] border border-[#13223a17] bg-white/70 p-4">
                 <div className="grid gap-3 text-sm text-slate-700">
-                  <p>
-                    Halle : <span className="font-semibold text-[#13223a]">{summary.hallName}</span>
-                  </p>
+                  {halls.length > 1 ? (
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-slate-700">Halle</span>
+                      <select
+                        value={selectedHallId}
+                        onChange={(event) => setSelectedHallId(event.target.value)}
+                        className="brand-input"
+                      >
+                        {halls.map((hall) => (
+                          <option key={hall.hallId} value={hall.hallId}>
+                            {hall.hallName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <p>
+                      Halle : <span className="font-semibold text-[#13223a]">{summary.hallName}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

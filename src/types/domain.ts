@@ -11,10 +11,16 @@ export type Profile = {
 
 export type MerchantDashboardSummary = {
   merchantName: string
+  hallId: string
   hallName: string
   periodLabel: string
   totalChargesCents: number
   lineCount: number
+}
+
+export type MerchantHallOption = {
+  hallId: string
+  hallName: string
 }
 
 export type ChargeLine = {
