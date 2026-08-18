@@ -2,6 +2,7 @@ import express from 'express'
 import type { SupabaseAdmin } from './db/supabase'
 import type { Logger } from './utils/logger'
 import { PennylaneSync } from './services/sync.service'
+import { syncLock } from './services/sync-lock'
 import { PennylaneClient } from './integrations/pennylane/client'
 import type { Config } from './config'
 
@@ -13,6 +14,32 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   // Health check
   app.get('/health', (_req, res) => {
     return res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  })
+
+  // Readiness check: verifies DB is reachable and config is loaded.
+  app.get('/ready', async (_req, res) => {
+    try {
+      const { error } = await db.from('halls').select('id').limit(1)
+      if (error) {
+        return res.status(503).json({
+          status: 'not-ready',
+          reason: 'database-check-failed',
+          message: error.message,
+        })
+      }
+
+      return res.json({
+        status: 'ready',
+        hallsConfigured: config.biltoki.hallsToSync.length,
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      return res.status(503).json({
+        status: 'not-ready',
+        reason: 'unexpected-error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
   })
 
   // Manual sync endpoint for a specific hall
@@ -28,11 +55,19 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
 
     logger.info(`📧 Manual sync triggered for hall: ${hallId}`)
 
+    if (syncLock.isRunning(hallId)) {
+      return res.status(409).json({
+        error: 'Sync already running for this hall',
+        hallId,
+      })
+    }
+
     try {
       const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
-      const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
-
-      const result = await syncService.syncServiceCharges()
+      const result = await syncLock.runExclusive(hallId, async () => {
+        const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
+        return await syncService.syncServiceCharges()
+      })
 
       return res.status(200).json({
         syncId: result.syncId,
@@ -75,6 +110,17 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
     return res.json({
       halls: config.biltoki.hallsToSync,
       count: config.biltoki.hallsToSync.length,
+    })
+  })
+
+  app.get('/api/sync/locks', (_req, res) => {
+    const halls = config.biltoki.hallsToSync.map((hallId) => ({
+      hallId,
+      running: syncLock.isRunning(hallId),
+    }))
+    return res.json({
+      activeCount: halls.filter((h) => h.running).length,
+      halls,
     })
   })
 

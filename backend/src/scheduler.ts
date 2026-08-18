@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import type { SupabaseAdmin } from './db/supabase'
 import type { Logger } from './utils/logger'
 import { PennylaneSync } from './services/sync.service'
+import { syncLock } from './services/sync-lock'
 import { PennylaneClient } from './integrations/pennylane/client'
 import type { Config } from './config'
 
@@ -24,9 +25,16 @@ export function setupScheduler(config: Config, db: SupabaseAdmin, logger: Logger
     // Sync each hall in sequence
     for (const hallId of config.biltoki.hallsToSync) {
       try {
+        if (syncLock.isRunning(hallId)) {
+          logger.warn(`Skipping hall ${hallId}: sync already running`)
+          continue
+        }
+
         logger.info(`Syncing hall: ${hallId}`)
-        const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
-        const result = await syncService.syncServiceCharges()
+        const result = await syncLock.runExclusive(hallId, async () => {
+          const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
+          return await syncService.syncServiceCharges()
+        })
 
         if (result.status === 'success') {
           logger.info(`✅ Hall ${hallId}: ${result.recordsProcessed} charges imported`)
