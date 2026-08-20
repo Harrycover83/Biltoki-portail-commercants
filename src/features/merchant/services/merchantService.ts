@@ -85,10 +85,10 @@ function filterByHall(rows: ServiceChargeRow[], hallId?: string): ServiceChargeR
   return rows.filter((row) => row.hall_id === hallId)
 }
 
-async function fetchCurrentUserDisplayName(): Promise<string> {
+async function fetchCurrentUserDisplayName(): Promise<{ name: string; merchantId: string | null }> {
   const client = getSupabaseClient()
   if (!client) {
-    return 'Commercant'
+    return { name: 'Commercant', merchantId: null }
   }
 
   const {
@@ -96,7 +96,21 @@ async function fetchCurrentUserDisplayName(): Promise<string> {
   } = await client.auth.getUser()
 
   if (!user) {
-    return 'Commercant'
+    return { name: 'Commercant', merchantId: null }
+  }
+
+  // Get merchant ID from profile
+  let merchantId: string | null = null
+  try {
+    const { data: profile } = await client
+      .from('profiles')
+      .select('merchant_id')
+      .eq('id', user.id)
+      .single()
+
+    merchantId = profile?.merchant_id ?? null
+  } catch (err) {
+    console.error('Failed to fetch merchant ID:', err)
   }
 
   const first = (user.user_metadata?.first_name as string | undefined)?.trim()
@@ -104,15 +118,15 @@ async function fetchCurrentUserDisplayName(): Promise<string> {
 
   const fullName = [first, last].filter(Boolean).join(' ')
   if (fullName.length > 0) {
-    return fullName
+    return { name: fullName, merchantId }
   }
 
   const email = user.email ?? ''
   if (email.includes('@')) {
-    return email.split('@')[0]
+    return { name: email.split('@')[0], merchantId }
   }
 
-  return 'Commercant'
+  return { name: 'Commercant', merchantId }
 }
 
 async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceChargeRow[]>> {
@@ -166,7 +180,7 @@ export async function getMerchantHallOptions(): Promise<ServiceResult<MerchantHa
 }
 
 export async function getMerchantDashboardSummary(hallId?: string): Promise<ServiceResult<MerchantDashboardSummary>> {
-  const [chargesResult, merchantName] = await Promise.all([
+  const [chargesResult, userInfo] = await Promise.all([
     fetchVisibleServiceCharges(),
     fetchCurrentUserDisplayName(),
   ])
@@ -192,7 +206,8 @@ export async function getMerchantDashboardSummary(hallId?: string): Promise<Serv
 
   return {
     data: {
-      merchantName,
+      merchantId: userInfo.merchantId ?? '',
+      merchantName: userInfo.name,
       hallId: first.hall_id,
       hallName: first.halls?.name ?? 'Halle inconnue',
       periodLabel: first.service_charge_periods?.label ?? 'Periode inconnue',

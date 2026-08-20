@@ -10,6 +10,7 @@ export type Profile = {
 }
 
 export type MerchantDashboardSummary = {
+  merchantId: string
   merchantName: string
   hallId: string
   hallName: string

@@ -48,6 +48,15 @@ enum AllocationRuleType {
   @@schema("public")
 }
 
+enum InvoiceStatus {
+  unpaid
+  partially_paid
+  paid
+
+  @@map("invoice_status")
+  @@schema("public")
+}
+
 // Core domain models
 model Organization {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -98,6 +107,7 @@ model Merchant {
   stands        Stand[]
   allocations   Allocation[]
   profiles      Profile[]
+  invoices      Invoice[]
 
   @@unique([hallId, legalName])
   @@unique([hallId, pennylaneid])
@@ -244,6 +254,8 @@ model Allocation {
   allocatedAmount       Decimal  @map("allocated_amount") @db.Decimal(14, 2)
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
 
+  invoice               Invoice?
+
   @@unique([serviceChargeId, merchantId])
   @@map("allocations")
   @@schema("public")
@@ -262,5 +274,37 @@ model PennylaneSyncs {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("pennylane_syncs")
+  @@schema("public")
+}
+
+model Invoice {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  allocationId   String        @unique @map("allocation_id") @db.Uuid
+  allocation     Allocation    @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  merchantId     String        @map("merchant_id") @db.Uuid
+  merchant       Merchant      @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  amount         Decimal       @db.Decimal(14, 2)
+  amountPaid     Decimal       @map("amount_paid") @db.Decimal(14, 2) @default(0)
+  status         InvoiceStatus @default(unpaid)
+  issuedAt       DateTime      @map("issued_at") @db.Timestamptz
+  dueAt          DateTime      @map("due_at") @db.Timestamptz
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  payments       Payment[]
+
+  @@map("invoices")
+  @@schema("public")
+}
+
+model Payment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId String   @map("invoice_id") @db.Uuid
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(14, 2)
+  paidAt    DateTime @map("paid_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("payments")
   @@schema("public")
 }

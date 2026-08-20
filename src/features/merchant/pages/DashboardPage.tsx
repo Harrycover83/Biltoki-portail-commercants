@@ -4,14 +4,19 @@ import { PageContainer } from '../../../components/layout/PageContainer'
 import { formatEuroFromCents } from '../../../lib/money'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { getMerchantDashboardSummary, getMerchantHallOptions } from '../services/merchantService'
+import { getCurrentMonthInvoices } from '../services/invoiceService'
+import { InvoiceCard } from '../../../components/ui/InvoiceCard'
 import type { MerchantDashboardSummary, MerchantHallOption } from '../../../types/domain'
+import type { Invoice } from '../services/invoiceService'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<MerchantDashboardSummary | null>(null)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [halls, setHalls] = useState<MerchantHallOption[]>([])
   const [selectedHallId, setSelectedHallId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [invoicesLoading, setInvoicesLoading] = useState(false)
 
   useEffect(() => {
     const loadHalls = async () => {
@@ -47,6 +52,27 @@ export function DashboardPage() {
 
     void loadSummary()
   }, [selectedHallId])
+
+  // Load invoices for current month
+  useEffect(() => {
+    const loadInvoices = async () => {
+      if (!summary?.merchantId) return
+
+      setInvoicesLoading(true)
+      try {
+        const currentMonthInvoices = await getCurrentMonthInvoices(
+          summary.merchantId
+        )
+        setInvoices(currentMonthInvoices)
+      } catch (err) {
+        console.error('Failed to load invoices:', err)
+      } finally {
+        setInvoicesLoading(false)
+      }
+    }
+
+    void loadInvoices()
+  }, [summary?.merchantId])
 
   return (
     <PageContainer>
@@ -110,6 +136,25 @@ export function DashboardPage() {
               <p className="text-lg font-semibold text-[#13223a]">{summary.lineCount}</p>
             </Card>
           </div>
+
+          {/* Current month invoices section */}
+          <Card title="Factures du mois courant">
+            {invoicesLoading ? (
+              <StateMessage variant="loading" title="Chargement des factures..." />
+            ) : invoices.length === 0 ? (
+              <StateMessage
+                variant="empty"
+                title="Aucune facture"
+                message="Aucune facture pour ce mois"
+              />
+            ) : (
+              <div className="space-y-2">
+                {invoices.map((invoice) => (
+                  <InvoiceCard key={invoice.id} invoice={invoice} />
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
       ) : null}
     </PageContainer>

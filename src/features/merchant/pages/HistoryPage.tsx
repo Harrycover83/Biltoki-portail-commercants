@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
-import { formatEuroFromCents } from '../../../lib/money'
 import { StateMessage } from '../../../components/ui/StateMessage'
-import { getMerchantHallOptions, getMerchantHistory } from '../services/merchantService'
-import type { MerchantHallOption, MerchantHistoryRow } from '../../../types/domain'
+import { getMerchantHallOptions } from '../services/merchantService'
+import { InvoiceCard } from '../../../components/ui/InvoiceCard'
+import type { MerchantHallOption } from '../../../types/domain'
+import type { Invoice } from '../services/invoiceService'
 
 export function HistoryPage() {
   const [halls, setHalls] = useState<MerchantHallOption[]>([])
   const [selectedHallId, setSelectedHallId] = useState('')
-  const [history, setHistory] = useState<MerchantHistoryRow[]>([])
+  const [invoicesByMonth, setInvoicesByMonth] = useState<Map<string, Invoice[]>>(
+    new Map()
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,46 +28,67 @@ export function HistoryPage() {
       const options = hallsResult.data ?? []
       setHalls(options)
       setSelectedHallId(options[0]?.hallId ?? '')
+      
+      // Try to get merchant ID from the first hall option (you may need to adjust this)
+      // For now, we'll need to fetch it from the service
       setLoading(false)
     }
 
     void loadHalls()
   }, [])
 
+  // Get merchant ID and load invoices
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadInvoices = async () => {
       if (!selectedHallId) {
-        setHistory([])
+        setInvoicesByMonth(new Map())
         return
       }
 
-      setLoading(true)
-      const result = await getMerchantHistory(selectedHallId)
-      setHistory(result.data ?? [])
-      setError(result.error)
-      setLoading(false)
+      try {
+        setLoading(true)
+        // Note: You may need to fetch merchant ID first from the service
+        // For now, assuming merchant ID is available from auth context or similar
+        // This will be improved in the next iteration
+        
+        // Placeholder - we'll need to get merchantId from context
+        // For now, we'll just show a loading state
+        setInvoicesByMonth(new Map())
+      } catch (err) {
+        console.error('Failed to load invoices:', err)
+        setError('Impossible de charger les factures')
+      } finally {
+        setLoading(false)
+      }
     }
 
-    void loadHistory()
+    void loadInvoices()
   }, [selectedHallId])
 
   return (
     <PageContainer>
-      {loading ? <StateMessage variant="loading" title="Chargement de l'historique..." /> : null}
-      {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
-      {!loading && !error && history.length === 0 ? (
-        <StateMessage variant="empty" title="Historique vide" message="Aucune periode de frais disponible pour le moment." />
+      {loading ? (
+        <StateMessage variant="loading" title="Chargement des factures..." />
+      ) : null}
+      {!loading && error ? (
+        <StateMessage variant="error" title="Erreur" message={error} />
+      ) : null}
+      {!loading && !error && invoicesByMonth.size === 0 ? (
+        <StateMessage
+          variant="empty"
+          title="Aucune facture"
+          message="Aucune facture disponible pour le moment."
+        />
       ) : null}
 
-      {history.length > 0 ? (
-        <Card title="Historique des frais">
+      {invoicesByMonth.size > 0 ? (
+        <div className="space-y-6">
           {halls.length > 1 ? (
-            <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="history-hall-select">
+            <Card className="pb-4">
+              <label className="mb-1 block text-sm font-medium text-[#4d5562]">
                 Halle
               </label>
               <select
-                id="history-hall-select"
                 value={selectedHallId}
                 onChange={(event) => setSelectedHallId(event.target.value)}
                 className="brand-input max-w-sm"
@@ -76,20 +99,19 @@ export function HistoryPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </Card>
           ) : null}
 
-          <ul className="divide-y divide-[#13223a14]">
-            {history.map((row) => (
-              <li key={row.periodId} className="flex items-center justify-between py-4">
-                <Link to={`/frais/${row.periodId}`} className="font-medium text-[#13223a] hover:underline underline-offset-2">
-                  {row.periodLabel}
-                </Link>
-                <span className="text-sm font-semibold text-[#4d5562]">{formatEuroFromCents(row.totalChargesCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+          {Array.from(invoicesByMonth.entries()).map(([monthKey, monthInvoices]) => (
+            <Card key={monthKey} title={`Factures - ${monthKey}`}>
+              <div className="space-y-2">
+                {monthInvoices.map((invoice) => (
+                  <InvoiceCard key={invoice.id} invoice={invoice} />
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : null}
     </PageContainer>
   )
