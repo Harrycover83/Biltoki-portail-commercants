@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../AuthProvider'
 import { getRuntimeConfig } from '../../../lib/env'
 
@@ -46,7 +46,8 @@ export function LoginPage() {
         <p className="brand-badge">Portail Biltoki</p>
         <h1 className="brand-display mt-4 text-[2.3rem] leading-[0.98] font-semibold">Connexion commercant</h1>
         <p className="mt-3 max-w-sm text-sm leading-6 text-[#4d5562]">
-          Accedez a votre espace personnel des Halles de Biltoki.
+          Acces reserve aux locataires de stands enregistres. Utilisez l'adresse email transmise au
+          gestionnaire de votre halle.
         </p>
 
         {configurationError ? <p className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">{configurationError}</p> : null}
@@ -84,9 +85,13 @@ export function LoginPage() {
           </button>
         </form>
 
-        <Link to="/reset-password" className="mt-5 inline-block text-sm font-medium text-[#13223a] underline underline-offset-2">
-          Mot de passe oublie ?
-        </Link>
+        <p className="mt-5 text-sm text-[#4d5562]">
+          Premiere connexion : saisissez le mot de passe provisoire remis par le gestionnaire, le
+          portail vous demandera aussitot d'en choisir un personnel.
+        </p>
+        <p className="mt-2 text-sm text-[#4d5562]">
+          Mot de passe oublie ? Contactez le gestionnaire de votre halle pour une reinitialisation.
+        </p>
 
         {supabaseHost ? (
           <p className="mt-3 text-xs text-[#626a78]">Projet Supabase detecte: {supabaseHost}</p>

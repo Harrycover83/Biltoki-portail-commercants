@@ -9,6 +9,18 @@ export type Profile = {
   merchant_id: string | null
 }
 
+export type PortalAccessEntry = {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  role: UserRole
+  merchant_id: string | null
+  hall_id: string | null
+  active: boolean
+  provisioned_at: string | null
+}
+
 export type MerchantDashboardSummary = {
   merchantId: string
   merchantName: string

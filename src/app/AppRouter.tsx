@@ -4,9 +4,7 @@ import { AppHeader } from '../components/layout/AppHeader'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RoleRoute } from './guards/RoleRoute'
 import { LoginPage } from '../features/auth/pages/LoginPage'
-import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
-import { ResetPasswordUpdatePage } from '../features/auth/pages/ResetPasswordUpdatePage'
 import { DashboardPage } from '../features/merchant/pages/DashboardPage'
 import { ChargesPage } from '../features/merchant/pages/ChargesPage'
 import { ChargeDetailPage } from '../features/merchant/pages/ChargeDetailPage'
@@ -14,6 +12,7 @@ import { HistoryPage } from '../features/merchant/pages/HistoryPage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
 import { AdminStandsPage } from '../features/admin/pages/AdminStandsPage'
+import { AdminAccessPage } from '../features/admin/pages/AdminAccessPage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminPeriodsPage } from '../features/admin/pages/AdminPeriodsPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
@@ -47,8 +46,6 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/reset-password/update" element={<ResetPasswordUpdatePage />} />
 
         <Route
           path="/security/update-password"
@@ -145,6 +142,19 @@ export function AppRouter() {
               <RoleRoute role="admin">
                 <PrivateLayout>
                   <AdminStandsPage />
+                </PrivateLayout>
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/acces"
+          element={
+            <ProtectedRoute>
+              <RoleRoute role="admin">
+                <PrivateLayout>
+                  <AdminAccessPage />
                 </PrivateLayout>
               </RoleRoute>
             </ProtectedRoute>

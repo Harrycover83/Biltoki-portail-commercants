@@ -10,6 +10,9 @@ import type { Session, User } from '@supabase/supabase-js'
 import { getSupabaseClient } from '../../lib/supabase'
 import type { Profile, UserRole } from '../../types/domain'
 
+const ACCESS_DENIED_MESSAGE =
+  "Cet email n'est pas autorise a acceder au portail. Contactez le gestionnaire de la halle."
+
 type AuthContextValue = {
   loading: boolean
   user: User | null
@@ -20,11 +23,28 @@ type AuthContextValue = {
   configurationError: string | null
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
-  requestPasswordReset: (email: string) => Promise<{ error: string | null }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+
+// Belt and braces: accounts only exist for allowlisted tenants, but this also
+// locks out anyone whose entry was deactivated while holding a live session.
+async function isEmailAllowed(email: string | undefined): Promise<boolean> {
+  const client = getSupabaseClient()
+  if (!client || !email) {
+    return false
+  }
+
+  const { data, error } = await client
+    .from('portal_access')
+    .select('id')
+    .eq('email', email.toLowerCase())
+    .eq('active', true)
+    .maybeSingle()
+
+  return !error && Boolean(data)
+}
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const client = getSupabaseClient()
@@ -124,8 +144,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
           return { error: configurationError }
         }
 
-        const { error } = await client.auth.signInWithPassword({ email, password })
-        return { error: error?.message ?? null }
+        const { data, error } = await client.auth.signInWithPassword({ email, password })
+        if (error) {
+          return { error: error.message }
+        }
+
+        const allowed = await isEmailAllowed(data.user?.email)
+        if (!allowed) {
+          await client.auth.signOut()
+          return { error: ACCESS_DENIED_MESSAGE }
+        }
+
+        return { error: null }
       },
       signOut: async () => {
         if (!client) {
@@ -133,21 +163,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         await client.auth.signOut()
-      },
-      requestPasswordReset: async (email) => {
-        if (!client) {
-          return { error: configurationError }
-        }
-
-        const redirectTo =
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/reset-password/update`
-            : undefined
-
-        const { error } = await client.auth.resetPasswordForEmail(email, {
-          redirectTo,
-        })
-        return { error: error?.message ?? null }
       },
       updatePassword: async (newPassword) => {
         if (!client || !user) {

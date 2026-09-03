@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
     "db:migrate:remote": "node scripts/apply-remote-migration.mjs",
-    "db:run-sql": "node scripts/run-sql-file.mjs"
+    "db:run-sql": "node scripts/run-sql-file.mjs",
+    "portal:users": "node scripts/provision-portal-users.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
