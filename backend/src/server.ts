@@ -4,12 +4,30 @@ import type { Logger } from './utils/logger'
 import { PennylaneSync } from './services/sync.service'
 import { syncLock } from './services/sync-lock'
 import { PennylaneClient } from './integrations/pennylane/client'
+import { requireAdmin } from './middleware/auth'
 import type { Config } from './config'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
   const app = express()
 
-  app.use(express.json())
+  app.disable('x-powered-by')
+  app.use(express.json({ limit: '100kb' }))
+
+  app.use((req, res, next) => {
+    const origin = req.header('origin')
+    if (origin && config.server.allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+      res.setHeader('Vary', 'Origin')
+      res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-internal-token')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    }
+
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204)
+    }
+
+    return next()
+  })
 
   // Health check
   app.get('/health', (_req, res) => {
@@ -24,23 +42,23 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
         return res.status(503).json({
           status: 'not-ready',
           reason: 'database-check-failed',
-          message: error.message,
         })
       }
 
       return res.json({
         status: 'ready',
-        hallsConfigured: config.biltoki.hallsToSync.length,
         timestamp: new Date().toISOString(),
       })
     } catch (error) {
+      logger.error('Readiness check failed:', error)
       return res.status(503).json({
         status: 'not-ready',
         reason: 'unexpected-error',
-        message: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   })
+
+  app.use('/api', requireAdmin(config, db, logger))
 
   // Manual sync endpoint for a specific hall
   app.post('/api/sync/pennylane/:hallId', async (req, res) => {
@@ -53,7 +71,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       })
     }
 
-    logger.info(`📧 Manual sync triggered for hall: ${hallId}`)
+    logger.info(`📧 Manual sync triggered for hall: ${hallId} by ${res.locals.caller}`)
 
     if (syncLock.isRunning(hallId)) {
       return res.status(409).json({
@@ -80,7 +98,6 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       logger.error('Sync error:', error)
       return res.status(500).json({
         error: 'Sync failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   })

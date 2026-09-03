@@ -14,6 +14,8 @@ export type Config = {
   server: {
     port: number
     nodeEnv: 'development' | 'production'
+    internalApiToken: string | null
+    allowedOrigins: string[]
   }
   biltoki: {
     hallsToSync: string[] // Multiple halls supported
@@ -44,6 +46,16 @@ export function getConfig(): Config {
     throw new Error('HALLS_TO_SYNC must contain at least one hall UUID (comma-separated)')
   }
 
+  const internalApiToken = getEnvVar('INTERNAL_API_TOKEN', '')
+  if (internalApiToken && internalApiToken.length < 32) {
+    throw new Error('INTERNAL_API_TOKEN must be at least 32 characters')
+  }
+
+  const allowedOrigins = getEnvVar('ALLOWED_ORIGINS', '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
+
   return {
     supabase: {
       url: getEnvVar('VITE_SUPABASE_URL'),
@@ -56,6 +68,8 @@ export function getConfig(): Config {
     server: {
       port: parseInt(getEnvVar('PORT', '3000'), 10),
       nodeEnv: (getEnvVar('NODE_ENV', 'development') as 'development' | 'production'),
+      internalApiToken: internalApiToken || null,
+      allowedOrigins,
     },
     biltoki: {
       hallsToSync,
