@@ -115,20 +115,32 @@ begin
   raise notice 'Admin OK: profile %, hall %', v_admin_profile_id, v_toulon_hall_id;
 end $$;
 
--- 3) Remove ONLY the fake "Boucherie Martin" test merchant + its stand.
+-- 3) Remove ONLY the fake test merchants ("Boucherie Martin", "Poissonnerie du Port") + their stands.
+-- Closed periods are write-protected by trigger; reopen them first so the cleanup below can run.
+update public.service_charge_periods set status = 'draft' where status = 'closed';
+
 delete from public.allocations
 where stand_id in (
   select id from public.stands
-  where name = 'Boucherie Martin'
-     or merchant_id in (select id from public.merchants where legal_name = 'Boucherie Martin' or trade_name = 'Boucherie Martin')
+  where name in ('Boucherie Martin', 'Poissonnerie du Port')
+     or merchant_id in (
+       select id from public.merchants
+       where legal_name in ('Boucherie Martin', 'Poissonnerie du Port')
+          or trade_name in ('Boucherie Martin', 'Poissonnerie du Port')
+     )
 );
 
 delete from public.stands
-where name = 'Boucherie Martin'
-   or merchant_id in (select id from public.merchants where legal_name = 'Boucherie Martin' or trade_name = 'Boucherie Martin');
+where name in ('Boucherie Martin', 'Poissonnerie du Port')
+   or merchant_id in (
+     select id from public.merchants
+     where legal_name in ('Boucherie Martin', 'Poissonnerie du Port')
+        or trade_name in ('Boucherie Martin', 'Poissonnerie du Port')
+   );
 
 delete from public.merchants
-where legal_name = 'Boucherie Martin' or trade_name = 'Boucherie Martin';
+where legal_name in ('Boucherie Martin', 'Poissonnerie du Port')
+   or trade_name in ('Boucherie Martin', 'Poissonnerie du Port');
 
 -- 4) Remove the hardcoded mock invoices used as placeholder content (getMockServiceCharges()).
 -- Their pennylane_id always starts with "PLN-"; real Pennylane invoice ids are plain numbers.

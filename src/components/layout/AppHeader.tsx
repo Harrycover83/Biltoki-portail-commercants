@@ -24,16 +24,7 @@ export function AppHeader() {
                 Dashboard
               </NavLink>
               <NavLink to="/admin/frais" className={navClassName}>
-                Frais
-              </NavLink>
-              <NavLink to="/admin/periodes" className={navClassName}>
-                Periodes
-              </NavLink>
-              <NavLink to="/admin/stands" className={navClassName}>
-                Stands
-              </NavLink>
-              <NavLink to="/admin/acces" className={navClassName}>
-                Acces
+                Historique
               </NavLink>
               <NavLink to="/admin/synchronisation" className={navClassName}>
                 Synchronisation

@@ -5,13 +5,6 @@ import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
 
-type AdminPeriodOption = {
-  id: string
-  hall_id: string
-  label: string
-  period_end: string
-}
-
 type AdminHallOption = {
   id: string
   name: string
@@ -22,21 +15,87 @@ type AdminChargeRow = {
   label: string
   category: string | null
   amount_incl_tax: number
+  invoice_date: string | null
+  period_end: string
+  created_at: string
+}
+
+type MonthGroup = {
+  month: string // '01'..'12'
+  monthLabel: string
+  charges: AdminChargeRow[]
+  totalCents: number
+}
+
+type YearGroup = {
+  year: string
+  months: MonthGroup[]
+  totalCents: number
+}
+
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
+
+function dateForGrouping(row: AdminChargeRow): string {
+  return row.invoice_date ?? row.period_end ?? row.created_at
+}
+
+function groupByYearMonth(rows: AdminChargeRow[]): YearGroup[] {
+  const monthsByYear = new Map<string, Map<string, AdminChargeRow[]>>()
+
+  for (const row of rows) {
+    const isoDate = dateForGrouping(row)
+    const year = isoDate.slice(0, 4)
+    const month = isoDate.slice(5, 7)
+
+    if (!monthsByYear.has(year)) {
+      monthsByYear.set(year, new Map())
+    }
+    const monthMap = monthsByYear.get(year)!
+    if (!monthMap.has(month)) {
+      monthMap.set(month, [])
+    }
+    monthMap.get(month)!.push(row)
+  }
+
+  return [...monthsByYear.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([year, monthMap]) => {
+      const months: MonthGroup[] = [...monthMap.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([month, monthRows]) => {
+          const sorted = [...monthRows].sort((a, b) => dateForGrouping(a).localeCompare(dateForGrouping(b)))
+          return {
+            month,
+            monthLabel: MONTH_LABEL_FORMATTER.format(new Date(Date.UTC(Number(year), Number(month) - 1, 1))),
+            charges: sorted,
+            totalCents: sorted.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
+          }
+        })
+
+      return {
+        year,
+        months,
+        totalCents: months.reduce((sum, month) => sum + month.totalCents, 0),
+      }
+    })
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 export function AdminServiceChargesPage() {
   const [halls, setHalls] = useState<AdminHallOption[]>([])
   const [selectedHallId, setSelectedHallId] = useState('')
-  const [periods, setPeriods] = useState<AdminPeriodOption[]>([])
-  const [selectedPeriodId, setSelectedPeriodId] = useState('')
   const [rows, setRows] = useState<AdminChargeRow[]>([])
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadingRows, setLoadingRows] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadPeriods = async () => {
+    const loadHalls = async () => {
       const client = getSupabaseClient()
       if (!client) {
         setError('Supabase non configure.')
@@ -44,89 +103,29 @@ export function AdminServiceChargesPage() {
         return
       }
 
-      const [periodsResponse, hallsResponse] = await Promise.all([
-        client
-          .from('service_charge_periods')
-          .select('id, hall_id, label, period_end')
-          .order('period_end', { ascending: false }),
-        client.from('halls').select('id, name').order('name', { ascending: true }),
-      ])
-
-      if (periodsResponse.error) {
-        setError(periodsResponse.error.message)
+      const { data, error: hallsError } = await client.from('halls').select('id, name').order('name', { ascending: true })
+      if (hallsError) {
+        setError(hallsError.message)
         setLoading(false)
         return
       }
 
-      if (hallsResponse.error) {
-        setError(hallsResponse.error.message)
-        setLoading(false)
-        return
-      }
-
-      const hallOptions = (hallsResponse.data ?? []) as AdminHallOption[]
-      const allPeriods = (periodsResponse.data ?? []) as AdminPeriodOption[]
-
-      const preferredHallId =
-        hallOptions.find((hall) => allPeriods.some((period) => period.hall_id === hall.id))?.id ??
-        hallOptions[0]?.id ??
-        ''
-
+      const hallOptions = (data ?? []) as AdminHallOption[]
       setHalls(hallOptions)
-      const initialHallId = preferredHallId
-      setSelectedHallId(initialHallId)
-
-      const filteredPeriods = initialHallId
-        ? allPeriods.filter((period) => period.hall_id === initialHallId)
-        : allPeriods
-
-      setPeriods(filteredPeriods)
-      setSelectedPeriodId(filteredPeriods[0]?.id ?? '')
-      setLoading(false)
+      setSelectedHallId(hallOptions[0]?.id ?? '')
+      if (!hallOptions[0]) {
+        setLoading(false)
+      }
     }
 
-    void loadPeriods()
+    void loadHalls()
   }, [])
 
   useEffect(() => {
-    const reloadPeriodsForHall = async () => {
-      if (!selectedHallId) {
-        setPeriods([])
-        setSelectedPeriodId('')
-        return
-      }
-
-      const client = getSupabaseClient()
-      if (!client) {
-        setError('Supabase non configure.')
-        return
-      }
-
-      const { data, error: periodsError } = await client
-        .from('service_charge_periods')
-        .select('id, hall_id, label, period_end')
-        .eq('hall_id', selectedHallId)
-        .order('period_end', { ascending: false })
-
-      if (periodsError) {
-        setError(periodsError.message)
-        return
-      }
-
-      const options = (data ?? []) as AdminPeriodOption[]
-      setPeriods(options)
-      setSelectedPeriodId(options[0]?.id ?? '')
-    }
-
-    if (!loading) {
-      void reloadPeriodsForHall()
-    }
-  }, [loading, selectedHallId])
-
-  useEffect(() => {
     const loadRows = async () => {
-      if (!selectedPeriodId) {
+      if (!selectedHallId) {
         setRows([])
+        setLoading(false)
         return
       }
 
@@ -139,140 +138,150 @@ export function AdminServiceChargesPage() {
       setLoadingRows(true)
       const { data, error: rowsError } = await client
         .from('service_charges')
-        .select('id, label, category, amount_incl_tax')
-        .eq('period_id', selectedPeriodId)
+        .select('id, label, category, amount_incl_tax, invoice_date, created_at, service_charge_periods!inner(period_end)')
         .eq('hall_id', selectedHallId)
-        .order('label', { ascending: true })
 
       if (rowsError) {
         setError(rowsError.message)
+        setLoading(false)
         setLoadingRows(false)
         return
       }
 
-      setRows((data ?? []) as AdminChargeRow[])
+      const normalized = ((data ?? []) as unknown as Array<
+        Omit<AdminChargeRow, 'period_end'> & {
+          service_charge_periods: { period_end: string } | { period_end: string }[] | null
+        }
+      >).map((row) => {
+        const relation = row.service_charge_periods
+        const periodEnd = (Array.isArray(relation) ? relation[0]?.period_end : relation?.period_end) ?? row.created_at
+        return { ...row, period_end: periodEnd }
+      })
+
+      setRows(normalized)
       setError(null)
+      setLoading(false)
       setLoadingRows(false)
     }
 
-    if (!loading) {
-      void loadRows()
-    }
-  }, [loading, selectedHallId, selectedPeriodId])
+    void loadRows()
+  }, [selectedHallId])
 
-  const selectedPeriodLabel =
-    periods.find((period) => period.id === selectedPeriodId)?.label ?? 'Aucune periode'
+  const years = useMemo(() => groupByYearMonth(rows), [rows])
 
-  const totalCents = useMemo(
-    () => rows.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
-    [rows],
+  useEffect(() => {
+    setSelectedYear(years[0]?.year ?? '')
+    setSelectedMonth(years[0]?.months[0]?.month ?? '')
+  }, [years])
+
+  const selectedYearGroup = useMemo(() => years.find((year) => year.year === selectedYear) ?? null, [years, selectedYear])
+  const selectedMonthGroup = useMemo(
+    () => selectedYearGroup?.months.find((month) => month.month === selectedMonth) ?? null,
+    [selectedYearGroup, selectedMonth],
   )
 
-  const onSyncPennylane = async () => {
-    const client = getSupabaseClient()
-    if (!client) {
-      setError('Supabase non configure.')
-      return
-    }
-
-    setSyncing(true)
-    const { error: syncError } = await client.functions.invoke('pennylane-sync')
-
-    if (syncError) {
-      setError(syncError.message)
-      setSyncing(false)
-      return
-    }
-
-    setError(null)
-    setSyncing(false)
+  const onYearChange = (year: string) => {
+    setSelectedYear(year)
+    setSelectedMonth(years.find((y) => y.year === year)?.months[0]?.month ?? '')
   }
 
   return (
     <PageContainer>
       {loading || loadingRows ? <StateMessage variant="loading" title="Chargement des frais admin..." /> : null}
       {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
+      {!loading && !error && years.length === 0 ? (
+        <StateMessage
+          variant="empty"
+          title="Aucun frais"
+          message="Aucun frais synchronise depuis Pennylane pour cette halle. Lancez une synchronisation dans l'onglet Synchronisation."
+        />
+      ) : null}
 
-      {!loading && !error ? (
-        <Card title="Frais de service" subtitle={selectedPeriodLabel}>
-          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#13223a17] bg-white/70 p-4 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-[#4d5562]">
-              Source unique: Pennylane. Cette vue est en lecture et alimentee par la synchronisation.
-            </p>
-            <button
-              className="brand-button w-fit"
-              disabled={syncing}
-              type="button"
-              onClick={() => {
-                void onSyncPennylane()
-              }}
-            >
-              {syncing ? 'Synchronisation...' : 'Synchroniser Pennylane'}
-            </button>
-          </div>
+      {!loading && !error && years.length > 0 ? (
+        <div className="space-y-6">
+          <Card title="Historique des frais" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par l'onglet Synchronisation.">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {halls.length > 1 ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-hall-select">
+                    Halle
+                  </label>
+                  <select
+                    id="admin-hall-select"
+                    value={selectedHallId}
+                    onChange={(event) => setSelectedHallId(event.target.value)}
+                    className="brand-input"
+                  >
+                    {halls.map((hall) => (
+                      <option key={hall.id} value={hall.id}>
+                        {hall.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
-          {halls.length > 0 ? (
-            <div className="mb-4 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-hall-select">
-                  Halle
+                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">
+                  Annee
                 </label>
                 <select
-                  id="admin-hall-select"
-                  value={selectedHallId}
-                  onChange={(event) => setSelectedHallId(event.target.value)}
+                  id="admin-year-select"
+                  value={selectedYear}
+                  onChange={(event) => onYearChange(event.target.value)}
                   className="brand-input"
                 >
-                  {halls.map((hall) => (
-                    <option key={hall.id} value={hall.id}>
-                      {hall.name}
+                  {years.map((year) => (
+                    <option key={year.year} value={year.year}>
+                      {year.year} ({formatEuroFromCents(year.totalCents)})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-              <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-period-select">
-                Mois a consulter
-              </label>
-              <select
-                id="admin-period-select"
-                value={selectedPeriodId}
-                onChange={(event) => setSelectedPeriodId(event.target.value)}
-                className="brand-input max-w-sm"
-                disabled={periods.length === 0}
-              >
-                {periods.length === 0 ? <option value="">Aucune periode</option> : null}
-                {periods.map((period) => (
-                  <option key={period.id} value={period.id}>
-                    {period.label}
-                  </option>
-                ))}
-              </select>
-              </div>
+              {selectedYearGroup ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-month-select">
+                    Mois
+                  </label>
+                  <select
+                    id="admin-month-select"
+                    value={selectedMonth}
+                    onChange={(event) => setSelectedMonth(event.target.value)}
+                    className="brand-input"
+                  >
+                    {selectedYearGroup.months.map((month) => (
+                      <option key={month.month} value={month.month}>
+                        {month.monthLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </Card>
 
-          {rows.length === 0 ? (
-            <StateMessage
-              variant="empty"
-              title="Aucun frais pour cette periode"
-              message="Aucun frais synchronise depuis Pennylane pour cette periode."
-            />
-          ) : (
-            <>
+          {selectedMonthGroup ? (
+            <Card
+              title={capitalize(selectedMonthGroup.monthLabel)}
+              subtitle={`${selectedMonthGroup.charges.length} facture(s) - Total ${formatEuroFromCents(selectedMonthGroup.totalCents)}`}
+            >
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#13223a1f] text-[#626a78]">
+                      <th className="py-2">Date</th>
                       <th className="py-2">Poste</th>
                       <th className="py-2">Categorie</th>
                       <th className="py-2 text-right">Montant TTC</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row) => (
+                    {selectedMonthGroup.charges.map((row) => (
                       <tr key={row.id} className="border-b border-slate-100/80 last:border-b-0">
+                        <td className="py-3 whitespace-nowrap text-[#626a78]">
+                          {row.invoice_date ? new Date(row.invoice_date).toLocaleDateString('fr-FR') : '-'}
+                        </td>
                         <td className="py-3">{row.label}</td>
                         <td className="py-3">{row.category ?? '-'}</td>
                         <td className="py-3 text-right font-semibold text-[#13223a]">
@@ -285,17 +294,11 @@ export function AdminServiceChargesPage() {
               </div>
 
               <p className="mt-4 text-right text-sm font-semibold text-[#13223a]">
-                Total periode: {formatEuroFromCents(totalCents)}
+                Total mois: {formatEuroFromCents(selectedMonthGroup.totalCents)}
               </p>
-            </>
-          )}
-
-          {selectedHallId && periods.length === 0 ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Aucune periode disponible pour cette halle. Creez une periode dans "Periodes" puis relancez la synchronisation.
-            </div>
+            </Card>
           ) : null}
-        </Card>
+        </div>
       ) : null}
     </PageContainer>
   )
