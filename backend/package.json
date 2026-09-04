@@ -4,6 +4,9 @@
   "description": "Pennylane sync backend for Biltoki merchants portal",
   "type": "module",
   "main": "dist/main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx src/main.ts",
     "build": "tsc",
