@@ -15,9 +15,9 @@
  */
 
 import dotenv from 'dotenv'
-import type { Config } from '../config'
-import { PennylaneClient, PENNYLANE_API_URL } from '../integrations/pennylane/client'
-import { createLogger } from '../utils/logger'
+import type { Config } from '../config.js'
+import { PennylaneClient, PENNYLANE_API_URL } from '../integrations/pennylane/client.js'
+import { createLogger } from '../utils/logger.js'
 
 dotenv.config()
 

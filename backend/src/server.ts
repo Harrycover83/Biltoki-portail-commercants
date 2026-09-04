@@ -1,11 +1,11 @@
 import express from 'express'
-import type { SupabaseAdmin } from './db/supabase'
-import type { Logger } from './utils/logger'
-import { PennylaneSync } from './services/sync.service'
-import { syncLock } from './services/sync-lock'
-import { PennylaneClient } from './integrations/pennylane/client'
-import { requireAdmin } from './middleware/auth'
-import type { Config } from './config'
+import type { SupabaseAdmin } from './db/supabase.js'
+import type { Logger } from './utils/logger.js'
+import { PennylaneSync } from './services/sync.service.js'
+import { syncLock } from './services/sync-lock.js'
+import { PennylaneClient } from './integrations/pennylane/client.js'
+import { requireAdmin } from './middleware/auth.js'
+import type { Config } from './config.js'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
   const app = express()

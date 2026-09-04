@@ -1,10 +1,10 @@
 import cron from 'node-cron'
-import type { SupabaseAdmin } from './db/supabase'
-import type { Logger } from './utils/logger'
-import { PennylaneSync } from './services/sync.service'
-import { syncLock } from './services/sync-lock'
-import { PennylaneClient } from './integrations/pennylane/client'
-import type { Config } from './config'
+import type { SupabaseAdmin } from './db/supabase.js'
+import type { Logger } from './utils/logger.js'
+import { PennylaneSync } from './services/sync.service.js'
+import { syncLock } from './services/sync-lock.js'
+import { PennylaneClient } from './integrations/pennylane/client.js'
+import type { Config } from './config.js'
 
 export function setupScheduler(config: Config, db: SupabaseAdmin, logger: Logger) {
   logger.info(`Scheduling Pennylane sync: ${config.biltoki.syncCronSchedule}`)

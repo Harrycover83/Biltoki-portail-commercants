@@ -1,6 +1,6 @@
-import type { SupabaseAdmin } from '../db/supabase'
-import type { Logger } from '../utils/logger'
-import type { PennylaneClient } from '../integrations/pennylane/client'
+import type { SupabaseAdmin } from '../db/supabase.js'
+import type { Logger } from '../utils/logger.js'
+import type { PennylaneClient } from '../integrations/pennylane/client.js'
 
 export type SyncResult = {
   syncId: string

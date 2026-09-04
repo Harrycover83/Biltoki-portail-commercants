@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Config } from '../config'
-import type { Logger } from '../utils/logger'
+import type { Config } from '../config.js'
+import type { Logger } from '../utils/logger.js'
 
 export function createSupabaseAdmin(config: Config, logger: Logger) {
   logger.info('Initializing Supabase Admin client...')

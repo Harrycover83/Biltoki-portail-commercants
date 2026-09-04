@@ -1,8 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
-import type { Config } from '../config'
-import type { SupabaseAdmin } from '../db/supabase'
-import type { Logger } from '../utils/logger'
+import type { Config } from '../config.js'
+import type { SupabaseAdmin } from '../db/supabase.js'
+import type { Logger } from '../utils/logger.js'
 
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)

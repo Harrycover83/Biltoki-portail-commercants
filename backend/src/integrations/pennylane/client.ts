@@ -1,4 +1,4 @@
-import type { Logger } from '../../utils/logger'
+import type { Logger } from '../../utils/logger.js'
 import type {
   PennylaneCategory,
   PennylaneCategoryGroup,
@@ -11,7 +11,7 @@ import type {
   PennylaneSupplier,
   PennylaneSupplierInvoice,
   PennylaneWeightedCategory,
-} from './types'
+} from './types.js'
 
 export const PENNYLANE_API_URL = 'https://app.pennylane.com/api/external/v2'
 

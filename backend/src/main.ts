@@ -1,8 +1,8 @@
-import { getConfig } from './config'
-import { createLogger } from './utils/logger'
-import { createSupabaseAdmin, verifySupabaseConnection } from './db/supabase'
-import { createServer } from './server'
-import { setupScheduler } from './scheduler'
+import { getConfig } from './config.js'
+import { createLogger } from './utils/logger.js'
+import { createSupabaseAdmin, verifySupabaseConnection } from './db/supabase.js'
+import { createServer } from './server.js'
+import { setupScheduler } from './scheduler.js'
 
 async function main() {
   try {
