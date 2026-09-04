@@ -214,6 +214,7 @@ export function AdminPeriodsPage() {
     } finally {
       setSyncing(false)
     }
+  }
 
   return (
     <PageContainer>
