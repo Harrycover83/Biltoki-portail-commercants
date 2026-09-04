@@ -63,7 +63,7 @@ export function getConfig(): Config {
     },
     pennylane: {
       apiKey: getEnvVar('PENNYLANE_API_KEY', ''),
-      apiUrl: getEnvVar('PENNYLANE_API_URL', 'https://api.pennylane.io'),
+      apiUrl: getEnvVar('PENNYLANE_API_URL', 'https://app.pennylane.com/api/external/v2'),
     },
     server: {
       port: parseInt(getEnvVar('PORT', '3000'), 10),
