@@ -18,6 +18,16 @@ export const PENNYLANE_API_URL = 'https://app.pennylane.com/api/external/v2'
 const MAX_PAGE_SIZE = 100
 
 /**
+ * Maps a Biltoki hall UUID to the Pennylane analytical category that carries
+ * the "charges communes" refacturees aux commercants for that hall.
+ * One Pennylane token covers one company, so only halls whose invoices live
+ * in this token's company can be mapped here.
+ */
+const HALL_PENNYLANE_CATEGORY: Record<string, { categoryId: number; label: string }> = {
+  '29a1b758-07c9-481e-bd54-c72b6a9949c4': { categoryId: 9229710, label: '4105' }, // Halles de Toulon
+}
+
+/**
  * Pennylane Company API v2 client.
  *
  * The token is scoped to a single Pennylane company, so one client instance
@@ -149,19 +159,58 @@ export class PennylaneClient {
     return page.items
   }
 
-  async fetchServiceCharges(hallId: string): Promise<PennylaneServiceChargesResponse> {
+  async fetchServiceCharges(
+    hallId: string,
+    options: { from?: string; to?: string } = {},
+  ): Promise<PennylaneServiceChargesResponse> {
     this.logger.info(`Fetching service charges for hall: ${hallId}`)
 
     if (!this.apiKey) {
       return this.getMockServiceCharges()
     }
 
-    // A Pennylane token is company-scoped and knows nothing about our hall UUIDs.
-    // Refuse to guess rather than importing the wrong invoices into the portal.
-    throw new Error(
-      `No Pennylane mapping configured for hall ${hallId}. ` +
-        'Declare which Pennylane company/analytical category feeds this hall before enabling sync.',
-    )
+    const mapping = HALL_PENNYLANE_CATEGORY[hallId]
+    if (!mapping) {
+      // A Pennylane token is company-scoped and knows nothing about our hall UUIDs.
+      // Refuse to guess rather than importing the wrong invoices into the portal.
+      throw new Error(
+        `No Pennylane mapping configured for hall ${hallId}. ` +
+          'Declare which Pennylane company/analytical category feeds this hall before enabling sync.',
+      )
+    }
+
+    // Only invoices Pennylane has fully validated ("complete") are stable enough to bill onward.
+    const invoices = (
+      await this.listSupplierInvoices({
+        categoryIds: [mapping.categoryId],
+        from: options.from,
+        to: options.to,
+        maxItems: 500,
+      })
+    ).filter((invoice) => invoice.accounting_status === 'complete')
+
+    const charges: PennylaneServiceCharge[] = invoices.map((invoice) => {
+      const amountInclTax = Number(invoice.amount)
+      const taxAmount = Number(invoice.tax)
+      const amountExclTax = amountInclTax - taxAmount
+
+      return {
+        id: String(invoice.id),
+        label: invoice.label ?? invoice.invoice_number,
+        categoryLabel: mapping.label,
+        amountExclTax,
+        taxAmount,
+        amountInclTax,
+        createdAt: invoice.created_at,
+        updatedAt: invoice.updated_at,
+      }
+    })
+
+    return {
+      charges,
+      totalCount: charges.length,
+      hasMore: false,
+    }
   }
 
   private getMockServiceCharges(): PennylaneServiceChargesResponse {

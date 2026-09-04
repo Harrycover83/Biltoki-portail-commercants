@@ -50,9 +50,18 @@ export class PennylaneSync {
       // 1. Create sync record
       await this.createSyncRecord(syncId, 'running', startedAt)
 
-      // 2. Fetch from Pennylane
+      // 2. Get current period
+      const period = await this.getCurrentPeriod()
+      if (!period) {
+        throw new Error('No active service charge period found')
+      }
+
+      // 3. Fetch from Pennylane, scoped to the active period
       this.logger.info('Fetching service charges from Pennylane...')
-      const pennylaneCharges = await this.pennylane.fetchServiceCharges(this.hallId)
+      const pennylaneCharges = await this.pennylane.fetchServiceCharges(this.hallId, {
+        from: period.period_start,
+        to: period.period_end,
+      })
 
       if (pennylaneCharges.charges.length === 0) {
         this.logger.warn('No charges returned from Pennylane')
@@ -67,12 +76,6 @@ export class PennylaneSync {
         }
         await this.updateSyncRecord(syncId, 'success', result)
         return result
-      }
-
-      // 3. Get current period
-      const period = await this.getCurrentPeriod()
-      if (!period) {
-        throw new Error('No active service charge period found')
       }
 
       // 4. Upsert charges only (no allocation calculation)
