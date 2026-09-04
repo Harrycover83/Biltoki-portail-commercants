@@ -12,9 +12,13 @@ export type PennylaneList<T> = {
 }
 
 export type PennylaneMe = {
-  id: string
-  email?: string
-  role?: string
+  user?: {
+    id?: number
+    first_name?: string
+    last_name?: string
+    email?: string
+    locale?: string
+  }
   company?: {
     id?: number
     name?: string

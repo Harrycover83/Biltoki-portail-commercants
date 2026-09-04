@@ -118,9 +118,10 @@ async function main() {
   }
 
   console.log('\n=== COMPTE ===')
-  console.log(`Societe   : ${me.company?.name ?? 'inconnue'} (id ${me.company?.id ?? '?'})`)
-  console.log(`Utilisateur: ${me.email ?? me.id} — role ${me.role ?? '?'}`)
-  console.log(`API       : ${apiUrl}`)
+  console.log(`Societe    : ${me.company?.name ?? 'inconnue'} (id ${me.company?.id ?? '?'})`)
+  console.log(`Reg. no    : ${me.company?.reg_no ?? '-'}`)
+  console.log(`Utilisateur: ${me.user?.email ?? '?'} (${me.user?.first_name ?? ''} ${me.user?.last_name ?? ''})`)
+  console.log(`API        : ${apiUrl}`)
 
   console.log(`\n=== AXES ANALYTIQUES (${groups.length} groupes / ${categories.length} categories) ===`)
   if (groups.length === 0 && categories.length === 0) {

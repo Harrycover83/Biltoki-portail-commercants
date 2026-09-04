@@ -63,7 +63,7 @@ Fichiers:
 
 - `supabase/schema.sql`
 - `supabase/migrations/20260814124000_init.sql`
-- `supabase/seeds/seed_minimal.sql`
+- `supabase/seeds/reset_pilot_toulon.sql`
 
 Tables principales:
 
@@ -200,18 +200,16 @@ Appliquer la migration initiale:
 npm run db:migrate:remote
 ```
 
-Executer un fichier SQL arbitraire (ex: seed):
+Executer un fichier SQL arbitraire (ex: reset pilote):
 
 ```bash
-npm run db:run-sql -- supabase/seeds/seed_minimal.sql
+npm run db:run-sql -- supabase/seeds/reset_pilot_toulon.sql
 ```
 
-Important pour `seed_minimal.sql`:
+Important pour `reset_pilot_toulon.sql`:
 
-- Creer les utilisateurs Auth correspondants dans Supabase avant le seed.
-- Le seed recupere automatiquement les UUID via email:
-  - `jean.merchant@example.com`
-  - `admin.biltoki@example.com`
+- Supprime toutes les donnees metier de test et ne conserve que les halles Prisma et le compte `admin.biltoki@example.com`.
+- Ne touche pas a `auth.users`: supprimer les comptes de test restants depuis le dashboard Supabase.
 - Ne pas inserer ou modifier directement `auth.users`, `auth.identities` ou `auth.instances` via SQL. Utiliser uniquement:
   - le dashboard `Authentication > Users`
   - ou l'API Admin officielle Supabase
