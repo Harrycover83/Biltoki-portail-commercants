@@ -161,7 +161,7 @@ export class PennylaneClient {
 
   async fetchServiceCharges(
     hallId: string,
-    options: { from?: string; to?: string } = {},
+    options: { from?: string; to?: string; maxItems?: number } = {},
   ): Promise<PennylaneServiceChargesResponse> {
     this.logger.info(`Fetching service charges for hall: ${hallId}`)
 
@@ -185,7 +185,7 @@ export class PennylaneClient {
         categoryIds: [mapping.categoryId],
         from: options.from,
         to: options.to,
-        maxItems: 500,
+        maxItems: options.maxItems ?? 3000,
       })
     ).filter((invoice) => invoice.accounting_status === 'complete')
 
@@ -201,6 +201,7 @@ export class PennylaneClient {
         amountExclTax,
         taxAmount,
         amountInclTax,
+        date: invoice.date ?? invoice.created_at.slice(0, 10),
         createdAt: invoice.created_at,
         updatedAt: invoice.updated_at,
       }

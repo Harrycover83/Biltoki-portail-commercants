@@ -228,6 +228,7 @@ model ServiceCharge {
   amountTax          Decimal  @map("amount_tax") @db.Decimal(14, 2)
   amountInclTax      Decimal  @map("amount_incl_tax") @db.Decimal(14, 2)
   pennylaneid        String?  @map("pennylane_id")
+  invoiceDate        DateTime? @map("invoice_date") @db.Date
   source             String   @default("manual")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
 

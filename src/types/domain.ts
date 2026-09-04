@@ -41,6 +41,7 @@ export type ChargeLine = {
   label: string
   category: string | null
   totalCents: number
+  invoiceDate: string | null
 }
 
 export type MerchantHistoryRow = {
@@ -48,6 +49,19 @@ export type MerchantHistoryRow = {
   periodLabel: string
   totalChargesCents: number
   periodEnd: string
+}
+
+export type MerchantYearGroup = {
+  year: string
+  totalChargesCents: number
+  months: MerchantMonthGroup[]
+}
+
+export type MerchantMonthGroup = {
+  month: string // '01'..'12'
+  monthLabel: string // 'Janvier 2026'
+  totalChargesCents: number
+  charges: ChargeLine[]
 }
 
 export type MerchantChargePeriodDetail = {

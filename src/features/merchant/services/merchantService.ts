@@ -5,6 +5,8 @@ import type {
   MerchantDashboardSummary,
   MerchantHallOption,
   MerchantHistoryRow,
+  MerchantMonthGroup,
+  MerchantYearGroup,
 } from '../../../types/domain'
 
 type ServiceResult<T> = {
@@ -20,6 +22,7 @@ type ServiceChargeRow = {
   period_id: string
   hall_id: string
   created_at: string
+  invoice_date: string | null
   service_charge_periods: {
     id: string
     label: string
@@ -60,6 +63,7 @@ function mapChargeLines(rows: ServiceChargeRow[]): ChargeLine[] {
     label: row.label,
     category: row.category,
     totalCents: toCents(Number(row.amount_incl_tax)),
+    invoiceDate: row.invoice_date,
   }))
 }
 
@@ -146,6 +150,7 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
       period_id,
       hall_id,
       created_at,
+      invoice_date,
       service_charge_periods:service_charge_periods!inner(
         id,
         label,
@@ -284,4 +289,72 @@ export async function getMerchantChargePeriodDetail(
     },
     error: null,
   }
+}
+
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
+
+function chargeDateForGrouping(row: ServiceChargeRow): string {
+  return row.invoice_date ?? row.service_charge_periods?.period_end ?? row.created_at
+}
+
+/**
+ * All charges for a hall, organized as Year -> Month -> chronological charge list.
+ * Grouping uses the real Pennylane invoice date (falls back to period end / row
+ * creation date for legacy rows synced before invoice_date existed).
+ */
+export async function getMerchantChargesByYear(hallId?: string): Promise<ServiceResult<MerchantYearGroup[]>> {
+  const { data, error } = await fetchVisibleServiceCharges()
+  if (error) {
+    return { data: null, error }
+  }
+
+  const rows = filterByHall(data ?? [], hallId)
+  if (rows.length === 0) {
+    return { data: [], error: null }
+  }
+
+  const sortedRows = [...rows].sort((a, b) =>
+    chargeDateForGrouping(a).localeCompare(chargeDateForGrouping(b)),
+  )
+
+  const monthsByYear = new Map<string, Map<string, ServiceChargeRow[]>>()
+
+  for (const row of sortedRows) {
+    const isoDate = chargeDateForGrouping(row)
+    const year = isoDate.slice(0, 4)
+    const month = isoDate.slice(5, 7)
+
+    if (!monthsByYear.has(year)) {
+      monthsByYear.set(year, new Map())
+    }
+    const monthMap = monthsByYear.get(year)!
+    if (!monthMap.has(month)) {
+      monthMap.set(month, [])
+    }
+    monthMap.get(month)!.push(row)
+  }
+
+  const years: MerchantYearGroup[] = [...monthsByYear.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([year, monthMap]) => {
+      const months: MerchantMonthGroup[] = [...monthMap.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([month, monthRows]) => {
+          const charges = mapChargeLines(monthRows)
+          return {
+            month,
+            monthLabel: MONTH_LABEL_FORMATTER.format(new Date(Date.UTC(Number(year), Number(month) - 1, 1))),
+            totalChargesCents: charges.reduce((sum, charge) => sum + charge.totalCents, 0),
+            charges,
+          }
+        })
+
+      return {
+        year,
+        totalChargesCents: months.reduce((sum, month) => sum + month.totalChargesCents, 0),
+        months,
+      }
+    })
+
+  return { data: years, error: null }
 }

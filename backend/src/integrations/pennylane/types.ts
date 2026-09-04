@@ -103,6 +103,8 @@ export type PennylaneServiceCharge = {
   amountInclTax: number // in euros
   taxRate?: number // percentage, e.g., 20 for 20%
   description?: string
+  /** Accounting date of the underlying Pennylane invoice (YYYY-MM-DD). */
+  date?: string
   createdAt?: string
   updatedAt?: string
 }

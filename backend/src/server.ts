@@ -102,6 +102,48 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
     }
   })
 
+  // One-off full historical import for a hall (all invoices ever categorized, not just recent months)
+  app.post('/api/sync/pennylane/:hallId/backfill', async (req, res) => {
+    const { hallId } = req.params
+
+    if (!config.biltoki.hallsToSync.includes(hallId)) {
+      return res.status(403).json({
+        error: 'Hall not in configured sync list',
+        configuredHalls: config.biltoki.hallsToSync,
+      })
+    }
+
+    logger.info(`📦 Full history backfill triggered for hall: ${hallId} by ${res.locals.caller}`)
+
+    if (syncLock.isRunning(hallId)) {
+      return res.status(409).json({
+        error: 'Sync already running for this hall',
+        hallId,
+      })
+    }
+
+    try {
+      const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+      const result = await syncLock.runExclusive(hallId, async () => {
+        const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
+        return await syncService.backfillHistory()
+      })
+
+      return res.status(200).json({
+        syncId: result.syncId,
+        hallId: result.hallId,
+        status: result.status,
+        recordsProcessed: result.recordsProcessed,
+        errors: result.errors,
+      })
+    } catch (error) {
+      logger.error('Backfill error:', error)
+      return res.status(500).json({
+        error: 'Backfill failed',
+      })
+    }
+  })
+
   // Get sync status
   app.get('/api/sync/pennylane/:syncId', async (req, res) => {
     try {

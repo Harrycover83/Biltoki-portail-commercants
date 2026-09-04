@@ -1,18 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { StateMessage } from '../../../components/ui/StateMessage'
-import { getMerchantHallOptions } from '../services/merchantService'
-import { InvoiceCard } from '../../../components/ui/InvoiceCard'
-import type { MerchantHallOption } from '../../../types/domain'
-import type { Invoice } from '../services/invoiceService'
+import { formatEuroFromCents } from '../../../lib/money'
+import { getMerchantChargesByYear, getMerchantHallOptions } from '../services/merchantService'
+import type { MerchantHallOption, MerchantYearGroup } from '../../../types/domain'
 
 export function HistoryPage() {
   const [halls, setHalls] = useState<MerchantHallOption[]>([])
   const [selectedHallId, setSelectedHallId] = useState('')
-  const [invoicesByMonth, setInvoicesByMonth] = useState<Map<string, Invoice[]>>(
-    new Map()
-  )
+  const [years, setYears] = useState<MerchantYearGroup[]>([])
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,52 +27,62 @@ export function HistoryPage() {
       const options = hallsResult.data ?? []
       setHalls(options)
       setSelectedHallId(options[0]?.hallId ?? '')
-      
-      // Try to get merchant ID from the first hall option (you may need to adjust this)
-      // For now, we'll need to fetch it from the service
-      setLoading(false)
+
+      if (!options[0]) {
+        setLoading(false)
+      }
     }
 
     void loadHalls()
   }, [])
 
-  // Get merchant ID and load invoices
   useEffect(() => {
-    const loadInvoices = async () => {
+    const loadCharges = async () => {
       if (!selectedHallId) {
-        setInvoicesByMonth(new Map())
+        setYears([])
         return
       }
 
-      try {
-        setLoading(true)
-        // Note: You may need to fetch merchant ID first from the service
-        // For now, assuming merchant ID is available from auth context or similar
-        // This will be improved in the next iteration
-        
-        // Placeholder - we'll need to get merchantId from context
-        // For now, we'll just show a loading state
-        setInvoicesByMonth(new Map())
-      } catch (err) {
-        console.error('Failed to load invoices:', err)
-        setError('Impossible de charger les factures')
-      } finally {
+      setLoading(true)
+      const result = await getMerchantChargesByYear(selectedHallId)
+      if (result.error) {
+        setError(result.error)
         setLoading(false)
+        return
       }
+
+      const loadedYears = result.data ?? []
+      setYears(loadedYears)
+      setSelectedYear(loadedYears[0]?.year ?? '')
+      setSelectedMonth(loadedYears[0]?.months[0]?.month ?? '')
+      setError(null)
+      setLoading(false)
     }
 
-    void loadInvoices()
+    void loadCharges()
   }, [selectedHallId])
+
+  const selectedYearGroup = useMemo(
+    () => years.find((year) => year.year === selectedYear) ?? null,
+    [years, selectedYear],
+  )
+
+  const selectedMonthGroup = useMemo(
+    () => selectedYearGroup?.months.find((month) => month.month === selectedMonth) ?? null,
+    [selectedYearGroup, selectedMonth],
+  )
+
+  const onYearChange = (year: string) => {
+    setSelectedYear(year)
+    const yearGroup = years.find((y) => y.year === year)
+    setSelectedMonth(yearGroup?.months[0]?.month ?? '')
+  }
 
   return (
     <PageContainer>
-      {loading ? (
-        <StateMessage variant="loading" title="Chargement des factures..." />
-      ) : null}
-      {!loading && error ? (
-        <StateMessage variant="error" title="Erreur" message={error} />
-      ) : null}
-      {!loading && !error && invoicesByMonth.size === 0 ? (
+      {loading ? <StateMessage variant="loading" title="Chargement des factures..." /> : null}
+      {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
+      {!loading && !error && years.length === 0 ? (
         <StateMessage
           variant="empty"
           title="Aucune facture"
@@ -81,38 +90,111 @@ export function HistoryPage() {
         />
       ) : null}
 
-      {invoicesByMonth.size > 0 ? (
+      {!loading && !error && years.length > 0 ? (
         <div className="space-y-6">
-          {halls.length > 1 ? (
-            <Card className="pb-4">
-              <label className="mb-1 block text-sm font-medium text-[#4d5562]">
-                Halle
-              </label>
-              <select
-                value={selectedHallId}
-                onChange={(event) => setSelectedHallId(event.target.value)}
-                className="brand-input max-w-sm"
-              >
-                {halls.map((hall) => (
-                  <option key={hall.hallId} value={hall.hallId}>
-                    {hall.hallName}
-                  </option>
-                ))}
-              </select>
-            </Card>
-          ) : null}
+          <Card title="Historique des factures" subtitle="Charges communes refacturees, par annee et par mois">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {halls.length > 1 ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="history-hall-select">
+                    Halle
+                  </label>
+                  <select
+                    id="history-hall-select"
+                    value={selectedHallId}
+                    onChange={(event) => setSelectedHallId(event.target.value)}
+                    className="brand-input"
+                  >
+                    {halls.map((hall) => (
+                      <option key={hall.hallId} value={hall.hallId}>
+                        {hall.hallName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
-          {Array.from(invoicesByMonth.entries()).map(([monthKey, monthInvoices]) => (
-            <Card key={monthKey} title={`Factures - ${monthKey}`}>
-              <div className="space-y-2">
-                {monthInvoices.map((invoice) => (
-                  <InvoiceCard key={invoice.id} invoice={invoice} />
-                ))}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="history-year-select">
+                  Annee
+                </label>
+                <select
+                  id="history-year-select"
+                  value={selectedYear}
+                  onChange={(event) => onYearChange(event.target.value)}
+                  className="brand-input"
+                >
+                  {years.map((year) => (
+                    <option key={year.year} value={year.year}>
+                      {year.year} ({formatEuroFromCents(year.totalChargesCents)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedYearGroup ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="history-month-select">
+                    Mois
+                  </label>
+                  <select
+                    id="history-month-select"
+                    value={selectedMonth}
+                    onChange={(event) => setSelectedMonth(event.target.value)}
+                    className="brand-input"
+                  >
+                    {selectedYearGroup.months.map((month) => (
+                      <option key={month.month} value={month.month}>
+                        {month.monthLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+
+          {selectedMonthGroup ? (
+            <Card
+              title={capitalize(selectedMonthGroup.monthLabel)}
+              subtitle={`${selectedMonthGroup.charges.length} facture(s) - Total ${formatEuroFromCents(selectedMonthGroup.totalChargesCents)}`}
+            >
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#13223a1f] text-[#626a78]">
+                      <th className="py-2">Date</th>
+                      <th className="py-2">Facture</th>
+                      <th className="py-2">Categorie</th>
+                      <th className="py-2 text-right">Montant TTC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMonthGroup.charges.map((charge) => (
+                      <tr key={charge.id} className="border-b border-slate-100/80 last:border-b-0">
+                        <td className="py-3 whitespace-nowrap text-[#626a78]">
+                          {charge.invoiceDate
+                            ? new Date(charge.invoiceDate).toLocaleDateString('fr-FR')
+                            : '-'}
+                        </td>
+                        <td className="py-3">{charge.label}</td>
+                        <td className="py-3">{charge.category ?? '-'}</td>
+                        <td className="py-3 text-right font-semibold text-[#13223a]">
+                          {formatEuroFromCents(charge.totalCents)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </Card>
-          ))}
+          ) : null}
         </div>
       ) : null}
     </PageContainer>
   )
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
