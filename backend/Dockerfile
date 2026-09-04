@@ -1,16 +1,32 @@
 # Use Node 20 LTS
-FROM node:20-alpine
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy package files
+# Install dependencies needed for build
 COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
+# Copy source and compile
+COPY tsconfig.json ./
+COPY src ./src
+COPY prisma ./prisma
+RUN npx prisma generate
+RUN npm run build
 
-# Copy built application
-COPY dist ./dist
+FROM node:20-alpine
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Install production-only dependencies
+COPY package.json package-lock.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy compiled app and generated Prisma client
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
