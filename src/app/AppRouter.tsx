@@ -6,8 +6,6 @@ import { RoleRoute } from './guards/RoleRoute'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
 import { DashboardPage } from '../features/merchant/pages/DashboardPage'
-import { ChargesPage } from '../features/merchant/pages/ChargesPage'
-import { ChargeDetailPage } from '../features/merchant/pages/ChargeDetailPage'
 import { HistoryPage } from '../features/merchant/pages/HistoryPage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
@@ -68,9 +66,7 @@ export function AppRouter() {
           path="/frais"
           element={
             <ProtectedRoute>
-              <PrivateLayout>
-                <ChargesPage />
-              </PrivateLayout>
+              <Navigate to="/historique" replace />
             </ProtectedRoute>
           }
         />
@@ -79,9 +75,7 @@ export function AppRouter() {
           path="/frais/:periodId"
           element={
             <ProtectedRoute>
-              <PrivateLayout>
-                <ChargeDetailPage />
-              </PrivateLayout>
+              <Navigate to="/historique" replace />
             </ProtectedRoute>
           }
         />

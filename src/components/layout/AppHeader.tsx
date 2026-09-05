@@ -35,9 +35,6 @@ export function AppHeader() {
               <NavLink to="/dashboard" className={navClassName}>
                 Dashboard
               </NavLink>
-              <NavLink to="/frais" className={navClassName}>
-                Frais
-              </NavLink>
               <NavLink to="/historique" className={navClassName}>
                 Historique
               </NavLink>
