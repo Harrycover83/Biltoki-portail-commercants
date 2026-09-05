@@ -2,7 +2,7 @@ type StateMessageVariant = 'loading' | 'empty' | 'error' | 'success'
 
 const variantClassName: Record<StateMessageVariant, string> = {
   loading: 'bg-[#fff9ef] text-[#15130f] border-[#15130f]',
-  empty: 'bg-[#f1a72d] text-[#15130f] border-[#15130f]',
+  empty: 'bg-[#fffcf6] text-[#171511] border-[#e1dacd]',
   error: 'bg-[#f7d2d8] text-[#15130f] border-[#15130f]',
   success: 'bg-[#a8d8ac] text-[#15130f] border-[#15130f]',
 }
