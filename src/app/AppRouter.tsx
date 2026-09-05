@@ -11,6 +11,7 @@ import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
+import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
 
@@ -18,7 +19,9 @@ function PrivateLayout({ children }: { children: ReactNode }) {
   return (
     <div className="brand-shell min-h-screen">
       <AppHeader />
-      {children}
+      <AdminHallProvider>
+        {children}
+      </AdminHallProvider>
     </div>
   )
 }

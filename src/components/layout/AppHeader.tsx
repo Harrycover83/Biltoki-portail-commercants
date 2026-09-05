@@ -1,10 +1,13 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useAdminHall } from '../../features/admin/AdminHallContext'
 import { useAuth } from '../../features/auth/AuthProvider'
 
 export function AppHeader() {
   const { user, profile, signOut } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const homePath = isAdmin ? '/admin/dashboard' : '/dashboard'
+  const location = useLocation()
+  const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
@@ -58,6 +61,28 @@ export function AppHeader() {
           </button>
         </div>
       </div>
+
+      {isAdmin && location.pathname.startsWith('/admin') ? (
+        <div className="border-t border-[#13223a1f] bg-[#fffaf4]">
+          <div className="mx-auto max-w-6xl px-4 py-3 md:px-6">
+            <label className="flex items-center gap-3 text-sm font-medium text-[#4d5562]">
+              <span>Halle observée</span>
+              <select
+                value={selectedHallId}
+                disabled={loading || halls.length === 0}
+                onChange={(event) => setSelectedHallId(event.target.value)}
+                className="rounded-full border border-[#13223a2a] bg-white px-3 py-2 text-sm text-[#13223a] shadow-sm outline-none focus:border-[#13223a]"
+              >
+                {halls.map((hall) => (
+                  <option key={hall.id} value={hall.id}>
+                    {hall.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }
