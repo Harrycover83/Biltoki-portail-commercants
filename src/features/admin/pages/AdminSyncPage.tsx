@@ -1,14 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { getBackendUrl } from '../../../lib/env'
-
-type HallOption = {
-  id: string
-  name: string
-}
+import { useAdminHall } from '../AdminHallContext'
 
 function formatSyncErrors(errors: unknown): string {
   if (!Array.isArray(errors)) {
@@ -30,37 +26,9 @@ function formatSyncErrors(errors: unknown): string {
 }
 
 export function AdminSyncPage() {
-  const [halls, setHalls] = useState<HallOption[]>([])
-  const [syncHallId, setSyncHallId] = useState('')
-  const [loading, setLoading] = useState(true)
+  const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
   const [syncing, setSyncing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loadHalls = async () => {
-      const client = getSupabaseClient()
-      if (!client) {
-        setError('Supabase non configure.')
-        setLoading(false)
-        return
-      }
-
-      const { data, error: hallsError } = await client.from('halls').select('id, name').order('name', { ascending: true })
-      if (hallsError) {
-        setError(hallsError.message)
-        setLoading(false)
-        return
-      }
-
-      const options = (data ?? []) as HallOption[]
-      setHalls(options)
-      setSyncHallId(options[0]?.id ?? '')
-      setLoading(false)
-    }
-
-    void loadHalls()
-  }, [])
 
   const triggerPennylaneSync = async (mode: 'recent' | 'backfill') => {
     const backendUrl = getBackendUrl()
@@ -68,7 +36,7 @@ export function AdminSyncPage() {
       setSyncMessage('VITE_BACKEND_URL non configure.')
       return
     }
-    if (!syncHallId) {
+    if (!selectedHallId) {
       setSyncMessage('Selectionnez une halle.')
       return
     }
@@ -86,7 +54,7 @@ export function AdminSyncPage() {
     setSyncing(true)
     setSyncMessage(null)
 
-    const path = mode === 'backfill' ? `/${syncHallId}/backfill` : `/${syncHallId}`
+    const path = mode === 'backfill' ? `/${selectedHallId}/backfill` : `/${selectedHallId}`
 
     try {
       const response = await fetch(`${backendUrl}/api/sync/pennylane${path}`, {
@@ -114,9 +82,8 @@ export function AdminSyncPage() {
   return (
     <PageContainer>
       {loading ? <StateMessage variant="loading" title="Chargement..." /> : null}
-      {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
 
-      {!loading && !error ? (
+      {!loading ? (
         <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
           {syncing ? (
             <div className="mb-4 flex items-center gap-3 rounded-md border border-[#1d3b63]/20 bg-[#e8f0f8] px-3 py-2 text-sm font-medium text-[#13223a]" role="status">
@@ -129,8 +96,8 @@ export function AdminSyncPage() {
               Halle
               <select
                 className="brand-input mt-1"
-                value={syncHallId}
-                onChange={(event) => setSyncHallId(event.target.value)}
+                value={selectedHallId}
+                onChange={(event) => setSelectedHallId(event.target.value)}
               >
                 {halls.map((hall) => (
                   <option key={hall.id} value={hall.id}>

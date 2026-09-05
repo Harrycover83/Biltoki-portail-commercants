@@ -4,11 +4,7 @@ import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
-
-type AdminHallOption = {
-  id: string
-  name: string
-}
+import { useAdminHall } from '../AdminHallContext'
 
 type AdminChargeRow = {
   id: string
@@ -85,47 +81,17 @@ function capitalize(value: string): string {
 }
 
 export function AdminServiceChargesPage() {
-  const [halls, setHalls] = useState<AdminHallOption[]>([])
-  const [selectedHallId, setSelectedHallId] = useState('')
+  const { selectedHallId, loading: loadingHalls } = useAdminHall()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [loading, setLoading] = useState(true)
   const [loadingRows, setLoadingRows] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loadHalls = async () => {
-      const client = getSupabaseClient()
-      if (!client) {
-        setError('Supabase non configure.')
-        setLoading(false)
-        return
-      }
-
-      const { data, error: hallsError } = await client.from('halls').select('id, name').order('name', { ascending: true })
-      if (hallsError) {
-        setError(hallsError.message)
-        setLoading(false)
-        return
-      }
-
-      const hallOptions = (data ?? []) as AdminHallOption[]
-      setHalls(hallOptions)
-      setSelectedHallId(hallOptions[0]?.id ?? '')
-      if (!hallOptions[0]) {
-        setLoading(false)
-      }
-    }
-
-    void loadHalls()
-  }, [])
 
   useEffect(() => {
     const loadRows = async () => {
       if (!selectedHallId) {
         setRows([])
-        setLoading(false)
         return
       }
 
@@ -143,7 +109,6 @@ export function AdminServiceChargesPage() {
 
       if (rowsError) {
         setError(rowsError.message)
-        setLoading(false)
         setLoadingRows(false)
         return
       }
@@ -160,7 +125,6 @@ export function AdminServiceChargesPage() {
 
       setRows(normalized)
       setError(null)
-      setLoading(false)
       setLoadingRows(false)
     }
 
@@ -187,9 +151,9 @@ export function AdminServiceChargesPage() {
 
   return (
     <PageContainer>
-      {loading || loadingRows ? <StateMessage variant="loading" title="Chargement des frais admin..." /> : null}
-      {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
-      {!loading && !error && years.length === 0 ? (
+      {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des frais admin..." /> : null}
+      {!loadingHalls && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
+      {!loadingHalls && !error && years.length === 0 ? (
         <StateMessage
           variant="empty"
           title="Aucun frais"
@@ -197,30 +161,10 @@ export function AdminServiceChargesPage() {
         />
       ) : null}
 
-      {!loading && !error && years.length > 0 ? (
+      {!loadingHalls && !error && years.length > 0 ? (
         <div className="space-y-6">
           <Card title="Historique des frais" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par l'onglet Synchronisation.">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {halls.length > 1 ? (
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-hall-select">
-                    Halle
-                  </label>
-                  <select
-                    id="admin-hall-select"
-                    value={selectedHallId}
-                    onChange={(event) => setSelectedHallId(event.target.value)}
-                    className="brand-input"
-                  >
-                    {halls.map((hall) => (
-                      <option key={hall.id} value={hall.id}>
-                        {hall.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">
                   Annee

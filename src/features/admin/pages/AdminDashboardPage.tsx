@@ -5,6 +5,7 @@ import { StateMessage } from '../../../components/ui/StateMessage'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
+import { useAdminHall } from '../AdminHallContext'
 
 type PeriodStatus = 'draft' | 'calculated' | 'validated' | 'closed'
 
@@ -20,12 +21,19 @@ type DashboardData = {
 }
 
 export function AdminDashboardPage() {
+  const { selectedHallId, loading: loadingHalls } = useAdminHall()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
+      if (!selectedHallId) {
+        setData(null)
+        setLoading(false)
+        return
+      }
+
       const client = getSupabaseClient()
       if (!client) {
         setError('Supabase non configure.')
@@ -38,6 +46,7 @@ export function AdminDashboardPage() {
       const { data: period, error: periodError } = await client
         .from('service_charge_periods')
         .select('id, label, status, hall_id, halls(name)')
+        .eq('hall_id', selectedHallId)
         .lte('period_start', today)
         .gte('period_end', today)
         .order('period_end', { ascending: false })
@@ -91,13 +100,13 @@ export function AdminDashboardPage() {
     }
 
     void load()
-  }, [])
+  }, [selectedHallId])
 
   return (
     <PageContainer>
-      {loading ? <StateMessage variant="loading" title="Chargement..." /> : null}
-      {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
-      {!loading && !error && !data ? (
+      {loadingHalls || loading ? <StateMessage variant="loading" title="Chargement..." /> : null}
+      {!loadingHalls && !loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
+      {!loadingHalls && !loading && !error && !data ? (
         <StateMessage
           variant="empty"
           title="Aucune periode en cours"
