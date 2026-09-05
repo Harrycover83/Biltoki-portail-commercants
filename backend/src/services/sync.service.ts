@@ -32,6 +32,23 @@ type DbPeriod = {
 /** How many trailing calendar months (including the current one) the nightly sync re-checks. */
 const RECENT_MONTHS_WINDOW = 3
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (error && typeof error === 'object') {
+    const details = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
+    const message = typeof details.message === 'string' ? details.message : JSON.stringify(error)
+    const context = [details.details, details.hint, details.code]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .join(' | ')
+    return context ? `${message} (${context})` : message
+  }
+
+  return String(error)
+}
+
 export class PennylaneSync {
   private readonly db: SupabaseAdmin
   private readonly pennylane: PennylaneClient
@@ -63,7 +80,7 @@ export class PennylaneSync {
         try {
           recordsProcessed += await this.syncMonth(month)
         } catch (err) {
-          const msg = `Failed to sync month ${month.toISOString().slice(0, 7)}: ${err}`
+          const msg = `Failed to sync month ${month.toISOString().slice(0, 7)}: ${getErrorMessage(err)}`
           this.logger.error(msg)
           errors.push(msg)
         }
@@ -84,7 +101,7 @@ export class PennylaneSync {
 
       return result
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
+      const errorMsg = getErrorMessage(error)
       this.logger.error(`❌ Sync failed: ${errorMsg}`)
 
       const result: SyncResult = {
@@ -136,7 +153,7 @@ export class PennylaneSync {
             recordsProcessed += 1
           }
         } catch (err) {
-          const msg = `Failed to backfill month ${monthKey}: ${err}`
+          const msg = `Failed to backfill month ${monthKey}: ${getErrorMessage(err)}`
           this.logger.error(msg)
           errors.push(msg)
         }
@@ -159,7 +176,7 @@ export class PennylaneSync {
 
       return result
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
+      const errorMsg = getErrorMessage(error)
       this.logger.error(`❌ Backfill failed: ${errorMsg}`)
 
       const result: SyncResult = {
