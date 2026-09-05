@@ -16,7 +16,7 @@ export function UpdatePasswordPage() {
   }
 
   if (!mustChangePassword && success) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/historique" replace />
   }
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -46,7 +46,7 @@ export function UpdatePasswordPage() {
     setSubmitting(false)
     setSuccess('Mot de passe mis a jour. Redirection...')
     setTimeout(() => {
-      window.location.assign('/dashboard')
+      window.location.assign('/historique')
     }, 600)
   }
 

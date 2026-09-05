@@ -23,7 +23,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   if (user) {
-    const from = (location.state as { from?: string } | undefined)?.from ?? '/dashboard'
+    const from = (location.state as { from?: string } | undefined)?.from ?? '/historique'
     return <Navigate to={from} replace />
   }
 

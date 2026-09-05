@@ -5,7 +5,7 @@ import { useAuth } from '../../features/auth/AuthProvider'
 export function AppHeader() {
   const { user, profile, signOut } = useAuth()
   const isAdmin = profile?.role === 'admin'
-  const homePath = isAdmin ? '/admin/dashboard' : '/dashboard'
+  const homePath = isAdmin ? '/admin/frais' : '/historique'
   const location = useLocation()
   const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
 
@@ -23,9 +23,6 @@ export function AppHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           {isAdmin ? (
             <>
-              <NavLink to="/admin/dashboard" className={navClassName}>
-                Dashboard
-              </NavLink>
               <NavLink to="/admin/frais" className={navClassName}>
                 Historique
               </NavLink>
@@ -35,9 +32,6 @@ export function AppHeader() {
             </>
           ) : (
             <>
-              <NavLink to="/dashboard" className={navClassName}>
-                Dashboard
-              </NavLink>
               <NavLink to="/historique" className={navClassName}>
                 Historique
               </NavLink>

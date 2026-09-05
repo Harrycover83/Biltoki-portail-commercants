@@ -19,7 +19,7 @@ export function RoleRoute({ role, children }: RoleRouteProps) {
   }
 
   if (currentRole !== role) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/historique" replace />
   }
 
   return <>{children}</>

@@ -5,10 +5,8 @@ import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RoleRoute } from './guards/RoleRoute'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
-import { DashboardPage } from '../features/merchant/pages/DashboardPage'
 import { HistoryPage } from '../features/merchant/pages/HistoryPage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
-import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
@@ -28,15 +26,7 @@ function PrivateLayout({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { role } = useAuth()
-  return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
-}
-
-function DashboardEntry() {
-  const { role } = useAuth()
-  if (role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />
-  }
-  return <DashboardPage />
+  return <Navigate to={role === 'admin' ? '/admin/frais' : '/historique'} replace />
 }
 
 export function AppRouter() {
@@ -58,9 +48,7 @@ export function AppRouter() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <PrivateLayout>
-                <DashboardEntry />
-              </PrivateLayout>
+              <HomeRedirect />
             </ProtectedRoute>
           }
         />
@@ -110,9 +98,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <PrivateLayout>
-                  <AdminDashboardPage />
-                </PrivateLayout>
+                <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -123,7 +109,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <Navigate to="/admin/dashboard" replace />
+                <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
           }
