@@ -6,6 +6,12 @@ begin;
 -- 1) Store the real Pennylane invoice date required for history browsing and sync.
 alter table public.service_charges add column if not exists invoice_date date;
 create index if not exists idx_charges_invoice_date on public.service_charges(invoice_date);
+alter table public.service_charges
+  drop constraint if exists service_charges_amount_excl_tax_check,
+  drop constraint if exists service_charges_amount_tax_check,
+  drop constraint if exists service_charges_amount_incl_tax_check;
+alter table public.allocations
+  drop constraint if exists allocations_allocated_amount_check;
 
 -- 2) Create the missing portal_access allowlist table (idempotent).
 create table if not exists public.portal_access (

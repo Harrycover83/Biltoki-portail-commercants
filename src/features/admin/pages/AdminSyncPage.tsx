@@ -118,6 +118,12 @@ export function AdminSyncPage() {
 
       {!loading && !error ? (
         <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
+          {syncing ? (
+            <div className="mb-4 flex items-center gap-3 rounded-md border border-[#1d3b63]/20 bg-[#e8f0f8] px-3 py-2 text-sm font-medium text-[#13223a]" role="status">
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#7894b5] border-t-[#13223a]" aria-hidden="true" />
+              Synchronisation en cours. Cette operation peut prendre plusieurs minutes pour l'historique complet.
+            </div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-3 md:items-end">
             <label className="block text-sm text-[#4d5562]">
               Halle
@@ -152,7 +158,11 @@ export function AdminSyncPage() {
               {syncing ? 'En cours...' : 'Backfill historique complet'}
             </button>
           </div>
-          {syncMessage ? <p className="mt-3 text-sm text-[#4d5562]">{syncMessage}</p> : null}
+          {syncMessage ? (
+            <p className="mt-3 text-sm text-[#4d5562]" aria-live="polite">
+              {syncMessage}
+            </p>
+          ) : null}
         </Card>
       ) : null}
     </PageContainer>

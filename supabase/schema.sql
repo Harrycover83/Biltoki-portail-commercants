@@ -118,9 +118,9 @@ create table if not exists public.service_charges (
   label text not null,
   category text,
   allocation_rule_id uuid references public.allocation_rules(id) on delete set null,
-  amount_excl_tax numeric(14, 2) not null check (amount_excl_tax >= 0),
-  amount_tax numeric(14, 2) not null check (amount_tax >= 0),
-  amount_incl_tax numeric(14, 2) not null check (amount_incl_tax >= 0),
+  amount_excl_tax numeric(14, 2) not null,
+  amount_tax numeric(14, 2) not null,
+  amount_incl_tax numeric(14, 2) not null,
   pennylane_id text,
   source text not null default 'manual',
   created_at timestamptz not null default now(),
@@ -136,7 +136,7 @@ create table if not exists public.allocations (
   merchant_linear_meters numeric(10, 3) not null check (merchant_linear_meters >= 0),
   total_linear_meters numeric(10, 3) not null check (total_linear_meters >= 0),
   allocation_percentage numeric(9, 6) not null check (allocation_percentage >= 0),
-  allocated_amount numeric(14, 2) not null check (allocated_amount >= 0),
+  allocated_amount numeric(14, 2) not null,
   created_at timestamptz not null default now(),
   unique (service_charge_id, merchant_id)
 );
