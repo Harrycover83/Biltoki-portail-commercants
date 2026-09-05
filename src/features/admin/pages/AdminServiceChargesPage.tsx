@@ -30,6 +30,7 @@ type YearGroup = {
 }
 
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
+const CHARGES_PAGE_SIZE = 1000
 
 function dateForGrouping(row: AdminChargeRow): string {
   return row.invoice_date ?? row.period_end ?? row.created_at
@@ -102,10 +103,29 @@ export function AdminServiceChargesPage() {
       }
 
       setLoadingRows(true)
-      const { data, error: rowsError } = await client
-        .from('service_charges')
-        .select('id, label, category, amount_incl_tax, invoice_date, created_at, service_charge_periods!inner(period_end)')
-        .eq('hall_id', selectedHallId)
+      const allRows: unknown[] = []
+      let from = 0
+      let rowsError: { message: string } | null = null
+
+      do {
+        const { data, error } = await client
+          .from('service_charges')
+          .select('id, label, category, amount_incl_tax, invoice_date, created_at, service_charge_periods!inner(period_end)')
+          .eq('hall_id', selectedHallId)
+          .order('invoice_date', { ascending: false })
+          .range(from, from + CHARGES_PAGE_SIZE - 1)
+
+        if (error) {
+          rowsError = error
+          break
+        }
+
+        allRows.push(...(data ?? []))
+        if ((data ?? []).length < CHARGES_PAGE_SIZE) {
+          break
+        }
+        from += CHARGES_PAGE_SIZE
+      } while (true)
 
       if (rowsError) {
         setError(rowsError.message)
@@ -113,7 +133,7 @@ export function AdminServiceChargesPage() {
         return
       }
 
-      const normalized = ((data ?? []) as unknown as Array<
+      const normalized = (allRows as Array<
         Omit<AdminChargeRow, 'period_end'> & {
           service_charge_periods: { period_end: string } | { period_end: string }[] | null
         }

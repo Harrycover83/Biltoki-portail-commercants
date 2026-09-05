@@ -38,6 +38,8 @@ type ServiceChargeRowRaw = Omit<ServiceChargeRow, 'service_charge_periods' | 'ha
   halls: ServiceChargeRow['halls'] | ServiceChargeRow['halls'][]
 }
 
+const CHARGES_PAGE_SIZE = 1000
+
 function singleOrNull<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) {
     return value[0] ?? null
@@ -139,38 +141,50 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
     return { data: null, error: 'Supabase non configure.' }
   }
 
-  const { data, error } = await client
-    .from('service_charges')
-    .select(
-      `
-      id,
-      label,
-      category,
-      amount_incl_tax,
-      period_id,
-      hall_id,
-      created_at,
-      invoice_date,
-      service_charge_periods:service_charge_periods!inner(
+  const allRows: ServiceChargeRowRaw[] = []
+  let from = 0
+
+  do {
+    const { data, error } = await client
+      .from('service_charges')
+      .select(
+        `
         id,
         label,
-        period_end
-      ),
-      halls:halls!inner(name)
-    `,
-    )
-    .order('period_end', {
-      referencedTable: 'service_charge_periods',
-      ascending: false,
-    })
-    .order('label', { ascending: true })
+        category,
+        amount_incl_tax,
+        period_id,
+        hall_id,
+        created_at,
+        invoice_date,
+        service_charge_periods:service_charge_periods!inner(
+          id,
+          label,
+          period_end
+        ),
+        halls:halls!inner(name)
+      `,
+      )
+      .order('period_end', {
+        referencedTable: 'service_charge_periods',
+        ascending: false,
+      })
+      .order('label', { ascending: true })
+      .range(from, from + CHARGES_PAGE_SIZE - 1)
 
-  if (error) {
-    return { data: null, error: error.message }
-  }
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    allRows.push(...((data ?? []) as unknown as ServiceChargeRowRaw[]))
+    if ((data ?? []).length < CHARGES_PAGE_SIZE) {
+      break
+    }
+    from += CHARGES_PAGE_SIZE
+  } while (true)
 
   return {
-    data: normalizeChargeRows((data ?? []) as unknown as ServiceChargeRowRaw[]),
+    data: normalizeChargeRows(allRows),
     error: null,
   }
 }
