@@ -15,6 +15,36 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufferA, bufferB)
 }
 
+/** Guards document routes for any active portal account. */
+export function requirePortalUser(_config: Config, db: SupabaseAdmin, logger: Logger) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const [scheme, token] = (req.header('authorization') ?? '').split(' ')
+    if (scheme?.toLowerCase() !== 'bearer' || !token) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { data, error } = await db.auth.getUser(token)
+    if (error || !data.user) {
+      logger.warn(`Rejected access token from ${req.ip} on ${req.method} ${req.path}`)
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const [{ data: profile }, { data: access }] = await Promise.all([
+      db.from('profiles').select('role').eq('id', data.user.id).maybeSingle(),
+      db.from('portal_access').select('id').eq('user_id', data.user.id).eq('active', true).maybeSingle(),
+    ])
+
+    if (!profile || !access) {
+      logger.warn(`Forbidden API access by ${data.user.email} on ${req.method} ${req.path}`)
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    res.locals.caller = data.user.id
+    res.locals.callerRole = profile.role
+    return next()
+  }
+}
+
 /**
  * Guards the /api routes. Accepts either a Supabase access token belonging to an
  * active admin of the portal, or the machine-to-machine token used by ops tooling.
@@ -32,28 +62,12 @@ export function requireAdmin(config: Config, db: SupabaseAdmin, logger: Logger) 
       return res.status(403).json({ error: 'Forbidden' })
     }
 
-    const [scheme, token] = (req.header('authorization') ?? '').split(' ')
-    if (scheme?.toLowerCase() !== 'bearer' || !token) {
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-
-    const { data, error } = await db.auth.getUser(token)
-    if (error || !data.user) {
-      logger.warn(`Rejected access token from ${req.ip} on ${req.method} ${req.path}`)
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-
-    const [{ data: profile }, { data: access }] = await Promise.all([
-      db.from('profiles').select('role').eq('id', data.user.id).maybeSingle(),
-      db.from('portal_access').select('id').eq('user_id', data.user.id).eq('active', true).maybeSingle(),
-    ])
-
-    if (profile?.role !== 'admin' || !access) {
-      logger.warn(`Forbidden API access by ${data.user.email} on ${req.method} ${req.path}`)
-      return res.status(403).json({ error: 'Forbidden' })
-    }
-
-    res.locals.caller = data.user.id
-    return next()
+    return requirePortalUser(config, db, logger)(req, res, () => {
+      if (res.locals.callerRole !== 'admin') {
+        logger.warn(`Forbidden API access by ${res.locals.caller} on ${req.method} ${req.path}`)
+        return res.status(403).json({ error: 'Forbidden' })
+      }
+      return next()
+    })
   }
 }

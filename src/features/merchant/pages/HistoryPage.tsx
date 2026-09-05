@@ -3,6 +3,8 @@ import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { formatEuroFromCents } from '../../../lib/money'
+import { getBackendUrl } from '../../../lib/env'
+import { getSupabaseClient } from '../../../lib/supabase'
 import { getMerchantChargesByYear, getMerchantHallOptions } from '../services/merchantService'
 import type { MerchantHallOption, MerchantYearGroup } from '../../../types/domain'
 
@@ -13,6 +15,7 @@ export function HistoryPage() {
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [loading, setLoading] = useState(true)
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -76,6 +79,49 @@ export function HistoryPage() {
     setSelectedYear(year)
     const yearGroup = years.find((y) => y.year === year)
     setSelectedMonth(yearGroup?.months[0]?.month ?? '')
+  }
+
+  const openDocument = async (chargeId: string) => {
+    const backendUrl = getBackendUrl()
+    const client = getSupabaseClient()
+    if (!backendUrl || !client) {
+      setError('Service de documents non configure.')
+      return
+    }
+
+    const documentWindow = window.open('', '_blank')
+    if (!documentWindow) {
+      setError('Autorisez les fenetres pop-up pour ouvrir le justificatif.')
+      return
+    }
+
+    setOpeningDocumentId(chargeId)
+    try {
+      const {
+        data: { session },
+      } = await client.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Session introuvable, reconnectez-vous.')
+      }
+
+      const response = await fetch(`${backendUrl}/api/service-charges/${chargeId}/document`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(body?.error ?? `Justificatif indisponible (HTTP ${response.status})`)
+      }
+
+      const documentUrl = URL.createObjectURL(await response.blob())
+      documentWindow.location.replace(documentUrl)
+      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60_000)
+      setError(null)
+    } catch (documentError) {
+      documentWindow.close()
+      setError(documentError instanceof Error ? documentError.message : 'Justificatif indisponible.')
+    } finally {
+      setOpeningDocumentId(null)
+    }
   }
 
   return (
@@ -167,6 +213,7 @@ export function HistoryPage() {
                       <th className="py-2">Facture</th>
                       <th className="py-2">Categorie</th>
                       <th className="py-2 text-right">Montant TTC</th>
+                      <th className="py-2 text-right">Justificatif</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -181,6 +228,16 @@ export function HistoryPage() {
                         <td className="py-3">{charge.category ?? '-'}</td>
                         <td className="py-3 text-right font-semibold text-[#13223a]">
                           {formatEuroFromCents(charge.totalCents)}
+                        </td>
+                        <td className="py-3 text-right">
+                          <button
+                            type="button"
+                            className="rounded border border-[#13223a33] px-2 py-1 text-xs font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+                            disabled={openingDocumentId === charge.id}
+                            onClick={() => void openDocument(charge.id)}
+                          >
+                            {openingDocumentId === charge.id ? 'Ouverture...' : 'Ouvrir'}
+                          </button>
                         </td>
                       </tr>
                     ))}

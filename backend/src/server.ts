@@ -4,7 +4,7 @@ import type { Logger } from './utils/logger.js'
 import { PennylaneSync } from './services/sync.service.js'
 import { syncLock } from './services/sync-lock.js'
 import { PennylaneClient } from './integrations/pennylane/client.js'
-import { requireAdmin } from './middleware/auth.js'
+import { requireAdmin, requirePortalUser } from './middleware/auth.js'
 import type { Config } from './config.js'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
@@ -55,6 +55,70 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
         status: 'not-ready',
         reason: 'unexpected-error',
       })
+    }
+  })
+
+  app.use('/api/service-charges', requirePortalUser(config, db, logger))
+
+  app.get('/api/service-charges/:chargeId/document', async (req, res) => {
+    const { data: charge, error: chargeError } = await db
+      .from('service_charges')
+      .select('hall_id, pennylane_id')
+      .eq('id', req.params.chargeId)
+      .maybeSingle()
+
+    if (chargeError) {
+      logger.error('Unable to load charge document reference:', chargeError)
+      return res.status(500).json({ error: 'Unable to load invoice document' })
+    }
+    if (!charge?.pennylane_id || !/^\d+$/.test(charge.pennylane_id)) {
+      return res.status(404).json({ error: 'No Pennylane document is available for this charge' })
+    }
+
+    if (res.locals.callerRole !== 'admin') {
+      const { data: merchantAccess, error: merchantAccessError } = await db
+        .from('merchant_hall_permissions')
+        .select('id')
+        .eq('profile_id', res.locals.caller)
+        .eq('hall_id', charge.hall_id)
+        .maybeSingle()
+      const { data: profile } = await db
+        .from('profiles')
+        .select('merchants!inner(hall_id)')
+        .eq('id', res.locals.caller)
+        .maybeSingle()
+      const merchant = profile?.merchants as { hall_id: string } | { hall_id: string }[] | null
+      const merchantHallId = (Array.isArray(merchant) ? merchant[0] : merchant)?.hall_id
+
+      if (merchantAccessError || (!merchantAccess && merchantHallId !== charge.hall_id)) {
+        return res.status(403).json({ error: 'Forbidden' })
+      }
+    }
+
+    try {
+      const pennylane = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+      const invoice = await pennylane.getSupplierInvoice(Number(charge.pennylane_id))
+      if (!invoice.public_file_url) {
+        return res.status(404).json({ error: 'No source document is attached to this Pennylane invoice' })
+      }
+
+      const documentResponse = await fetch(invoice.public_file_url)
+      if (!documentResponse.ok) {
+        logger.warn(`Pennylane document download failed for invoice ${invoice.id}: ${documentResponse.status}`)
+        return res.status(502).json({ error: 'Unable to download the Pennylane document' })
+      }
+
+      const contentType = documentResponse.headers.get('content-type')
+      const safeContentType = contentType?.startsWith('application/pdf') || contentType?.startsWith('image/')
+        ? contentType
+        : 'application/octet-stream'
+      res.setHeader('Content-Type', safeContentType)
+      res.setHeader('Content-Disposition', `inline; filename="pennylane-${invoice.id}"`)
+      res.setHeader('Cache-Control', 'private, no-store')
+      return res.send(Buffer.from(await documentResponse.arrayBuffer()))
+    } catch (error) {
+      logger.error('Unable to retrieve Pennylane invoice document:', error)
+      return res.status(502).json({ error: 'Unable to retrieve the Pennylane document' })
     }
   })
 

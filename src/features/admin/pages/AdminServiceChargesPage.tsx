@@ -4,6 +4,7 @@ import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
+import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
 
 type AdminChargeRow = {
@@ -11,6 +12,7 @@ type AdminChargeRow = {
   label: string
   category: string | null
   amount_incl_tax: number
+  pennylane_id: string | null
   invoice_date: string | null
   period_end: string
   created_at: string
@@ -87,6 +89,7 @@ export function AdminServiceChargesPage() {
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [loadingRows, setLoadingRows] = useState(false)
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -110,7 +113,7 @@ export function AdminServiceChargesPage() {
       do {
         const { data, error } = await client
           .from('service_charges')
-          .select('id, label, category, amount_incl_tax, invoice_date, created_at, service_charge_periods!inner(period_end)')
+          .select('id, label, category, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
           .eq('hall_id', selectedHallId)
           .order('invoice_date', { ascending: false })
           .range(from, from + CHARGES_PAGE_SIZE - 1)
@@ -167,6 +170,49 @@ export function AdminServiceChargesPage() {
   const onYearChange = (year: string) => {
     setSelectedYear(year)
     setSelectedMonth(years.find((y) => y.year === year)?.months[0]?.month ?? '')
+  }
+
+  const openDocument = async (chargeId: string) => {
+    const backendUrl = getBackendUrl()
+    const client = getSupabaseClient()
+    if (!backendUrl || !client) {
+      setError('Service de documents non configure.')
+      return
+    }
+
+    const documentWindow = window.open('', '_blank')
+    if (!documentWindow) {
+      setError('Autorisez les fenetres pop-up pour ouvrir le justificatif.')
+      return
+    }
+
+    setOpeningDocumentId(chargeId)
+    try {
+      const {
+        data: { session },
+      } = await client.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Session admin introuvable, reconnectez-vous.')
+      }
+
+      const response = await fetch(`${backendUrl}/api/service-charges/${chargeId}/document`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(body?.error ?? `Justificatif indisponible (HTTP ${response.status})`)
+      }
+
+      const documentUrl = URL.createObjectURL(await response.blob())
+      documentWindow.location.replace(documentUrl)
+      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60_000)
+      setError(null)
+    } catch (documentError) {
+      documentWindow.close()
+      setError(documentError instanceof Error ? documentError.message : 'Justificatif indisponible.')
+    } finally {
+      setOpeningDocumentId(null)
+    }
   }
 
   return (
@@ -238,6 +284,7 @@ export function AdminServiceChargesPage() {
                       <th className="py-2">Poste</th>
                       <th className="py-2">Categorie</th>
                       <th className="py-2 text-right">Montant TTC</th>
+                      <th className="py-2 text-right">Justificatif</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -250,6 +297,20 @@ export function AdminServiceChargesPage() {
                         <td className="py-3">{row.category ?? '-'}</td>
                         <td className="py-3 text-right font-semibold text-[#13223a]">
                           {formatEuroFromCents(Math.round(Number(row.amount_incl_tax) * 100))}
+                        </td>
+                        <td className="py-3 text-right">
+                          {row.pennylane_id ? (
+                            <button
+                              type="button"
+                              className="rounded border border-[#13223a33] px-2 py-1 text-xs font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+                              disabled={openingDocumentId === row.id}
+                              onClick={() => void openDocument(row.id)}
+                            >
+                              {openingDocumentId === row.id ? 'Ouverture...' : 'Ouvrir'}
+                            </button>
+                          ) : (
+                            '-'
+                          )}
                         </td>
                       </tr>
                     ))}

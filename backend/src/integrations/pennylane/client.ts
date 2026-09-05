@@ -143,6 +143,10 @@ export class PennylaneClient {
     )
   }
 
+  async getSupplierInvoice(invoiceId: number): Promise<PennylaneSupplierInvoice> {
+    return this.request<PennylaneSupplierInvoice>(`/supplier_invoices/${invoiceId}`)
+  }
+
   async listSupplierInvoiceCategories(invoiceId: number): Promise<PennylaneWeightedCategory[]> {
     const page = await this.request<PennylaneList<PennylaneWeightedCategory>>(
       `/supplier_invoices/${invoiceId}/categories`,

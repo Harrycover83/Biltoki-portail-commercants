@@ -52,6 +52,8 @@ export type PennylaneSupplierInvoice = {
   id: number
   label: string | null
   invoice_number: string
+  filename?: string | null
+  public_file_url?: string | null
   currency: string
   /** Total including tax, in euros. */
   amount: string
