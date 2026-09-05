@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
 import type { PennylaneClient } from '../integrations/pennylane/client.js'
@@ -359,6 +360,6 @@ export class PennylaneSync {
   }
 
   private generateSyncId(): string {
-    return `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return randomUUID()
   }
 }
