@@ -86,8 +86,8 @@ export function AdminSyncPage() {
       {!loading ? (
         <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
           {syncing ? (
-            <div className="mb-4 flex items-center gap-3 rounded-md border border-[#1d3b63]/20 bg-[#e8f0f8] px-3 py-2 text-sm font-medium text-[#13223a]" role="status">
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#7894b5] border-t-[#13223a]" aria-hidden="true" />
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#e1dacd] bg-[#f7e7b8] px-3 py-2 text-sm font-medium text-[#171511]" role="status">
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
               Synchronisation en cours. Cette operation peut prendre plusieurs minutes pour l'historique complet.
             </div>
           ) : null}

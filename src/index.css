@@ -6,15 +6,15 @@
 
 :root {
   --bg: #f4ecdb;
-  --bg-soft: #fff9ef;
-  --ink: #15130f;
-  --ink-soft: #615b51;
-  --navy: #15130f;
-  --terracotta: #d74b27;
-  --sun: #f1a72d;
-  --leaf: #2f8d50;
-  --berry: #df5975;
-  --paper: #fffaf1;
+  --bg-soft: #f9f5ec;
+  --ink: #171511;
+  --ink-soft: #6c665d;
+  --navy: #171511;
+  --terracotta: #d84d2c;
+  --sun: #eca93a;
+  --leaf: #348b57;
+  --berry: #e25b78;
+  --paper: #fffcf6;
 }
 
 * {
@@ -26,11 +26,11 @@ body {
   min-height: 100vh;
   font-family: 'DM Sans', sans-serif;
   color: var(--ink);
-  background-color: var(--bg);
+  background-color: var(--bg-soft);
   background-image:
-    linear-gradient(rgba(21, 19, 15, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(21, 19, 15, 0.045) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(rgba(23, 21, 17, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 21, 17, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 h1,
@@ -54,15 +54,15 @@ h3 {
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    background: linear-gradient(90deg, transparent 0 7%, rgba(215, 75, 39, 0.11) 7% 24%, transparent 24% 72%, rgba(47, 141, 80, 0.1) 72% 93%, transparent 93%);
-    opacity: 0.5;
+    background: linear-gradient(110deg, rgba(226, 91, 120, 0.08), transparent 34%, transparent 66%, rgba(52, 139, 87, 0.07));
+    opacity: 0.65;
   }
 
   .brand-card {
-    @apply rounded-md border-2 p-5 shadow-sm;
-    border-color: var(--ink);
+    @apply rounded-md border p-5 shadow-sm;
+    border-color: #e1dacd;
     background: var(--paper);
-    box-shadow: 5px 5px 0 rgba(21, 19, 15, 0.14);
+    box-shadow: 0 12px 30px rgba(50, 40, 23, 0.06);
   }
 
   .brand-title {
@@ -73,25 +73,25 @@ h3 {
   }
 
   .brand-input {
-    @apply w-full rounded-md border-2 px-3 py-2 text-sm outline-none transition;
-    border-color: var(--ink);
+    @apply w-full rounded-md border px-3 py-2 text-sm outline-none transition;
+    border-color: #d9d1c4;
     background-color: var(--paper);
   }
 
   .brand-input:focus {
     border-color: var(--terracotta);
-    box-shadow: 3px 3px 0 var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(216, 77, 44, 0.14);
   }
 
   .brand-button {
-    @apply rounded-md border-2 px-4 py-2 text-sm font-bold text-white transition;
-    border-color: var(--ink);
+    @apply rounded-full px-4 py-2 text-sm font-bold text-white transition;
+    border-color: transparent;
     background: var(--terracotta);
   }
 
   .brand-button:hover {
-    transform: translate(2px, 2px);
-    box-shadow: none;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(216, 77, 44, 0.2);
   }
 
   .brand-badge {
@@ -113,7 +113,7 @@ h3 {
 }
 
 header {
-  border-color: var(--ink) !important;
+  border-color: #e4ddd1 !important;
   background: var(--paper) !important;
 }
 
@@ -127,9 +127,8 @@ header a.brand-display {
 }
 
 header nav a {
-  border-radius: 0 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  border-radius: 999px !important;
+  letter-spacing: 0.02em;
 }
 
 header nav a[aria-current='page'] {
@@ -137,14 +136,14 @@ header nav a[aria-current='page'] {
 }
 
 header > div:last-child {
-  background: #f7b43d !important;
-  border-color: var(--ink) !important;
+  background: #f7e7b8 !important;
+  border-color: #e4ddd1 !important;
 }
 
 header select,
 header button {
-  border-color: var(--ink) !important;
-  border-radius: 4px !important;
+  border-color: #d6cebf !important;
+  border-radius: 999px !important;
 }
 
 main label,
@@ -156,12 +155,12 @@ main dd {
 }
 
 main table thead tr {
-  border-color: var(--ink) !important;
-  background: #f1a72d;
+  border-color: #e4ddd1 !important;
+  background: #f7e7b8;
 }
 
 main table tbody tr {
-  border-color: rgba(21, 19, 15, 0.3) !important;
+  border-color: #eee8dd !important;
 }
 
 main table th {
@@ -172,8 +171,8 @@ main table th {
 }
 
 main button:not(.brand-button) {
-  border: 2px solid var(--ink) !important;
-  border-radius: 4px !important;
+  border: 1px solid #d6cebf !important;
+  border-radius: 999px !important;
   color: var(--ink) !important;
   background: var(--paper);
   font-weight: 700;
@@ -185,14 +184,14 @@ main button:not(.brand-button):hover {
 
 .brand-card .rounded-xl,
 .brand-card .rounded-full {
-  border-radius: 4px !important;
+  border-radius: 8px !important;
 }
 
 .brand-card .bg-amber-50,
 .brand-card .bg-rose-50,
 .brand-card .bg-emerald-50 {
-  border: 2px solid var(--ink) !important;
-  border-radius: 4px !important;
+  border: 1px solid #e1dacd !important;
+  border-radius: 8px !important;
   color: var(--ink) !important;
 }
 
