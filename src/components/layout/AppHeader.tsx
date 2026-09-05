@@ -59,8 +59,8 @@ export function AppHeader() {
       {isAdmin && location.pathname.startsWith('/admin') ? (
         <div className="border-t border-[#e4ddd1] bg-[#f7e7b8]">
           <div className="mx-auto max-w-6xl px-4 py-3 md:px-6">
-            <label className="flex items-center gap-3 text-sm font-medium text-[#4d5562]">
-              <span>Halle observée</span>
+            <label className="flex items-center gap-3 text-sm font-semibold text-[#171511]">
+              <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle observee</span>
               <select
                 value={selectedHallId}
                 disabled={loading || halls.length === 0}

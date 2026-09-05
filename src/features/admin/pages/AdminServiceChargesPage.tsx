@@ -218,8 +218,8 @@ export function AdminServiceChargesPage() {
   return (
     <PageContainer>
       {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des frais admin..." /> : null}
-      {!loadingHalls && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
-      {!loadingHalls && !error && years.length === 0 ? (
+      {!loadingHalls && !loadingRows && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
+      {!loadingHalls && !loadingRows && !error && years.length === 0 ? (
         <StateMessage
           variant="empty"
           title="Aucun frais"
@@ -227,7 +227,7 @@ export function AdminServiceChargesPage() {
         />
       ) : null}
 
-      {!loadingHalls && !error && years.length > 0 ? (
+      {!loadingHalls && !loadingRows && !error && years.length > 0 ? (
         <div className="space-y-6">
           <Card title="Historique des frais" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par l'onglet Synchronisation.">
             <div className="grid gap-4 sm:grid-cols-2">
