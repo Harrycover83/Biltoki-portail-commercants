@@ -10,6 +10,25 @@ type HallOption = {
   name: string
 }
 
+function formatSyncErrors(errors: unknown): string {
+  if (!Array.isArray(errors)) {
+    return ''
+  }
+
+  return errors
+    .map((error) => {
+      if (typeof error === 'string') {
+        return error
+      }
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+        return error.message
+      }
+      return JSON.stringify(error)
+    })
+    .filter(Boolean)
+    .join(' ')
+}
+
 export function AdminSyncPage() {
   const [halls, setHalls] = useState<HallOption[]>([])
   const [syncHallId, setSyncHallId] = useState('')
@@ -79,7 +98,8 @@ export function AdminSyncPage() {
       if (!response.ok) {
         setSyncMessage(body.error ?? `Echec (HTTP ${response.status})`)
       } else {
-        const errorDetails = Array.isArray(body.errors) && body.errors.length > 0 ? ` ${body.errors.join(' ')}` : ''
+        const formattedErrors = formatSyncErrors(body.errors)
+        const errorDetails = formattedErrors ? ` ${formattedErrors}` : ''
         setSyncMessage(
           `${mode === 'backfill' ? 'Backfill' : 'Sync'} ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
         )
