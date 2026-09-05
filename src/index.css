@@ -1,19 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #f6f0e4;
-  --bg-soft: #efe6d5;
-  --ink: #101928;
-  --ink-soft: #3a4352;
-  --navy: #13223a;
-  --terracotta: #d35f3f;
-  --sun: #f3b54d;
-  --leaf: #4f7a4f;
-  --paper: #fffdf8;
+  --bg: #f4ecdb;
+  --bg-soft: #fff9ef;
+  --ink: #15130f;
+  --ink-soft: #615b51;
+  --navy: #15130f;
+  --terracotta: #d74b27;
+  --sun: #f1a72d;
+  --leaf: #2f8d50;
+  --berry: #df5975;
+  --paper: #fffaf1;
 }
 
 * {
@@ -23,19 +24,19 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 8% 12%, rgba(211, 95, 63, 0.22) 0%, transparent 34%),
-    radial-gradient(circle at 88% 84%, rgba(79, 122, 79, 0.18) 0%, transparent 28%),
-    radial-gradient(circle at 72% 18%, rgba(243, 181, 77, 0.16) 0%, transparent 24%),
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(21, 19, 15, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 19, 15, 0.045) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
 h1,
 h2,
 h3 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Archivo Black', sans-serif;
 }
 
 #root {
@@ -53,64 +54,156 @@ h3 {
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    background-image:
-      linear-gradient(rgba(19, 34, 58, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(19, 34, 58, 0.06) 1px, transparent 1px);
-    background-size: 44px 44px;
-    opacity: 0.28;
-    mask-image: radial-gradient(circle at center, black 30%, transparent 84%);
+    background: linear-gradient(90deg, transparent 0 7%, rgba(215, 75, 39, 0.11) 7% 24%, transparent 24% 72%, rgba(47, 141, 80, 0.1) 72% 93%, transparent 93%);
+    opacity: 0.5;
   }
 
   .brand-card {
-    @apply rounded-[1.6rem] border p-5 shadow-sm;
-    border-color: rgba(19, 34, 58, 0.14);
-    background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 253, 248, 0.92));
-    box-shadow:
-      0 12px 32px rgba(19, 34, 58, 0.08),
-      0 2px 6px rgba(19, 34, 58, 0.06);
+    @apply rounded-md border-2 p-5 shadow-sm;
+    border-color: var(--ink);
+    background: var(--paper);
+    box-shadow: 5px 5px 0 rgba(21, 19, 15, 0.14);
   }
 
   .brand-title {
     @apply tracking-tight;
     color: var(--navy);
-    font-family: 'Fraunces', serif;
+    font-family: 'Archivo Black', sans-serif;
+    letter-spacing: 0;
   }
 
   .brand-input {
-    @apply w-full rounded-xl border px-3 py-2 text-sm text-slate-800 outline-none transition;
-    border-color: rgba(19, 34, 58, 0.25);
-    background-color: rgba(255, 255, 255, 0.85);
+    @apply w-full rounded-md border-2 px-3 py-2 text-sm outline-none transition;
+    border-color: var(--ink);
+    background-color: var(--paper);
   }
 
   .brand-input:focus {
     border-color: var(--terracotta);
-    box-shadow: 0 0 0 3px rgba(211, 95, 63, 0.18);
+    box-shadow: 3px 3px 0 var(--terracotta);
   }
 
   .brand-button {
-    @apply rounded-full px-4 py-2 text-sm font-semibold text-white transition;
-    background: linear-gradient(135deg, var(--navy), #20395f);
+    @apply rounded-md border-2 px-4 py-2 text-sm font-bold text-white transition;
+    border-color: var(--ink);
+    background: var(--terracotta);
   }
 
   .brand-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(19, 34, 58, 0.25);
+    transform: translate(2px, 2px);
+    box-shadow: none;
   }
 
   .brand-badge {
     @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide;
-    background: rgba(243, 181, 77, 0.22);
-    color: var(--navy);
+    background: var(--sun);
+    color: var(--ink);
   }
 
   .brand-section-title {
-    @apply text-sm font-semibold uppercase tracking-[0.22em];
+    @apply text-sm font-bold uppercase tracking-[0.16em];
     color: var(--terracotta);
   }
 
   .brand-display {
-    font-family: 'Fraunces', serif;
+    font-family: 'Archivo Black', sans-serif;
     color: var(--navy);
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
   }
+}
+
+header {
+  border-color: var(--ink) !important;
+  background: var(--paper) !important;
+}
+
+header > div:first-child {
+  min-height: 68px;
+}
+
+header a.brand-display {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+header nav a {
+  border-radius: 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+header nav a[aria-current='page'] {
+  background: var(--leaf) !important;
+}
+
+header > div:last-child {
+  background: #f7b43d !important;
+  border-color: var(--ink) !important;
+}
+
+header select,
+header button {
+  border-color: var(--ink) !important;
+  border-radius: 4px !important;
+}
+
+main label,
+main p,
+main td,
+main th,
+main dd {
+  color: var(--ink);
+}
+
+main table thead tr {
+  border-color: var(--ink) !important;
+  background: #f1a72d;
+}
+
+main table tbody tr {
+  border-color: rgba(21, 19, 15, 0.3) !important;
+}
+
+main table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+main button:not(.brand-button) {
+  border: 2px solid var(--ink) !important;
+  border-radius: 4px !important;
+  color: var(--ink) !important;
+  background: var(--paper);
+  font-weight: 700;
+}
+
+main button:not(.brand-button):hover {
+  background: var(--sun) !important;
+}
+
+.brand-card .rounded-xl,
+.brand-card .rounded-full {
+  border-radius: 4px !important;
+}
+
+.brand-card .bg-amber-50,
+.brand-card .bg-rose-50,
+.brand-card .bg-emerald-50 {
+  border: 2px solid var(--ink) !important;
+  border-radius: 4px !important;
+  color: var(--ink) !important;
+}
+
+.brand-card .bg-amber-50 {
+  background-color: #f1a72d !important;
+}
+
+.brand-card .bg-rose-50 {
+  background-color: #f7d2d8 !important;
+}
+
+.brand-card .bg-emerald-50 {
+  background-color: #a8d8ac !important;
 }

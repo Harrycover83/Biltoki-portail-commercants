@@ -1,10 +1,10 @@
 type StateMessageVariant = 'loading' | 'empty' | 'error' | 'success'
 
 const variantClassName: Record<StateMessageVariant, string> = {
-  loading: 'bg-[#13223a0d] text-[#2a3242] border-[#13223a24]',
-  empty: 'bg-[#f3b54d22] text-[#3a2f1e] border-[#f3b54d66]',
-  error: 'bg-rose-50 text-rose-800 border-rose-200',
-  success: 'bg-[#4f7a4f1a] text-[#244224] border-[#4f7a4f55]',
+  loading: 'bg-[#fff9ef] text-[#15130f] border-[#15130f]',
+  empty: 'bg-[#f1a72d] text-[#15130f] border-[#15130f]',
+  error: 'bg-[#f7d2d8] text-[#15130f] border-[#15130f]',
+  success: 'bg-[#a8d8ac] text-[#15130f] border-[#15130f]',
 }
 
 type StateMessageProps = {
@@ -15,7 +15,7 @@ type StateMessageProps = {
 
 export function StateMessage({ variant, title, message }: StateMessageProps) {
   return (
-    <div className={`rounded-xl border p-4 text-sm ${variantClassName[variant]}`}>
+    <div className={`rounded-md border-2 p-4 text-sm ${variantClassName[variant]}`}>
       <p className="font-semibold">{title}</p>
       {message ? <p className="mt-1">{message}</p> : null}
     </div>

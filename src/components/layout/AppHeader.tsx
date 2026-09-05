@@ -11,11 +11,11 @@ export function AppHeader() {
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? 'rounded-full bg-[#13223a] px-3 py-2 text-sm font-semibold text-white shadow-sm'
-      : 'rounded-full px-3 py-2 text-sm font-semibold text-[#2a3242] hover:bg-[#13223a14]'
+      ? 'bg-[#2f8d50] px-3 py-2 text-sm font-bold text-white shadow-sm'
+      : 'px-3 py-2 text-sm font-bold text-[#15130f] hover:bg-[#f1a72d]'
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[#13223a1f] bg-[#fff8ef]/88 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b-2 border-[#15130f] bg-[#fffaf1]">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-6">
         <Link to={homePath} className="brand-display text-[1.35rem] font-semibold leading-none">
           Biltoki Commercants
@@ -46,7 +46,7 @@ export function AppHeader() {
           {user ? <span className="hidden text-xs text-[#4a5261] md:inline">{user.email}</span> : null}
           <button
             type="button"
-            className="rounded-full border border-[#13223a3b] px-3 py-2 text-sm font-medium text-[#13223a] hover:bg-[#13223a0f]"
+            className="rounded border-2 border-[#15130f] px-3 py-2 text-sm font-bold text-[#15130f] hover:bg-[#f1a72d]"
             onClick={() => {
               void signOut()
             }}
@@ -57,7 +57,7 @@ export function AppHeader() {
       </div>
 
       {isAdmin && location.pathname.startsWith('/admin') ? (
-        <div className="border-t border-[#13223a1f] bg-[#fffaf4]">
+        <div className="border-t-2 border-[#15130f] bg-[#f1a72d]">
           <div className="mx-auto max-w-6xl px-4 py-3 md:px-6">
             <label className="flex items-center gap-3 text-sm font-medium text-[#4d5562]">
               <span>Halle observée</span>
@@ -65,7 +65,7 @@ export function AppHeader() {
                 value={selectedHallId}
                 disabled={loading || halls.length === 0}
                 onChange={(event) => setSelectedHallId(event.target.value)}
-                className="rounded-full border border-[#13223a2a] bg-white px-3 py-2 text-sm text-[#13223a] shadow-sm outline-none focus:border-[#13223a]"
+                className="rounded border-2 border-[#15130f] bg-[#fffaf1] px-3 py-2 text-sm text-[#15130f] shadow-sm outline-none focus:border-[#d74b27]"
               >
                 {halls.map((hall) => (
                   <option key={hall.id} value={hall.id}>

@@ -11,7 +11,7 @@ export function RoleRoute({ role, children }: RoleRouteProps) {
   const { loading, user, role: currentRole } = useAuth()
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-600">Verification des droits...</div>
+    return <div className="p-6 text-sm font-semibold text-[#15130f]">Verification des droits...</div>
   }
 
   if (!user) {

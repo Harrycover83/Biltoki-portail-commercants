@@ -8,22 +8,22 @@ export function ProfilePage() {
   return (
     <PageContainer>
       <Card title="Profil">
-        <dl className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <div>
-            <dt className="text-slate-500">Email</dt>
-            <dd className="font-medium text-slate-900">{profile?.email ?? user?.email ?? 'N/A'}</dd>
+        <dl className="grid gap-3 text-sm text-[#15130f] md:grid-cols-2">
+          <div className="border-b-2 border-[#15130f] pb-3">
+            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Email</dt>
+            <dd className="mt-1 font-semibold">{profile?.email ?? user?.email ?? 'N/A'}</dd>
           </div>
-          <div>
-            <dt className="text-slate-500">Role</dt>
-            <dd className="font-medium text-slate-900">{profile?.role ?? 'N/A'}</dd>
+          <div className="border-b-2 border-[#15130f] pb-3">
+            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Role</dt>
+            <dd className="mt-1 font-semibold">{profile?.role ?? 'N/A'}</dd>
           </div>
-          <div>
-            <dt className="text-slate-500">Prenom</dt>
-            <dd className="font-medium text-slate-900">{profile?.first_name ?? 'N/A'}</dd>
+          <div className="border-b-2 border-[#15130f] pb-3">
+            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Prenom</dt>
+            <dd className="mt-1 font-semibold">{profile?.first_name ?? 'N/A'}</dd>
           </div>
-          <div>
-            <dt className="text-slate-500">Nom</dt>
-            <dd className="font-medium text-slate-900">{profile?.last_name ?? 'N/A'}</dd>
+          <div className="border-b-2 border-[#15130f] pb-3">
+            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Nom</dt>
+            <dd className="mt-1 font-semibold">{profile?.last_name ?? 'N/A'}</dd>
           </div>
         </dl>
       </Card>
