@@ -17,12 +17,12 @@ import { useAuth } from '../features/auth/AuthProvider'
 
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="brand-shell min-h-screen">
-      <AppHeader />
-      <AdminHallProvider>
+    <AdminHallProvider>
+      <div className="brand-shell min-h-screen">
+        <AppHeader />
         {children}
-      </AdminHallProvider>
-    </div>
+      </div>
+    </AdminHallProvider>
   )
 }
 
