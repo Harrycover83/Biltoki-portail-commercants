@@ -79,8 +79,9 @@ export function AdminSyncPage() {
       if (!response.ok) {
         setSyncMessage(body.error ?? `Echec (HTTP ${response.status})`)
       } else {
+        const errorDetails = Array.isArray(body.errors) && body.errors.length > 0 ? ` ${body.errors.join(' ')}` : ''
         setSyncMessage(
-          `${mode === 'backfill' ? 'Backfill' : 'Sync'} ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).`,
+          `${mode === 'backfill' ? 'Backfill' : 'Sync'} ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
         )
       }
     } catch (err) {

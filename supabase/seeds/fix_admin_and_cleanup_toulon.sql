@@ -3,7 +3,11 @@
 
 begin;
 
--- 1) Create the missing portal_access allowlist table (idempotent).
+-- 1) Store the real Pennylane invoice date required for history browsing and sync.
+alter table public.service_charges add column if not exists invoice_date date;
+create index if not exists idx_charges_invoice_date on public.service_charges(invoice_date);
+
+-- 2) Create the missing portal_access allowlist table (idempotent).
 create table if not exists public.portal_access (
   id uuid primary key default gen_random_uuid(),
   email text not null,
