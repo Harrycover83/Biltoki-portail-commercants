@@ -6,17 +6,7 @@ import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
-
-type AdminChargeRow = {
-  id: string
-  label: string
-  category: string | null
-  amount_incl_tax: number
-  pennylane_id: string | null
-  invoice_date: string | null
-  period_end: string
-  created_at: string
-}
+import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
 
 type MonthGroup = {
   month: string // '01'..'12'
@@ -31,11 +21,9 @@ type YearGroup = {
   totalCents: number
 }
 
-const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
-const CHARGES_PAGE_SIZE = 1000
-
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
 function dateForGrouping(row: AdminChargeRow): string {
-  return row.invoice_date ?? row.period_end ?? row.created_at
+  return adminChargeDate(row)
 }
 
 function groupByYearMonth(rows: AdminChargeRow[]): YearGroup[] {
@@ -99,54 +87,15 @@ export function AdminServiceChargesPage() {
         return
       }
 
-      const client = getSupabaseClient()
-      if (!client) {
-        setError('Supabase non configure.')
-        return
-      }
-
       setLoadingRows(true)
-      const allRows: unknown[] = []
-      let from = 0
-      let rowsError: { message: string } | null = null
-
-      do {
-        const { data, error } = await client
-          .from('service_charges')
-          .select('id, label, category, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
-          .eq('hall_id', selectedHallId)
-          .order('invoice_date', { ascending: false })
-          .range(from, from + CHARGES_PAGE_SIZE - 1)
-
-        if (error) {
-          rowsError = error
-          break
-        }
-
-        allRows.push(...(data ?? []))
-        if ((data ?? []).length < CHARGES_PAGE_SIZE) {
-          break
-        }
-        from += CHARGES_PAGE_SIZE
-      } while (true)
-
-      if (rowsError) {
-        setError(rowsError.message)
+      const result = await getAdminCharges(selectedHallId)
+      if (result.error) {
+        setError(result.error)
         setLoadingRows(false)
         return
       }
 
-      const normalized = (allRows as Array<
-        Omit<AdminChargeRow, 'period_end'> & {
-          service_charge_periods: { period_end: string } | { period_end: string }[] | null
-        }
-      >).map((row) => {
-        const relation = row.service_charge_periods
-        const periodEnd = (Array.isArray(relation) ? relation[0]?.period_end : relation?.period_end) ?? row.created_at
-        return { ...row, period_end: periodEnd }
-      })
-
-      setRows(normalized)
+      setRows(result.data ?? [])
       setError(null)
       setLoadingRows(false)
     }
@@ -262,7 +211,7 @@ export function AdminServiceChargesPage() {
                   >
                     {selectedYearGroup.months.map((month) => (
                       <option key={month.month} value={month.month}>
-                        {month.monthLabel}
+                        {month.monthLabel} ({formatEuroFromCents(month.totalCents)})
                       </option>
                     ))}
                   </select>

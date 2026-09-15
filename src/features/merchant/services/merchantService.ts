@@ -221,7 +221,7 @@ export async function getMerchantChargePeriodDetail(
   }
 }
 
-const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
 
 function chargeDateForGrouping(row: ServiceChargeRow): string {
   return row.invoice_date ?? row.service_charge_periods?.period_end ?? row.created_at

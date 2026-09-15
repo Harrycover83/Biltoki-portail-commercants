@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppHeader } from '../components/layout/AppHeader'
 import { ProtectedRoute } from './guards/ProtectedRoute'
@@ -12,6 +12,10 @@ import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
+
+const AdminChartsPage = lazy(() =>
+  import('../features/admin/pages/AdminChartsPage').then((module) => ({ default: module.AdminChartsPage })),
+)
 
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
@@ -146,6 +150,21 @@ export function AppRouter() {
               <RoleRoute role="admin">
                 <PrivateLayout>
                   <AdminSyncPage />
+                </PrivateLayout>
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/graphiques"
+          element={
+            <ProtectedRoute>
+              <RoleRoute role="admin">
+                <PrivateLayout>
+                  <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
+                    <AdminChartsPage />
+                  </Suspense>
                 </PrivateLayout>
               </RoleRoute>
             </ProtectedRoute>

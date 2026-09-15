@@ -191,7 +191,7 @@ export function HistoryPage() {
                   >
                     {selectedYearGroup.months.map((month) => (
                       <option key={month.month} value={month.month}>
-                        {month.monthLabel}
+                        {month.monthLabel} ({formatEuroFromCents(month.totalChargesCents)})
                       </option>
                     ))}
                   </select>

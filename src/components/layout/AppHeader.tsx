@@ -26,6 +26,9 @@ export function AppHeader() {
               <NavLink to="/admin/frais" className={navClassName}>
                 Historique
               </NavLink>
+              <NavLink to="/admin/graphiques" className={navClassName}>
+                Graphiques
+              </NavLink>
               <NavLink to="/admin/synchronisation" className={navClassName}>
                 Synchronisation
               </NavLink>
