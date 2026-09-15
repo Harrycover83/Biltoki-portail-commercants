@@ -39,12 +39,16 @@ export function AdminChartsPage() {
   const { selectedHallId, loading: loadingHalls } = useAdminHall()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [query, setQuery] = useState('')
+  const [catalogQuery, setCatalogQuery] = useState('')
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const deferredQuery = useDeferredValue(query)
 
   useEffect(() => {
+    setSelectedLabels([])
+
     const loadRows = async () => {
       if (!selectedHallId) {
         setRows([])
@@ -62,15 +66,35 @@ export function AdminChartsPage() {
   }, [selectedHallId])
 
   const searchTerm = normalizeSearch(deferredQuery)
+  const invoiceLabels = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const row of rows) {
+      counts.set(row.label, (counts.get(row.label) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((left, right) => left.label.localeCompare(right.label, 'fr-FR'))
+  }, [rows])
+  const visibleInvoiceLabels = useMemo(() => {
+    const term = normalizeSearch(catalogQuery)
+    if (!term) {
+      return invoiceLabels
+    }
+    return invoiceLabels.filter(({ label }) => normalizeSearch(label).includes(term))
+  }, [catalogQuery, invoiceLabels])
+
   const matchingRows = useMemo(() => {
-    if (!searchTerm) {
+    if (!searchTerm && selectedLabels.length === 0) {
       return []
     }
 
     return rows
-      .filter((row) => normalizeSearch(`${row.label} ${row.category ?? ''}`).includes(searchTerm))
+      .filter((row) => (
+        (searchTerm && normalizeSearch(`${row.label} ${row.category ?? ''}`).includes(searchTerm))
+        || selectedLabels.includes(row.label)
+      ))
       .sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
-  }, [rows, searchTerm])
+  }, [rows, searchTerm, selectedLabels])
 
   const chartData = useMemo(
     () => matchingRows.map((row) => ({
@@ -85,6 +109,16 @@ export function AdminChartsPage() {
   const totalCents = matchingRows.reduce((total, row) => total + amountCents(row), 0)
   const averageCents = matchingRows.length > 0 ? Math.round(totalCents / matchingRows.length) : 0
   const loading = loadingHalls || loadingRows
+  const hasCriteria = Boolean(searchTerm) || selectedLabels.length > 0
+  const chartTitle = searchTerm
+    ? `Evolution de « ${deferredQuery.trim()} »${selectedLabels.length > 0 ? ` et ${selectedLabels.length} selection(s)` : ''}`
+    : `Evolution de ${selectedLabels.length} libelle(s) selectionne(s)`
+
+  const toggleLabel = (label: string) => {
+    setSelectedLabels((current) => (
+      current.includes(label) ? current.filter((item) => item !== label) : [...current, label]
+    ))
+  }
 
   const openDocument = async (chargeId: string) => {
     const backendUrl = getBackendUrl()
@@ -152,17 +186,68 @@ export function AdminChartsPage() {
               placeholder="Ex. EDF, electricite, assurance..."
               autoComplete="off"
             />
+
+            <div className="mt-5 border-t border-[#e4ddd1] pt-5">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="min-w-[240px] flex-1">
+                  <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="invoice-catalog-search">
+                    Liste de tous les libelles
+                  </label>
+                  <input
+                    id="invoice-catalog-search"
+                    type="search"
+                    value={catalogQuery}
+                    onChange={(event) => setCatalogQuery(event.target.value)}
+                    className="brand-input"
+                    placeholder="Filtrer la liste..."
+                    autoComplete="off"
+                  />
+                </div>
+                {selectedLabels.length > 0 ? (
+                  <button
+                    type="button"
+                    className="rounded border border-[#13223a33] px-3 py-2 text-sm font-semibold text-[#13223a] hover:bg-[#13223a0f]"
+                    onClick={() => setSelectedLabels([])}
+                  >
+                    Effacer la selection ({selectedLabels.length})
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-3 max-h-64 overflow-y-auto border border-[#e4ddd1] bg-white">
+                {visibleInvoiceLabels.map(({ label, count }) => (
+                  <label
+                    key={label}
+                    className="flex cursor-pointer items-start gap-3 border-b border-[#e4ddd1] px-3 py-2.5 last:border-b-0 hover:bg-[#f7e7b8]/40"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedLabels.includes(label)}
+                      onChange={() => toggleLabel(label)}
+                      className="mt-0.5 h-4 w-4 accent-[#348b57]"
+                    />
+                    <span className="min-w-0 flex-1 text-sm text-[#171511]">{label}</span>
+                    <span className="whitespace-nowrap text-xs font-semibold text-[#626a78]">
+                      {count} facture(s)
+                    </span>
+                  </label>
+                ))}
+                {visibleInvoiceLabels.length === 0 ? (
+                  <p className="px-3 py-4 text-sm text-[#626a78]">Aucun libelle ne correspond a ce filtre.</p>
+                ) : null}
+              </div>
+            </div>
           </Card>
 
-          {!searchTerm ? (
+          {!hasCriteria ? (
             <StateMessage
               variant="empty"
-              title="Lancez une recherche"
-              message="Saisissez un terme pour retrouver les factures correspondantes sur tout l'historique."
+              title="Lancez une recherche ou choisissez des libelles"
+              message="Utilisez la saisie libre ou cochez une ou plusieurs factures dans la liste."
             />
           ) : null}
 
-          {searchTerm && matchingRows.length === 0 ? (
+          {hasCriteria && matchingRows.length === 0 ? (
             <StateMessage
               variant="empty"
               title="Aucune facture trouvee"
@@ -179,7 +264,7 @@ export function AdminChartsPage() {
               </div>
 
               <Card
-                title={`Evolution de « ${deferredQuery.trim()} »`}
+                title={chartTitle}
                 subtitle={`${matchingRows.length} facture(s), de ${chartData[0]?.date} a ${chartData.at(-1)?.date}`}
               >
                 <div className="h-[360px] w-full" aria-label="Courbe d'evolution des montants TTC">
