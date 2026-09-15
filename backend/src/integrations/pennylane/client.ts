@@ -193,6 +193,10 @@ export class PennylaneClient {
       })
     ).filter((invoice) => invoice.accounting_status === 'complete')
 
+    const suppliersById = new Map(
+      (await this.listSuppliers(3000)).map((supplier) => [supplier.id, supplier.name]),
+    )
+
     const charges: PennylaneServiceCharge[] = invoices.map((invoice) => {
       const amountInclTax = Number(invoice.amount)
       const taxAmount = Number(invoice.tax)
@@ -201,6 +205,7 @@ export class PennylaneClient {
       return {
         id: String(invoice.id),
         label: invoice.label ?? invoice.invoice_number,
+        supplierName: invoice.supplier ? suppliersById.get(invoice.supplier.id) : undefined,
         categoryLabel: mapping.label,
         amountExclTax,
         taxAmount,

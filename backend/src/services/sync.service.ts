@@ -288,6 +288,7 @@ export class PennylaneSync {
           amount_tax: pennylaneCharge.taxAmount,
           amount_incl_tax: pennylaneCharge.amountInclTax,
           category: pennylaneCharge.categoryLabel || null,
+          supplier_name: pennylaneCharge.supplierName || null,
           invoice_date: pennylaneCharge.date || null,
         })
         .eq('id', existing.id)
@@ -312,6 +313,7 @@ export class PennylaneSync {
         period_id: periodId,
         label: pennylaneCharge.label,
         category: pennylaneCharge.categoryLabel || null,
+        supplier_name: pennylaneCharge.supplierName || null,
         amount_excl_tax: pennylaneCharge.amountExclTax,
         amount_tax: pennylaneCharge.taxAmount,
         amount_incl_tax: pennylaneCharge.amountInclTax,

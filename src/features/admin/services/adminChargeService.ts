@@ -4,6 +4,7 @@ export type AdminChargeRow = {
   id: string
   label: string
   category: string | null
+  supplier_name: string | null
   amount_incl_tax: number
   pennylane_id: string | null
   invoice_date: string | null
@@ -38,7 +39,7 @@ export async function getAdminCharges(hallId: string): Promise<AdminChargeResult
   do {
     const { data, error } = await client
       .from('service_charges')
-      .select('id, label, category, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
+      .select('id, label, category, supplier_name, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
       .eq('hall_id', hallId)
       .order('invoice_date', { ascending: false })
       .range(from, from + CHARGES_PAGE_SIZE - 1)

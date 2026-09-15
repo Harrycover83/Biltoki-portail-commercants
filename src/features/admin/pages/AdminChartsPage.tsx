@@ -40,14 +40,14 @@ export function AdminChartsPage() {
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [query, setQuery] = useState('')
   const [catalogQuery, setCatalogQuery] = useState('')
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const deferredQuery = useDeferredValue(query)
 
   useEffect(() => {
-    setSelectedLabels([])
+    setSelectedSuppliers([])
 
     const loadRows = async () => {
       if (!selectedHallId) {
@@ -66,35 +66,37 @@ export function AdminChartsPage() {
   }, [selectedHallId])
 
   const searchTerm = normalizeSearch(deferredQuery)
-  const invoiceLabels = useMemo(() => {
+  const suppliers = useMemo(() => {
     const counts = new Map<string, number>()
     for (const row of rows) {
-      counts.set(row.label, (counts.get(row.label) ?? 0) + 1)
+      if (row.supplier_name) {
+        counts.set(row.supplier_name, (counts.get(row.supplier_name) ?? 0) + 1)
+      }
     }
     return [...counts.entries()]
-      .map(([label, count]) => ({ label, count }))
-      .sort((left, right) => left.label.localeCompare(right.label, 'fr-FR'))
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => left.name.localeCompare(right.name, 'fr-FR'))
   }, [rows])
-  const visibleInvoiceLabels = useMemo(() => {
+  const visibleSuppliers = useMemo(() => {
     const term = normalizeSearch(catalogQuery)
     if (!term) {
-      return invoiceLabels
+      return suppliers
     }
-    return invoiceLabels.filter(({ label }) => normalizeSearch(label).includes(term))
-  }, [catalogQuery, invoiceLabels])
+    return suppliers.filter(({ name }) => normalizeSearch(name).includes(term))
+  }, [catalogQuery, suppliers])
 
   const matchingRows = useMemo(() => {
-    if (!searchTerm && selectedLabels.length === 0) {
+    if (!searchTerm && selectedSuppliers.length === 0) {
       return []
     }
 
     return rows
       .filter((row) => (
-        (searchTerm && normalizeSearch(`${row.label} ${row.category ?? ''}`).includes(searchTerm))
-        || selectedLabels.includes(row.label)
+        (searchTerm && normalizeSearch(`${row.supplier_name ?? ''} ${row.label} ${row.category ?? ''}`).includes(searchTerm))
+        || (row.supplier_name !== null && selectedSuppliers.includes(row.supplier_name))
       ))
       .sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
-  }, [rows, searchTerm, selectedLabels])
+  }, [rows, searchTerm, selectedSuppliers])
 
   const chartData = useMemo(
     () => matchingRows.map((row) => ({
@@ -109,14 +111,16 @@ export function AdminChartsPage() {
   const totalCents = matchingRows.reduce((total, row) => total + amountCents(row), 0)
   const averageCents = matchingRows.length > 0 ? Math.round(totalCents / matchingRows.length) : 0
   const loading = loadingHalls || loadingRows
-  const hasCriteria = Boolean(searchTerm) || selectedLabels.length > 0
+  const hasCriteria = Boolean(searchTerm) || selectedSuppliers.length > 0
   const chartTitle = searchTerm
-    ? `Evolution de « ${deferredQuery.trim()} »${selectedLabels.length > 0 ? ` et ${selectedLabels.length} selection(s)` : ''}`
-    : `Evolution de ${selectedLabels.length} libelle(s) selectionne(s)`
+    ? `Evolution de « ${deferredQuery.trim()} »${selectedSuppliers.length > 0 ? ` et ${selectedSuppliers.length} creancier(s)` : ''}`
+    : `Evolution de ${selectedSuppliers.length} creancier(s) selectionne(s)`
 
-  const toggleLabel = (label: string) => {
-    setSelectedLabels((current) => (
-      current.includes(label) ? current.filter((item) => item !== label) : [...current, label]
+  const toggleSupplier = (supplierName: string) => {
+    setSelectedSuppliers((current) => (
+      current.includes(supplierName)
+        ? current.filter((item) => item !== supplierName)
+        : [...current, supplierName]
     ))
   }
 
@@ -191,7 +195,7 @@ export function AdminChartsPage() {
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="min-w-[240px] flex-1">
                   <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="invoice-catalog-search">
-                    Liste de tous les libelles
+                    Liste de tous les creanciers
                   </label>
                   <input
                     id="invoice-catalog-search"
@@ -203,37 +207,41 @@ export function AdminChartsPage() {
                     autoComplete="off"
                   />
                 </div>
-                {selectedLabels.length > 0 ? (
+                {selectedSuppliers.length > 0 ? (
                   <button
                     type="button"
                     className="rounded border border-[#13223a33] px-3 py-2 text-sm font-semibold text-[#13223a] hover:bg-[#13223a0f]"
-                    onClick={() => setSelectedLabels([])}
+                    onClick={() => setSelectedSuppliers([])}
                   >
-                    Effacer la selection ({selectedLabels.length})
+                    Effacer la selection ({selectedSuppliers.length})
                   </button>
                 ) : null}
               </div>
 
               <div className="mt-3 max-h-64 overflow-y-auto border border-[#e4ddd1] bg-white">
-                {visibleInvoiceLabels.map(({ label, count }) => (
+                {visibleSuppliers.map(({ name, count }) => (
                   <label
-                    key={label}
+                    key={name}
                     className="flex cursor-pointer items-start gap-3 border-b border-[#e4ddd1] px-3 py-2.5 last:border-b-0 hover:bg-[#f7e7b8]/40"
                   >
                     <input
                       type="checkbox"
-                      checked={selectedLabels.includes(label)}
-                      onChange={() => toggleLabel(label)}
+                      checked={selectedSuppliers.includes(name)}
+                      onChange={() => toggleSupplier(name)}
                       className="mt-0.5 h-4 w-4 accent-[#348b57]"
                     />
-                    <span className="min-w-0 flex-1 text-sm text-[#171511]">{label}</span>
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-[#171511]">{name}</span>
                     <span className="whitespace-nowrap text-xs font-semibold text-[#626a78]">
                       {count} facture(s)
                     </span>
                   </label>
                 ))}
-                {visibleInvoiceLabels.length === 0 ? (
-                  <p className="px-3 py-4 text-sm text-[#626a78]">Aucun libelle ne correspond a ce filtre.</p>
+                {visibleSuppliers.length === 0 ? (
+                  <p className="px-3 py-4 text-sm text-[#626a78]">
+                    {suppliers.length === 0
+                      ? 'Aucun creancier renseigne. Lancez un backfill historique apres la migration.'
+                      : 'Aucun creancier ne correspond a ce filtre.'}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -242,8 +250,8 @@ export function AdminChartsPage() {
           {!hasCriteria ? (
             <StateMessage
               variant="empty"
-              title="Lancez une recherche ou choisissez des libelles"
-              message="Utilisez la saisie libre ou cochez une ou plusieurs factures dans la liste."
+              title="Lancez une recherche ou choisissez des creanciers"
+              message="Utilisez la saisie libre ou cochez un ou plusieurs creanciers dans la liste."
             />
           ) : null}
 
@@ -303,6 +311,7 @@ export function AdminChartsPage() {
                     <thead>
                       <tr className="border-b border-[#13223a1f] text-[#626a78]">
                         <th className="py-2">Date</th>
+                        <th className="py-2">Creancier</th>
                         <th className="py-2">Poste</th>
                         <th className="py-2">Categorie</th>
                         <th className="py-2 text-right">Montant TTC</th>
@@ -315,6 +324,7 @@ export function AdminChartsPage() {
                           <td className="whitespace-nowrap py-3 text-[#626a78]">
                             {new Date(adminChargeDate(row)).toLocaleDateString('fr-FR')}
                           </td>
+                          <td className="py-3 font-semibold">{row.supplier_name ?? '-'}</td>
                           <td className="py-3">{row.label}</td>
                           <td className="py-3">{row.category ?? '-'}</td>
                           <td className="py-3 text-right font-semibold text-[#13223a]">

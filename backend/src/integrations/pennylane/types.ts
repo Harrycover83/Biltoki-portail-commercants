@@ -99,6 +99,7 @@ export type PennylaneFilter = {
 export type PennylaneServiceCharge = {
   id: string
   label: string
+  supplierName?: string
   categoryLabel?: string
   amountExclTax: number // in euros
   taxAmount: number // in euros

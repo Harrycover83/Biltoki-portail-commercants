@@ -222,6 +222,7 @@ model ServiceCharge {
   period             ServiceChargePeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
   label              String
   category           String?
+  supplierName       String?  @map("supplier_name")
   allocationRuleId   String?  @map("allocation_rule_id") @db.Uuid
   allocationRule     AllocationRule? @relation(fields: [allocationRuleId], references: [id], onDelete: SetNull)
   amountExclTax      Decimal  @map("amount_excl_tax") @db.Decimal(14, 2)
