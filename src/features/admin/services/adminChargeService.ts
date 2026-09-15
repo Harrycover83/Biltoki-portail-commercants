@@ -16,6 +16,8 @@ type RawAdminChargeRow = Omit<AdminChargeRow, 'period_end'> & {
   service_charge_periods: { period_end: string } | { period_end: string }[] | null
 }
 
+type LegacyRawAdminChargeRow = Omit<RawAdminChargeRow, 'supplier_name'>
+
 type AdminChargeResult = {
   data: AdminChargeRow[] | null
   error: string | null
@@ -37,12 +39,27 @@ export async function getAdminCharges(hallId: string): Promise<AdminChargeResult
   let from = 0
 
   do {
-    const { data, error } = await client
+    let { data, error } = await client
       .from('service_charges')
       .select('id, label, category, supplier_name, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
       .eq('hall_id', hallId)
       .order('invoice_date', { ascending: false })
       .range(from, from + CHARGES_PAGE_SIZE - 1)
+
+    if (error?.message.includes('supplier_name')) {
+      const legacyResult = await client
+        .from('service_charges')
+        .select('id, label, category, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
+        .eq('hall_id', hallId)
+        .order('invoice_date', { ascending: false })
+        .range(from, from + CHARGES_PAGE_SIZE - 1)
+
+      data = (legacyResult.data as LegacyRawAdminChargeRow[] | null)?.map((row) => ({
+        ...row,
+        supplier_name: null,
+      })) as typeof data
+      error = legacyResult.error
+    }
 
     if (error) {
       return { data: null, error: error.message }
