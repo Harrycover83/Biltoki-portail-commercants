@@ -9,6 +9,7 @@ RUN npm ci
 
 # Copy source and compile
 COPY tsconfig.json ./
+COPY prisma.config.ts ./
 COPY src ./src
 COPY prisma ./prisma
 RUN npx prisma generate
