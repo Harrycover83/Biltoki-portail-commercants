@@ -3,6 +3,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -95,15 +96,35 @@ export function AdminChartsPage() {
       .sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
   }, [rows, searchTerm, selectedSuppliers])
 
-  const chartData = useMemo(
-    () => matchingRows.map((row) => ({
-      id: row.id,
-      date: DATE_FORMATTER.format(new Date(adminChargeDate(row))),
-      montant: Number(row.amount_incl_tax),
-      facture: row.label,
-    })),
-    [matchingRows],
-  )
+  const chartSeries = useMemo(() => {
+    const names = [...new Set(matchingRows.map((row) => row.supplier_name ?? 'Créancier inconnu'))]
+    return names.map((name, index) => ({ name, dataKey: `supplier_${index}` }))
+  }, [matchingRows])
+
+  const chartData = useMemo(() => {
+    const seriesByName = new Map(chartSeries.map((series) => [series.name, series.dataKey]))
+    const pointsByDate = new Map<string, Record<string, string | number>>()
+
+    for (const row of matchingRows) {
+      const dateKey = adminChargeDate(row)
+      const supplierName = row.supplier_name ?? 'Créancier inconnu'
+      const dataKey = seriesByName.get(supplierName)
+      if (!dataKey) {
+        continue
+      }
+
+      const point = pointsByDate.get(dateKey) ?? {
+        dateKey,
+        date: DATE_FORMATTER.format(new Date(dateKey)),
+      }
+      point[dataKey] = Number(point[dataKey] ?? 0) + Number(row.amount_incl_tax)
+      pointsByDate.set(dateKey, point)
+    }
+
+    return [...pointsByDate.values()].sort((left, right) => (
+      String(left.dateKey).localeCompare(String(right.dateKey))
+    ))
+  }, [chartSeries, matchingRows])
 
   const totalCents = matchingRows.reduce((total, row) => total + amountCents(row), 0)
   const averageCents = matchingRows.length > 0 ? Math.round(totalCents / matchingRows.length) : 0
@@ -229,7 +250,7 @@ export function AdminChartsPage() {
                 title={chartTitle}
                 subtitle={`${matchingRows.length} facture(s), de ${chartData[0]?.date} a ${chartData.at(-1)?.date}`}
               >
-                <div className="h-[360px] w-full" aria-label="Courbe d'evolution des montants TTC">
+                <div className="h-[360px] w-full" aria-label="Courbes d'evolution des montants TTC par creancier">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
                       <CartesianGrid stroke="#e4ddd1" strokeDasharray="3 3" />
@@ -245,15 +266,20 @@ export function AdminChartsPage() {
                           'Montant TTC',
                         ]}
                       />
-                      <Line
-                        type="monotone"
-                        dataKey="montant"
-                        name="Montant TTC"
-                        stroke="#d84d2c"
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: '#fffcf6', strokeWidth: 2 }}
-                        activeDot={{ r: 6 }}
-                      />
+                      <Legend />
+                      {chartSeries.map((series, index) => (
+                        <Line
+                          key={series.dataKey}
+                          type="monotone"
+                          dataKey={series.dataKey}
+                          name={series.name}
+                          stroke={['#d84d2c', '#348b57', '#2468a8', '#9b5de5', '#d18b21'][index % 5]}
+                          strokeWidth={3}
+                          dot={{ r: 4, fill: '#fffcf6', strokeWidth: 2 }}
+                          activeDot={{ r: 6 }}
+                          connectNulls={false}
+                        />
+                      ))}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
