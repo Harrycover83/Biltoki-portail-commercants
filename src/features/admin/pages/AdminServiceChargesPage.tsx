@@ -21,6 +21,8 @@ type YearGroup = {
   totalCents: number
 }
 
+type ChargeSort = 'date-asc' | 'amount-desc' | 'amount-asc'
+
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
 function dateForGrouping(row: AdminChargeRow): string {
   return adminChargeDate(row)
@@ -76,6 +78,7 @@ export function AdminServiceChargesPage() {
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [chargeSort, setChargeSort] = useState<ChargeSort>('date-asc')
   const [loadingRows, setLoadingRows] = useState(false)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -115,6 +118,21 @@ export function AdminServiceChargesPage() {
     () => selectedYearGroup?.months.find((month) => month.month === selectedMonth) ?? null,
     [selectedYearGroup, selectedMonth],
   )
+  const displayedCharges = useMemo(() => {
+    if (!selectedMonthGroup) {
+      return []
+    }
+
+    return [...selectedMonthGroup.charges].sort((left, right) => {
+      if (chargeSort === 'amount-desc') {
+        return Number(right.amount_incl_tax) - Number(left.amount_incl_tax)
+      }
+      if (chargeSort === 'amount-asc') {
+        return Number(left.amount_incl_tax) - Number(right.amount_incl_tax)
+      }
+      return dateForGrouping(left).localeCompare(dateForGrouping(right))
+    })
+  }, [chargeSort, selectedMonthGroup])
 
   const onYearChange = (year: string) => {
     setSelectedYear(year)
@@ -179,7 +197,7 @@ export function AdminServiceChargesPage() {
       {!loadingHalls && !loadingRows && !error && years.length > 0 ? (
         <div className="space-y-6">
           <Card title="Historique des frais" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par l'onglet Synchronisation.">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">
                   Annee
@@ -217,6 +235,22 @@ export function AdminServiceChargesPage() {
                   </select>
                 </div>
               ) : null}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-charge-sort">
+                  Affichage
+                </label>
+                <select
+                  id="admin-charge-sort"
+                  value={chargeSort}
+                  onChange={(event) => setChargeSort(event.target.value as ChargeSort)}
+                  className="brand-input"
+                >
+                  <option value="date-asc">Date, du plus ancien au plus recent</option>
+                  <option value="amount-desc">Montant, du plus eleve au plus faible</option>
+                  <option value="amount-asc">Montant, du plus faible au plus eleve</option>
+                </select>
+              </div>
             </div>
           </Card>
 
@@ -237,7 +271,7 @@ export function AdminServiceChargesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedMonthGroup.charges.map((row) => (
+                    {displayedCharges.map((row) => (
                       <tr key={row.id} className="border-b border-slate-100/80 last:border-b-0">
                         <td className="py-3 whitespace-nowrap text-[#626a78]">
                           {row.invoice_date ? new Date(row.invoice_date).toLocaleDateString('fr-FR') : '-'}
