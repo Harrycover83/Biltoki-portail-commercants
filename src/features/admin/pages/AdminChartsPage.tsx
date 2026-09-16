@@ -12,7 +12,9 @@ import {
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
+import { getBackendUrl } from '../../../lib/env'
 import { formatEuroFromCents } from '../../../lib/money'
+import { getSupabaseClient } from '../../../lib/supabase'
 import { useAdminHall } from '../AdminHallContext'
 import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
 
@@ -41,6 +43,7 @@ export function AdminChartsPage() {
   const [catalogQuery, setCatalogQuery] = useState('')
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const deferredQuery = useDeferredValue(query)
 
@@ -140,6 +143,49 @@ export function AdminChartsPage() {
         ? current.filter((item) => item !== supplierName)
         : [...current, supplierName]
     ))
+  }
+
+  const openDocument = async (chargeId: string) => {
+    const backendUrl = getBackendUrl()
+    const client = getSupabaseClient()
+    if (!backendUrl || !client) {
+      setError('Service de documents non configure.')
+      return
+    }
+
+    const documentWindow = window.open('', '_blank')
+    if (!documentWindow) {
+      setError('Autorisez les fenetres pop-up pour ouvrir le justificatif.')
+      return
+    }
+
+    setOpeningDocumentId(chargeId)
+    try {
+      const {
+        data: { session },
+      } = await client.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Session admin introuvable, reconnectez-vous.')
+      }
+
+      const response = await fetch(`${backendUrl}/api/service-charges/${chargeId}/document`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(body?.error ?? `Justificatif indisponible (HTTP ${response.status})`)
+      }
+
+      const documentUrl = URL.createObjectURL(await response.blob())
+      documentWindow.location.replace(documentUrl)
+      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60_000)
+      setError(null)
+    } catch (documentError) {
+      documentWindow.close()
+      setError(documentError instanceof Error ? documentError.message : 'Justificatif indisponible.')
+    } finally {
+      setOpeningDocumentId(null)
+    }
   }
 
   return (
@@ -295,6 +341,7 @@ export function AdminChartsPage() {
                         <th className="py-2">Poste</th>
                         <th className="py-2">Categorie</th>
                         <th className="py-2 text-right">Montant TTC</th>
+                        <th className="py-2 text-right">Facture</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -308,6 +355,20 @@ export function AdminChartsPage() {
                           <td className="py-3">{row.category ?? '-'}</td>
                           <td className="py-3 text-right font-semibold text-[#13223a]">
                             {formatEuroFromCents(amountCents(row))}
+                          </td>
+                          <td className="py-3 text-right">
+                            {row.pennylane_id ? (
+                              <button
+                                type="button"
+                                className="rounded border border-[#13223a33] px-2 py-1 text-xs font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+                                disabled={openingDocumentId === row.id}
+                                onClick={() => void openDocument(row.id)}
+                              >
+                                {openingDocumentId === row.id ? 'Ouverture...' : 'Ouvrir'}
+                              </button>
+                            ) : (
+                              '-'
+                            )}
                           </td>
                         </tr>
                       ))}
