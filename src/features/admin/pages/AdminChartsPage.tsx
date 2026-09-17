@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -41,13 +41,11 @@ function amountCents(row: AdminChargeRow): number {
 export function AdminChartsPage() {
   const { selectedHallId, loading: loadingHalls } = useAdminHall()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
-  const [query, setQuery] = useState('')
   const [catalogQuery, setCatalogQuery] = useState('')
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const deferredQuery = useDeferredValue(query)
 
   useEffect(() => {
     setSelectedSuppliers([])
@@ -66,9 +64,22 @@ export function AdminChartsPage() {
     }
 
     void loadRows()
-  }, [selectedHallId])
 
-  const searchTerm = normalizeSearch(deferredQuery)
+    const refreshInterval = window.setInterval(() => {
+      void loadRows()
+    }, 15000)
+
+    const onFocus = () => {
+      void loadRows()
+    }
+
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      window.clearInterval(refreshInterval)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [selectedHallId])
   const suppliers = useMemo(() => {
     const counts = new Map<string, number>()
     for (const row of rows) {
@@ -89,17 +100,12 @@ export function AdminChartsPage() {
   }, [catalogQuery, suppliers])
 
   const matchingRows = useMemo(() => {
-    if (!searchTerm && selectedSuppliers.length === 0) {
-      return []
-    }
+    const filteredRows = selectedSuppliers.length > 0
+      ? rows.filter((row) => row.supplier_name !== null && selectedSuppliers.includes(row.supplier_name))
+      : rows
 
-    return rows
-      .filter((row) => (
-        (searchTerm && normalizeSearch(`${row.supplier_name ?? ''} ${row.label} ${row.category ?? ''}`).includes(searchTerm))
-        || (row.supplier_name !== null && selectedSuppliers.includes(row.supplier_name))
-      ))
-      .sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
-  }, [rows, searchTerm, selectedSuppliers])
+    return [...filteredRows].sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
+  }, [rows, selectedSuppliers])
 
   const chartSeries = useMemo(() => {
     const totalsBySupplier = new Map<string, number>()
@@ -151,10 +157,10 @@ export function AdminChartsPage() {
   const totalCents = matchingRows.reduce((total, row) => total + amountCents(row), 0)
   const averageCents = matchingRows.length > 0 ? Math.round(totalCents / matchingRows.length) : 0
   const loading = loadingHalls || loadingRows
-  const hasCriteria = Boolean(searchTerm) || selectedSuppliers.length > 0
-  const chartTitle = searchTerm
-    ? `Evolution de « ${deferredQuery.trim()} »${selectedSuppliers.length > 0 ? ` et ${selectedSuppliers.length} creancier(s)` : ''}`
-    : `Evolution de ${selectedSuppliers.length} creancier(s) selectionne(s)`
+  const hasCriteria = rows.length > 0 || selectedSuppliers.length > 0
+  const chartTitle = selectedSuppliers.length > 0
+    ? `Evolution de ${selectedSuppliers.length} creancier(s) selectionne(s)`
+    : 'Evolution de toutes les factures'
 
   const toggleSupplier = (supplierName: string) => {
     setSelectedSuppliers((current) => (
@@ -216,22 +222,9 @@ export function AdminChartsPage() {
         <div className="space-y-6">
           <Card
             title="Evolution des factures"
-            subtitle="Recherchez un fournisseur, un poste ou une categorie sur toutes les annees."
+            subtitle="Liste exhaustive des factures par creancier et par annee."
           >
-            <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="invoice-chart-search">
-              Rechercher une facture
-            </label>
-            <input
-              id="invoice-chart-search"
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="brand-input"
-              placeholder="Ex. EDF, electricite, assurance..."
-              autoComplete="off"
-            />
-
-            <div className="mt-5 border-t border-[#e4ddd1] pt-5">
+            <div className="mt-0 border-t-0 pt-0">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="min-w-[240px] flex-1">
                   <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="invoice-catalog-search">
@@ -290,8 +283,8 @@ export function AdminChartsPage() {
           {!hasCriteria ? (
             <StateMessage
               variant="empty"
-              title="Lancez une recherche ou choisissez des creanciers"
-              message="Utilisez la saisie libre ou cochez un ou plusieurs creanciers dans la liste."
+              title="Aucune facture"
+              message="Aucune facture n'est encore disponible pour cette halle."
             />
           ) : null}
 
@@ -299,7 +292,7 @@ export function AdminChartsPage() {
             <StateMessage
               variant="empty"
               title="Aucune facture trouvee"
-              message={`Aucun libelle ou categorie ne correspond a « ${deferredQuery.trim()} ».`}
+              message="Aucun creancier ne correspond a cette selection."
             />
           ) : null}
 
