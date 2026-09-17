@@ -14,6 +14,7 @@ export function HistoryPage() {
   const [years, setYears] = useState<MerchantYearGroup[]>([])
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [sortOrder, setSortOrder] = useState<'chronological' | 'amount'>('chronological')
   const [loading, setLoading] = useState(true)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +75,17 @@ export function HistoryPage() {
     () => selectedYearGroup?.months.find((month) => month.month === selectedMonth) ?? null,
     [selectedYearGroup, selectedMonth],
   )
+
+  const sortedCharges = useMemo(() => {
+    const charges = [...(selectedMonthGroup?.charges ?? [])]
+    if (sortOrder === 'amount') {
+      return charges.sort((left, right) => right.totalCents - left.totalCents)
+    }
+
+    return charges.sort((left, right) => (
+      (right.invoiceDate ?? '').localeCompare(left.invoiceDate ?? '')
+    ))
+  }, [selectedMonthGroup, sortOrder])
 
   const onYearChange = (year: string) => {
     setSelectedYear(year)
@@ -197,6 +209,21 @@ export function HistoryPage() {
                   </select>
                 </div>
               ) : null}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="history-sort-select">
+                  Trier les factures
+                </label>
+                <select
+                  id="history-sort-select"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as 'chronological' | 'amount')}
+                  className="brand-input"
+                >
+                  <option value="chronological">Plus recentes d&apos;abord</option>
+                  <option value="amount">Montant decroissant</option>
+                </select>
+              </div>
             </div>
           </Card>
 
@@ -217,7 +244,7 @@ export function HistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedMonthGroup.charges.map((charge) => (
+                    {sortedCharges.map((charge) => (
                       <tr key={charge.id} className="border-b border-slate-100/80 last:border-b-0">
                         <td className="py-3 whitespace-nowrap text-[#626a78]">
                           {charge.invoiceDate
