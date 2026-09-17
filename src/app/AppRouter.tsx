@@ -6,9 +6,11 @@ import { RoleRoute } from './guards/RoleRoute'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
 import { HistoryPage } from '../features/merchant/pages/HistoryPage'
+import { RevenuePage } from '../features/merchant/pages/RevenuePage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
+import { AdminRevenuePage } from '../features/admin/pages/AdminRevenuePage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
@@ -81,6 +83,17 @@ export function AppRouter() {
             <ProtectedRoute>
               <PrivateLayout>
                 <HistoryPage />
+              </PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ca"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout>
+                <RevenuePage />
               </PrivateLayout>
             </ProtectedRoute>
           }
@@ -165,6 +178,19 @@ export function AppRouter() {
                   <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
                     <AdminChartsPage />
                   </Suspense>
+                </PrivateLayout>
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/ca"
+          element={
+            <ProtectedRoute>
+              <RoleRoute role="admin">
+                <PrivateLayout>
+                  <AdminRevenuePage />
                 </PrivateLayout>
               </RoleRoute>
             </ProtectedRoute>

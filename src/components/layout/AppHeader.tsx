@@ -29,6 +29,9 @@ export function AppHeader() {
               <NavLink to="/admin/graphiques" className={navClassName}>
                 Graphiques
               </NavLink>
+              <NavLink to="/admin/ca" className={navClassName}>
+                CA stands
+              </NavLink>
               <NavLink to="/admin/synchronisation" className={navClassName}>
                 Synchronisation
               </NavLink>
@@ -37,6 +40,9 @@ export function AppHeader() {
             <>
               <NavLink to="/historique" className={navClassName}>
                 Historique
+              </NavLink>
+              <NavLink to="/ca" className={navClassName}>
+                CA
               </NavLink>
               <NavLink to="/profil" className={navClassName}>
                 Profil
