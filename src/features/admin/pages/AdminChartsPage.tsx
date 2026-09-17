@@ -23,6 +23,8 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
   month: 'short',
   year: 'numeric',
 })
+const MAX_CHART_SUPPLIERS = 8
+const OTHER_SUPPLIERS_KEY = 'other_suppliers'
 
 function normalizeSearch(value: string): string {
   return value
@@ -100,8 +102,21 @@ export function AdminChartsPage() {
   }, [rows, searchTerm, selectedSuppliers])
 
   const chartSeries = useMemo(() => {
-    const names = [...new Set(matchingRows.map((row) => row.supplier_name ?? 'Créancier inconnu'))]
-    return names.map((name, index) => ({ name, dataKey: `supplier_${index}` }))
+    const totalsBySupplier = new Map<string, number>()
+    for (const row of matchingRows) {
+      const supplierName = row.supplier_name ?? 'Créancier inconnu'
+      totalsBySupplier.set(supplierName, (totalsBySupplier.get(supplierName) ?? 0) + Number(row.amount_incl_tax))
+    }
+
+    const suppliersByAmount = [...totalsBySupplier.entries()]
+      .sort(([, leftAmount], [, rightAmount]) => rightAmount - leftAmount)
+    const leadingSuppliers = suppliersByAmount.slice(0, MAX_CHART_SUPPLIERS)
+    const hasOtherSuppliers = suppliersByAmount.length > MAX_CHART_SUPPLIERS
+
+    return [
+      ...leadingSuppliers.map(([name], index) => ({ name, dataKey: `supplier_${index}` })),
+      ...(hasOtherSuppliers ? [{ name: 'Autres créanciers', dataKey: OTHER_SUPPLIERS_KEY }] : []),
+    ]
   }, [matchingRows])
 
   const chartData = useMemo(() => {
@@ -111,7 +126,11 @@ export function AdminChartsPage() {
     for (const row of matchingRows) {
       const dateKey = adminChargeDate(row)
       const supplierName = row.supplier_name ?? 'Créancier inconnu'
-      const dataKey = seriesByName.get(supplierName)
+      const dataKey = seriesByName.get(supplierName) ?? (
+        chartSeries.some((series) => series.dataKey === OTHER_SUPPLIERS_KEY)
+          ? OTHER_SUPPLIERS_KEY
+          : undefined
+      )
       if (!dataKey) {
         continue
       }
