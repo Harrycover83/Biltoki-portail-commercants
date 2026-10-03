@@ -49,21 +49,46 @@ export function AdminChartsPage() {
 
   useEffect(() => {
     setSelectedSuppliers([])
+    setRows([])
+    setError(null)
+    let cancelled = false
+    let requestInFlight = false
 
-    const loadRows = async () => {
+    const loadRows = async (initialLoad = false) => {
       if (!selectedHallId) {
-        setRows([])
+        setLoadingRows(false)
+        return
+      }
+      if (cancelled || requestInFlight) {
         return
       }
 
-      setLoadingRows(true)
-      const result = await getAdminCharges(selectedHallId)
-      setRows(result.data ?? [])
-      setError(result.error)
-      setLoadingRows(false)
+      requestInFlight = true
+      if (initialLoad) {
+        setLoadingRows(true)
+      }
+      try {
+        const result = await getAdminCharges(selectedHallId)
+        if (cancelled) {
+          return
+        }
+        if (!result.error) {
+          setRows(result.data ?? [])
+        }
+        setError(result.error)
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Chargement des factures impossible.')
+        }
+      } finally {
+        requestInFlight = false
+        if (!cancelled && initialLoad) {
+          setLoadingRows(false)
+        }
+      }
     }
 
-    void loadRows()
+    void loadRows(true)
 
     const refreshInterval = window.setInterval(() => {
       void loadRows()
@@ -76,6 +101,7 @@ export function AdminChartsPage() {
     window.addEventListener('focus', onFocus)
 
     return () => {
+      cancelled = true
       window.clearInterval(refreshInterval)
       window.removeEventListener('focus', onFocus)
     }
@@ -218,7 +244,7 @@ export function AdminChartsPage() {
       {loading ? <StateMessage variant="loading" title="Chargement des factures..." /> : null}
       {!loading && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
 
-      {!loading && !error ? (
+      {!loading && (!error || rows.length > 0) ? (
         <div className="space-y-6">
           <Card
             title="Evolution des factures"

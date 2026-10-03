@@ -14,6 +14,7 @@ Ce repository contient une V1 technique executable avec:
 - Calcul metier: moteur d'allocation teste avec arrondi deterministe
 - Deploiement: configuration Netlify SPA
 - Pages merchant connectees aux donnees Supabase (plus de mock hardcode)
+- Page admin Graphiques: actualisation toutes les 15 secondes et au retour sur la fenetre, en arriere-plan sans masquer les graphiques ni reinitialiser les filtres. En cas d'erreur, les dernieres factures chargees restent affichees avec un message d'erreur.
 
 Important:
 
