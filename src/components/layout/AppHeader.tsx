@@ -24,16 +24,13 @@ export function AppHeader() {
           {isAdmin ? (
             <>
               <NavLink to="/admin/frais" className={navClassName}>
-                Historique
+                Charges communes
               </NavLink>
               <NavLink to="/admin/graphiques" className={navClassName}>
                 Graphiques
               </NavLink>
               <NavLink to="/admin/ca" className={navClassName}>
                 CA stands
-              </NavLink>
-              <NavLink to="/admin/synchronisation" className={navClassName}>
-                Synchronisation
               </NavLink>
             </>
           ) : (

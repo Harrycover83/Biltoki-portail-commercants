@@ -9,7 +9,6 @@ import { HistoryPage } from '../features/merchant/pages/HistoryPage'
 import { RevenuePage } from '../features/merchant/pages/RevenuePage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
-import { AdminSyncPage } from '../features/admin/pages/AdminSyncPage'
 import { AdminRevenuePage } from '../features/admin/pages/AdminRevenuePage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
@@ -161,9 +160,7 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <PrivateLayout>
-                  <AdminSyncPage />
-                </PrivateLayout>
+                <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
           }

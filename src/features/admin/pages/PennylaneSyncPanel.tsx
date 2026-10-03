@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
-import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
@@ -25,8 +23,8 @@ function formatSyncErrors(errors: unknown): string {
     .join(' ')
 }
 
-export function AdminSyncPage() {
-  const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
+export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
+  const { selectedHallId } = useAdminHall()
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
@@ -71,6 +69,7 @@ export function AdminSyncPage() {
         setSyncMessage(
           `${mode === 'backfill' ? 'Backfill' : 'Sync'} ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
         )
+        onSynced()
       }
     } catch (err) {
       setSyncMessage(err instanceof Error ? err.message : 'Erreur reseau')
@@ -80,58 +79,37 @@ export function AdminSyncPage() {
   }
 
   return (
-    <PageContainer>
-      {loading ? <StateMessage variant="loading" title="Chargement..." /> : null}
-
-      {!loading ? (
-        <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
-          {syncing ? (
-            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#e1dacd] bg-[#f7e7b8] px-3 py-2 text-sm font-medium text-[#171511]" role="status">
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
-              Synchronisation en cours. Cette operation peut prendre plusieurs minutes pour l'historique complet.
-            </div>
-          ) : null}
-          <div className="grid gap-3 md:grid-cols-3 md:items-end">
-            <label className="block text-sm text-[#4d5562]">
-              Halle
-              <select
-                className="brand-input mt-1"
-                value={selectedHallId}
-                onChange={(event) => setSelectedHallId(event.target.value)}
-              >
-                {halls.map((hall) => (
-                  <option key={hall.id} value={hall.id}>
-                    {hall.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              className="brand-button"
-              disabled={syncing}
-              type="button"
-              onClick={() => void triggerPennylaneSync('recent')}
-            >
-              {syncing ? 'Synchronisation...' : 'Sync mois recents'}
-            </button>
-
-            <button
-              className="rounded-full border border-[#13223a33] px-4 py-2 text-sm font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
-              disabled={syncing}
-              type="button"
-              onClick={() => void triggerPennylaneSync('backfill')}
-            >
-              {syncing ? 'En cours...' : 'Backfill historique complet'}
-            </button>
-          </div>
-          {syncMessage ? (
-            <p className="mt-3 text-sm text-[#4d5562]" aria-live="polite">
-              {syncMessage}
-            </p>
-          ) : null}
-        </Card>
+    <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
+      {syncing ? (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#e1dacd] bg-[#f7e7b8] px-3 py-2 text-sm font-medium text-[#171511]" role="status">
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
+          Synchronisation en cours. Cette operation peut prendre plusieurs minutes pour l'historique complet.
+        </div>
       ) : null}
-    </PageContainer>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          className="brand-button"
+          disabled={syncing}
+          type="button"
+          onClick={() => void triggerPennylaneSync('recent')}
+        >
+          {syncing ? 'Synchronisation...' : 'Sync mois recents'}
+        </button>
+
+        <button
+          className="rounded-full border border-[#13223a33] px-4 py-2 text-sm font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+          disabled={syncing}
+          type="button"
+          onClick={() => void triggerPennylaneSync('backfill')}
+        >
+          {syncing ? 'En cours...' : 'Backfill historique complet'}
+        </button>
+      </div>
+      {syncMessage ? (
+        <p className="mt-3 text-sm text-[#4d5562]" aria-live="polite">
+          {syncMessage}
+        </p>
+      ) : null}
+    </Card>
   )
 }

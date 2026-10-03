@@ -7,6 +7,7 @@ import { formatEuroFromCents } from '../../../lib/money'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
 import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
+import { PennylaneSyncPanel } from './PennylaneSyncPanel'
 
 type MonthGroup = {
   month: string // '01'..'12'
@@ -79,32 +80,41 @@ export function AdminServiceChargesPage() {
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [chargeSort, setChargeSort] = useState<ChargeSort>('date-asc')
-  const [loadingRows, setLoadingRows] = useState(false)
+  const [loadedHallId, setLoadedHallId] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const loadingRows = Boolean(selectedHallId) && loadedHallId !== selectedHallId
 
   useEffect(() => {
+    let cancelled = false
+
     const loadRows = async () => {
       if (!selectedHallId) {
         setRows([])
         return
       }
 
-      setLoadingRows(true)
       const result = await getAdminCharges(selectedHallId)
-      if (result.error) {
-        setError(result.error)
-        setLoadingRows(false)
+      if (cancelled) {
         return
       }
 
-      setRows(result.data ?? [])
-      setError(null)
-      setLoadingRows(false)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setRows(result.data ?? [])
+        setError(null)
+      }
+      setLoadedHallId(selectedHallId)
     }
 
     void loadRows()
-  }, [selectedHallId])
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedHallId, reloadKey])
 
   const years = useMemo(() => groupByYearMonth(rows), [rows])
 
@@ -184,19 +194,24 @@ export function AdminServiceChargesPage() {
 
   return (
     <PageContainer>
-      {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des frais admin..." /> : null}
+      {!loadingHalls ? (
+        <div className="mb-6">
+          <PennylaneSyncPanel onSynced={() => setReloadKey((key) => key + 1)} />
+        </div>
+      ) : null}
+      {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des charges communes..." /> : null}
       {!loadingHalls && !loadingRows && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
       {!loadingHalls && !loadingRows && !error && years.length === 0 ? (
         <StateMessage
           variant="empty"
-          title="Aucun frais"
-          message="Aucun frais synchronise depuis Pennylane pour cette halle. Lancez une synchronisation dans l'onglet Synchronisation."
+          title="Aucune charge commune"
+          message="Aucune charge synchronisee depuis Pennylane pour cette halle. Lancez une synchronisation ci-dessus."
         />
       ) : null}
 
       {!loadingHalls && !loadingRows && !error && years.length > 0 ? (
         <div className="space-y-6">
-          <Card title="Historique des frais" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par l'onglet Synchronisation.">
+          <Card title="Charges communes" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par la synchronisation ci-dessus.">
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">

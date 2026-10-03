@@ -138,10 +138,10 @@ Routes admin (protegees + role admin):
 - `/admin/dashboard`
 - `/admin/commercants`
 - `/admin/stands`
-- `/admin/frais`
+- `/admin/frais` (Charges communes + boutons de synchronisation Pennylane)
 - `/admin/periodes`
 - `/admin/repartitions`
-- `/admin/synchronisation`
+- `/admin/synchronisation` (redirige vers `/admin/frais`)
 
 ## Integration Pennylane
 
