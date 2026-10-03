@@ -532,8 +532,8 @@ create policy "portal_access_admin_write"
 
 revoke all on public.portal_access from anon;
 
--- IMPORTANT: apply supabase/migrations/20261003160000_harden_access_control.sql, then
--- 20261004090000_add_role_values.sql and 20261004090100_role_based_access.sql after this file
--- (`npm run db:migrate:access`). They restrict merchants to their own rows, introduce the
+-- IMPORTANT: the access-control migrations live in backend/prisma/migrations
+-- (20261003160000_harden_access_control, 20261004090000_add_role_values, 20261004090100_role_based_access)
+-- and are applied by `prisma migrate deploy`. They restrict merchants to their own rows, introduce the
 -- hall_manager / network_manager / hq / super_admin roles and lock profiles.role/merchant_id/email
 -- against self-modification. The policies above are the pre-hardening state.

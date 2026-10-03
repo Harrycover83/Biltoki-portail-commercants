@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
-import { isGlobalRole, isHallScopedRole } from '../auth/roles.js'
+import { isGlobalRole, isHallScopedRole, isStaffRole } from '../auth/roles.js'
 
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)
@@ -71,6 +71,37 @@ export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Log
         return res.status(403).json({ error: 'Forbidden' })
       }
       return next()
+    })
+  }
+}
+
+/**
+ * Hall-scoped actions (Pennylane sync): any non-merchant account, but only on a hall it can see.
+ * The ops token keeps working as before.
+ */
+export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: Logger) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (req.header('x-internal-token')) {
+      return requireSuperAdmin(config, db, logger)(req, res, next)
+    }
+
+    return requirePortalUser(config, db, logger)(req, res, async () => {
+      try {
+        const hallId = req.params.hallId
+        const allowed =
+          isStaffRole(res.locals.callerRole) &&
+          typeof hallId === 'string' &&
+          (await canReadHall(db, res.locals.caller, res.locals.callerRole, hallId))
+
+        if (!allowed) {
+          logger.warn(`Forbidden hall action by ${res.locals.caller} on ${req.method} ${req.path}`)
+          return res.status(403).json({ error: 'Forbidden' })
+        }
+        return next()
+      } catch (error) {
+        logger.error('Hall access check failed:', error)
+        return res.status(500).json({ error: 'Unable to verify access' })
+      }
     })
   }
 }

@@ -4,7 +4,13 @@ import type { Logger } from './utils/logger.js'
 import { PennylaneSync } from './services/sync.service.js'
 import { syncLock } from './services/sync-lock.js'
 import { PennylaneClient } from './integrations/pennylane/client.js'
-import { canReadHall, requirePortalUser, requireSuperAdmin, requireSuperAdminUser } from './middleware/auth.js'
+import {
+  canReadHall,
+  requirePortalUser,
+  requireStaffForHall,
+  requireSuperAdmin,
+  requireSuperAdminUser,
+} from './middleware/auth.js'
 import { createAdminUsersRouter } from './routes/admin-users.js'
 import type { Config } from './config.js'
 
@@ -110,10 +116,11 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   // Account administration (signed-in super_admin only)
   app.use('/api/admin', requireSuperAdminUser(config, db, logger), createAdminUsersRouter(db, logger))
 
-  app.use('/api', requireSuperAdmin(config, db, logger))
+  // Pennylane syncs: any staff account, limited to the halls in its scope (or the ops token).
+  const hallSyncGuard = requireStaffForHall(config, db, logger)
 
   // Manual sync endpoint for a specific hall
-  app.post('/api/sync/pennylane/:hallId', async (req, res) => {
+  app.post('/api/sync/pennylane/:hallId', hallSyncGuard, async (req, res) => {
     const { hallId } = req.params
 
     if (!config.biltoki.hallsToSync.includes(hallId)) {
@@ -155,7 +162,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   })
 
   // One-off full historical import for a hall (all invoices ever categorized, not just recent months)
-  app.post('/api/sync/pennylane/:hallId/backfill', async (req, res) => {
+  app.post('/api/sync/pennylane/:hallId/backfill', hallSyncGuard, async (req, res) => {
     const { hallId } = req.params
 
     if (!config.biltoki.hallsToSync.includes(hallId)) {
@@ -195,6 +202,9 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       })
     }
   })
+
+  // Everything below is reserved to the super_admin (or the ops token)
+  app.use('/api', requireSuperAdmin(config, db, logger))
 
   // Get sync status
   app.get('/api/sync/pennylane/:syncId', async (req, res) => {

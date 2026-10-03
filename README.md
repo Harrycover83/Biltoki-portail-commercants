@@ -103,15 +103,15 @@ Points clefs:
 - Seul le `super_admin` voit l'onglet **Administration** (`/admin/administration`) : creation, modification, desactivation, suppression des comptes, mot de passe provisoire, journal des actions. Cela passe par le backend (`/api/admin/*`, cle service role) ; aucune action n'est faite depuis le navigateur sur la base.
 - Desactiver un compte coupe l'acces immediatement (verifie par la base a chaque requete, sans attendre l'expiration du jeton).
 - La base garantit qu'il reste toujours au moins un `super_admin` actif.
-- Les synchronisations Pennylane sont reservees au `super_admin`.
+- La synchronisation Pennylane (bouton de l'onglet Charges communes) est ouverte a tous les comptes hors commercants, **uniquement sur les halles de leur perimetre** (verifie par le backend).
 
-Appliquer les migrations d'acces (dans cet ordre, **avant** de deployer le front/backend correspondants) :
+Les migrations d'acces sont des **migrations Prisma** (`backend/prisma/migrations/`) : elles s'appliquent automatiquement au demarrage du backend (`npm start` lance `prisma migrate deploy`), ou a la main avec `npm run prisma:deploy` dans `backend/` (variable `DATABASE_URL`). Dans l'ordre :
 
-```bash
-npm run db:migrate:access
-```
+1. `20261003160000_harden_access_control` : isolation des commercants, profils verrouilles, plus d'acces anonyme
+2. `20261004090000_add_role_values` : nouveaux roles (valeurs d'enum validees avant utilisation)
+3. `20261004090100_role_based_access` : perimetres par role, administration des comptes, journal
 
-Ces migrations sont `20261003160000_harden_access_control.sql`, `20261004090000_add_role_values.sql` puis `20261004090100_role_based_access.sql`. Les valeurs d'enum doivent etre validees avant d'etre utilisees : si vous passez par le SQL Editor de Supabase, collez et executez **un fichier a la fois**, dans cet ordre.
+Le compte `admin` existant devient `super_admin` automatiquement. Ces migrations supposent que le schema Supabase de base (`supabase/migrations/2026081*`/`20260903*`: RLS, `portal_access`, fonctions) est deja en place.
 
 ## RLS et securite
 
@@ -121,7 +121,7 @@ Ces migrations sont `20261003160000_harden_access_control.sql`, `20261004090000_
 - Responsables de halle / reseau / siege: lecture seule, limitee a leur perimetre (voir "Roles et acces")
 - Aucun acces anonyme aux tables ni aux fonctions RPC
 - Les roles se changent uniquement cote serveur (onglet Administration, `npm run portal:users`, cle service role ou dashboard SQL)
-- Reference: `supabase/migrations/20261003160000_harden_access_control.sql` et `supabase/migrations/20261004090100_role_based_access.sql`
+- Reference: `backend/prisma/migrations/20261003160000_harden_access_control` et `backend/prisma/migrations/20261004090100_role_based_access`
 - Prerequis dashboard Supabase: desactiver l'inscription publique (Authentication > Providers > Email > "Allow new users to sign up")
 - Les calculs critiques sont cote base
 - Les secrets ne sont jamais exposes au frontend

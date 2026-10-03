@@ -128,7 +128,8 @@ header a.brand-display {
 
 header nav a {
   border-radius: 999px !important;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  line-height: 1.25rem;
 }
 
 header nav a[aria-current='page'] {

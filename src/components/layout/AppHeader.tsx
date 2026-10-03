@@ -1,6 +1,5 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useAdminHall } from '../../features/admin/AdminHallContext'
-import { PennylaneSyncPanel } from '../../features/admin/pages/PennylaneSyncPanel'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { homePathForRole, isStaffRole, isSuperAdminRole, roleLabel } from '../../lib/roles'
 
@@ -16,8 +15,8 @@ export function AppHeader() {
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? 'bg-[#348b57] px-3 py-2 text-sm font-bold text-white shadow-sm'
-      : 'px-3 py-2 text-sm font-bold text-[#171511] hover:bg-[#f7e7b8]'
+      ? 'whitespace-nowrap bg-[#348b57] px-3 py-1 text-[13px] font-semibold text-white'
+      : 'whitespace-nowrap px-3 py-1 text-[13px] font-semibold text-[#171511] hover:bg-[#f7e7b8]'
 
   return (
     <header className="sticky top-0 z-20 border-b border-[#e4ddd1] bg-[#fffcf6]/95 backdrop-blur-md">
@@ -100,7 +99,6 @@ export function AppHeader() {
                 </select>
               </label>
             )}
-            {isSuperAdmin ? <PennylaneSyncPanel /> : null}
           </div>
         </div>
       ) : null}

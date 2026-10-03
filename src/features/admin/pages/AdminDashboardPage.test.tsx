@@ -98,12 +98,8 @@ describe('Navigation per role', () => {
     expect(options).toEqual(['Halle Toulon', 'Halle Nice'])
   })
 
-  it('offers the Pennylane sync to the super admin only', () => {
-    renderHeader('super_admin')
-    expect(screen.getByText('Synchroniser Pennylane')).toBeTruthy()
-    cleanup()
-
-    renderHeader('hq')
+  it('never shows the Pennylane sync in the header', () => {
+    renderHeader('super_admin', '/admin/frais')
     expect(screen.queryByText('Synchroniser Pennylane')).toBeNull()
   })
 })

@@ -3,13 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminServiceChargesPage } from './AdminServiceChargesPage'
 import type { AdminChargeRow } from '../services/adminChargeService'
 
-const { mockGetAdminCharges, mockUseAdminHall } = vi.hoisted(() => ({
+const { mockGetAdminCharges, mockUseAdminHall, mockUseAuth } = vi.hoisted(() => ({
   mockGetAdminCharges: vi.fn(),
   mockUseAdminHall: vi.fn(),
+  mockUseAuth: vi.fn(),
 }))
 
 vi.mock('../AdminHallContext', () => ({
   useAdminHall: mockUseAdminHall,
+}))
+
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: mockUseAuth,
 }))
 
 vi.mock('../services/adminChargeService', () => ({
@@ -43,6 +48,7 @@ describe('AdminServiceChargesPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockUseAdminHall.mockReturnValue({ selectedHallId: 'hall-1', loading: false })
+    mockUseAuth.mockReturnValue({ role: 'super_admin' })
     mockGetAdminCharges.mockResolvedValue({ data: [charge], error: null })
   })
 
@@ -51,11 +57,20 @@ describe('AdminServiceChargesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows the common charges without any sync control in the page body', async () => {
+  it.each(['hall_manager', 'network_manager', 'hq', 'super_admin'])('shows the Pennylane sync to %s', async (role) => {
+    mockUseAuth.mockReturnValue({ role })
     render(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Eau')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Charges communes' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Synchroniser Pennylane/ })).toBeInTheDocument()
+  })
+
+  it('does not show the sync to a merchant', async () => {
+    mockUseAuth.mockReturnValue({ role: 'merchant' })
+    render(<AdminServiceChargesPage />)
+
+    expect(await screen.findByText('Eau')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Synchroniser/ })).not.toBeInTheDocument()
   })
 

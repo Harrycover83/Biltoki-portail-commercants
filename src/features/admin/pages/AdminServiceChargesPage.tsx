@@ -5,8 +5,11 @@ import { StateMessage } from '../../../components/ui/StateMessage'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
 import { getBackendUrl } from '../../../lib/env'
+import { isStaffRole } from '../../../lib/roles'
+import { useAuth } from '../../auth/AuthProvider'
 import { useAdminHall } from '../AdminHallContext'
 import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
+import { PennylaneSyncPanel } from './PennylaneSyncPanel'
 
 type MonthGroup = {
   month: string // '01'..'12'
@@ -75,6 +78,7 @@ function capitalize(value: string): string {
 
 export function AdminServiceChargesPage() {
   const { selectedHallId, loading: loadingHalls, syncVersion } = useAdminHall()
+  const { role } = useAuth()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [pickedYear, setPickedYear] = useState('')
   const [pickedMonth, setPickedMonth] = useState('')
@@ -193,6 +197,11 @@ export function AdminServiceChargesPage() {
 
   return (
     <PageContainer>
+      {isStaffRole(role) ? (
+        <div className="mb-4 flex justify-end">
+          <PennylaneSyncPanel />
+        </div>
+      ) : null}
       {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des charges communes..." /> : null}
       {!loadingHalls && !loadingRows && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
       {!loadingHalls && !loadingRows && !error && years.length === 0 ? (
