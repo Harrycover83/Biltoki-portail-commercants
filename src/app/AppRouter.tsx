@@ -10,6 +10,7 @@ import { RevenuePage } from '../features/merchant/pages/RevenuePage'
 import { ProfilePage } from '../features/merchant/pages/ProfilePage'
 import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
 import { AdminRevenuePage } from '../features/admin/pages/AdminRevenuePage'
+import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
@@ -31,7 +32,7 @@ function PrivateLayout({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { role } = useAuth()
-  return <Navigate to={role === 'admin' ? '/admin/frais' : '/historique'} replace />
+  return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/historique'} replace />
 }
 
 export function AppRouter() {
@@ -114,7 +115,9 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <RoleRoute role="admin">
-                <Navigate to="/admin/frais" replace />
+                <PrivateLayout>
+                  <AdminDashboardPage />
+                </PrivateLayout>
               </RoleRoute>
             </ProtectedRoute>
           }
