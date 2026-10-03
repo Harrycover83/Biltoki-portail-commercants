@@ -88,15 +88,40 @@ Points clefs:
 - Statuts de periode: `draft`, `calculated`, `validated`, `closed`
 - Trigger de protection en periode `closed`
 
+## Roles et acces
+
+| Role | Libelle | Perimetre | Droits |
+|---|---|---|---|
+| `merchant` | Commercant | son stand + charges communes de sa/ses halle(s) | lecture |
+| `hall_manager` | Responsable de halle (manager, RX, capitaine) | exactement 1 halle | lecture seule |
+| `network_manager` | Responsable reseau | les halles qui lui sont attribuees | lecture seule |
+| `hq` | Siege | toutes les halles | lecture seule |
+| `super_admin` | Administrateur total | toutes les halles | lecture + ecriture + gestion des comptes |
+
+- Le perimetre d'un responsable de halle / reseau est stocke dans `admin_hall_permissions` (1 seule ligne pour `hall_manager`, imposee par la base).
+- L'ancien role `admin` n'existe plus : les comptes `admin` ont ete convertis en `super_admin` par la migration.
+- Seul le `super_admin` voit l'onglet **Administration** (`/admin/administration`) : creation, modification, desactivation, suppression des comptes, mot de passe provisoire, journal des actions. Cela passe par le backend (`/api/admin/*`, cle service role) ; aucune action n'est faite depuis le navigateur sur la base.
+- Desactiver un compte coupe l'acces immediatement (verifie par la base a chaque requete, sans attendre l'expiration du jeton).
+- La base garantit qu'il reste toujours au moins un `super_admin` actif.
+- Les synchronisations Pennylane sont reservees au `super_admin`.
+
+Appliquer les migrations d'acces (dans cet ordre, **avant** de deployer le front/backend correspondants) :
+
+```bash
+npm run db:migrate:access
+```
+
+Ces migrations sont `20261003160000_harden_access_control.sql`, `20261004090000_add_role_values.sql` puis `20261004090100_role_based_access.sql`. Les valeurs d'enum doivent etre validees avant d'etre utilisees : si vous passez par le SQL Editor de Supabase, collez et executez **un fichier a la fois**, dans cet ordre.
+
 ## RLS et securite
 
 - RLS activee sur toutes les tables metier (et deny-by-default pour toute table sans policy)
 - `merchant`: acces strict a ses propres donnees (commercant, stands, repartitions, factures, paiements), plus les charges communes de sa/ses halle(s)
 - `merchant`: ne peut jamais modifier `role`, `merchant_id` ou `email` de son profil (trigger + droits par colonne); seuls prenom/nom sont modifiables
-- `admin`: acces selon halles autorisees (`admin_hall_permissions`)
+- Responsables de halle / reseau / siege: lecture seule, limitee a leur perimetre (voir "Roles et acces")
 - Aucun acces anonyme aux tables ni aux fonctions RPC
-- Les roles se changent uniquement cote serveur (`npm run portal:users`, cle service role ou dashboard SQL)
-- Reference: `supabase/migrations/20261003160000_harden_access_control.sql`
+- Les roles se changent uniquement cote serveur (onglet Administration, `npm run portal:users`, cle service role ou dashboard SQL)
+- Reference: `supabase/migrations/20261003160000_harden_access_control.sql` et `supabase/migrations/20261004090100_role_based_access.sql`
 - Prerequis dashboard Supabase: desactiver l'inscription publique (Authentication > Providers > Email > "Allow new users to sign up")
 - Les calculs critiques sont cote base
 - Les secrets ne sont jamais exposes au frontend

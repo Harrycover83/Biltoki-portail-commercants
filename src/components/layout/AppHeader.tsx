@@ -2,13 +2,17 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useAdminHall } from '../../features/admin/AdminHallContext'
 import { PennylaneSyncPanel } from '../../features/admin/pages/PennylaneSyncPanel'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { homePathForRole, isStaffRole, isSuperAdminRole, roleLabel } from '../../lib/roles'
 
 export function AppHeader() {
   const { user, profile, signOut } = useAuth()
-  const isAdmin = profile?.role === 'admin'
-  const homePath = isAdmin ? '/admin/dashboard' : '/historique'
+  const isAdmin = isStaffRole(profile?.role)
+  const isSuperAdmin = isSuperAdminRole(profile?.role)
+  const homePath = homePathForRole(profile?.role)
   const location = useLocation()
   const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
+  const showHallBar = isAdmin && location.pathname.startsWith('/admin') && location.pathname !== '/admin/administration'
+  const badgeLabel = [roleLabel(profile?.role), profile?.job_title].filter(Boolean).join(' · ')
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
@@ -36,6 +40,11 @@ export function AppHeader() {
               <NavLink to="/admin/ca" className={navClassName}>
                 CA stands
               </NavLink>
+              {isSuperAdmin ? (
+                <NavLink to="/admin/administration" className={navClassName}>
+                  Administration
+                </NavLink>
+              ) : null}
             </>
           ) : (
             <>
@@ -52,7 +61,7 @@ export function AppHeader() {
           )}
         </nav>
         <div className="flex items-center gap-3">
-          {profile?.role ? <span className="brand-badge hidden md:inline-flex">{profile.role}</span> : null}
+          {profile?.role ? <span className="brand-badge hidden md:inline-flex">{badgeLabel}</span> : null}
           {user ? <span className="hidden text-xs text-[#4a5261] md:inline">{user.email}</span> : null}
           <button
             type="button"
@@ -66,25 +75,32 @@ export function AppHeader() {
         </div>
       </div>
 
-      {isAdmin && location.pathname.startsWith('/admin') ? (
+      {showHallBar ? (
         <div className="border-t border-[#e4ddd1] bg-[#f7e7b8]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-            <label className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
-              <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle observee</span>
-              <select
-                value={selectedHallId}
-                disabled={loading || halls.length === 0}
-                onChange={(event) => setSelectedHallId(event.target.value)}
-                className="rounded-full border border-[#d6cebf] bg-[#fffcf6] px-3 py-2 text-sm text-[#171511] shadow-sm outline-none focus:border-[#d84d2c]"
-              >
-                {halls.map((hall) => (
-                  <option key={hall.id} value={hall.id}>
-                    {hall.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <PennylaneSyncPanel />
+            {halls.length === 1 ? (
+              <p className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
+                <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle</span>
+                <span>{halls[0].name}</span>
+              </p>
+            ) : (
+              <label className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
+                <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle observee</span>
+                <select
+                  value={selectedHallId}
+                  disabled={loading || halls.length === 0}
+                  onChange={(event) => setSelectedHallId(event.target.value)}
+                  className="rounded-full border border-[#d6cebf] bg-[#fffcf6] px-3 py-2 text-sm text-[#171511] shadow-sm outline-none focus:border-[#d84d2c]"
+                >
+                  {halls.map((hall) => (
+                    <option key={hall.id} value={hall.id}>
+                      {hall.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {isSuperAdmin ? <PennylaneSyncPanel /> : null}
           </div>
         </div>
       ) : null}

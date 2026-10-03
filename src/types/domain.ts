@@ -1,4 +1,4 @@
-export type UserRole = 'merchant' | 'admin'
+export type UserRole = 'merchant' | 'hall_manager' | 'network_manager' | 'hq' | 'super_admin'
 
 export type Profile = {
   id: string
@@ -6,6 +6,7 @@ export type Profile = {
   first_name: string | null
   last_name: string | null
   role: UserRole
+  job_title: string | null
   merchant_id: string | null
 }
 
@@ -15,6 +16,7 @@ export type PortalAccessEntry = {
   first_name: string | null
   last_name: string | null
   role: UserRole
+  job_title: string | null
   merchant_id: string | null
   hall_id: string | null
   active: boolean

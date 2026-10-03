@@ -5,8 +5,13 @@
  * Only emails listed (and active) in `portal_access` get a Supabase auth user.
  * Each account gets its OWN random provisional password plus the
  * `must_change_password` flag, which the portal enforces on first login.
- * Passwords are never stored in the database: they are written once to a local
+ * passwords are never stored in the database: they are written once to a local
  * CSV so the operator can distribute them, then that file must be deleted.
+ *
+ * NOTE: day-to-day account management (roles, hall scopes, deactivation, deletion) is done in the
+ * portal's Administration tab (super_admin only). This script stays useful for bulk merchant
+ * onboarding; it does NOT assign hall scopes, so hall_manager / network_manager accounts created
+ * here see no hall until a scope is added from the Administration tab.
  *
  * Usage:
  *   node scripts/provision-portal-users.mjs sync [--dry-run]

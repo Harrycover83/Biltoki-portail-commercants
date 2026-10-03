@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --pretty false",
     "db:migrate:remote": "node scripts/apply-remote-migration.mjs",
     "db:run-sql": "node scripts/run-sql-file.mjs",
+    "db:migrate:access": "node scripts/run-sql-file.mjs supabase/migrations/20261003160000_harden_access_control.sql supabase/migrations/20261004090000_add_role_values.sql supabase/migrations/20261004090100_role_based_access.sql",
     "portal:users": "node scripts/provision-portal-users.mjs"
   },
   "dependencies": {

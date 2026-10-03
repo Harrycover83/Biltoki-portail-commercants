@@ -54,7 +54,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 
   const { data, error } = await client
     .from('profiles')
-    .select('id, email, first_name, last_name, role, merchant_id')
+    .select('id, email, first_name, last_name, role, job_title, merchant_id')
     .eq('id', userId)
     .maybeSingle()
 

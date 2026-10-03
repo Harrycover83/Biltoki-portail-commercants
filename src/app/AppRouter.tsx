@@ -14,6 +14,12 @@ import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
 import { AdminHallProvider } from '../features/admin/AdminHallContext'
 import { NotFoundPage } from '../features/common/pages/NotFoundPage'
 import { useAuth } from '../features/auth/AuthProvider'
+import { AdministrationPage } from '../features/admin/pages/AdministrationPage'
+import { homePathForRole } from '../lib/roles'
+import type { UserRole } from '../types/domain'
+
+const STAFF_ROLES: UserRole[] = ['hall_manager', 'network_manager', 'hq', 'super_admin']
+const SUPER_ADMIN_ONLY: UserRole[] = ['super_admin']
 
 const AdminChartsPage = lazy(() =>
   import('../features/admin/pages/AdminChartsPage').then((module) => ({ default: module.AdminChartsPage })),
@@ -32,7 +38,7 @@ function PrivateLayout({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { role } = useAuth()
-  return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/historique'} replace />
+  return <Navigate to={homePathForRole(role)} replace />
 }
 
 export function AppRouter() {
@@ -114,7 +120,7 @@ export function AppRouter() {
           path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <PrivateLayout>
                   <AdminDashboardPage />
                 </PrivateLayout>
@@ -127,7 +133,7 @@ export function AppRouter() {
           path="/admin/commercants"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
@@ -138,7 +144,7 @@ export function AppRouter() {
           path="/admin/frais"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <PrivateLayout>
                   <AdminServiceChargesPage />
                 </PrivateLayout>
@@ -151,7 +157,7 @@ export function AppRouter() {
           path="/admin/repartitions"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
@@ -162,7 +168,7 @@ export function AppRouter() {
           path="/admin/synchronisation"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <Navigate to="/admin/frais" replace />
               </RoleRoute>
             </ProtectedRoute>
@@ -173,7 +179,7 @@ export function AppRouter() {
           path="/admin/graphiques"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <PrivateLayout>
                   <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
                     <AdminChartsPage />
@@ -185,10 +191,23 @@ export function AppRouter() {
         />
 
         <Route
+          path="/admin/administration"
+          element={
+            <ProtectedRoute>
+              <RoleRoute roles={SUPER_ADMIN_ONLY}>
+                <PrivateLayout>
+                  <AdministrationPage />
+                </PrivateLayout>
+              </RoleRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin/ca"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
+              <RoleRoute roles={STAFF_ROLES}>
                 <PrivateLayout>
                   <AdminRevenuePage />
                 </PrivateLayout>

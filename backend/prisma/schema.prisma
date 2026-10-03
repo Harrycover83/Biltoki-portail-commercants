@@ -13,7 +13,11 @@ datasource db {
 // Enums for different statuses and types
 enum UserRole {
   merchant
-  admin
+  admin // legacy: replaced by super_admin, no longer assignable
+  hall_manager
+  network_manager
+  hq
+  super_admin
 
   @@map("user_role")
   @@schema("public")
@@ -121,6 +125,7 @@ model Profile {
   firstName  String?  @map("first_name")
   lastName   String?  @map("last_name")
   role       UserRole @default(merchant)
+  jobTitle   String?  @map("job_title")
   merchantId String?  @map("merchant_id") @db.Uuid
   merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz

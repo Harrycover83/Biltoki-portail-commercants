@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
+import { isGlobalRole, isHallScopedRole } from '../auth/roles.js'
 
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)
@@ -40,21 +41,23 @@ export function requirePortalUser(_config: Config, db: SupabaseAdmin, logger: Lo
     }
 
     res.locals.caller = data.user.id
+    res.locals.callerEmail = data.user.email ?? null
     res.locals.callerRole = profile.role
     return next()
   }
 }
 
 /**
- * Guards the /api routes. Accepts either a Supabase access token belonging to an
- * active admin of the portal, or the machine-to-machine token used by ops tooling.
+ * Guards the /api routes: only the administrateur total (super_admin) can trigger syncs
+ * and manage accounts. Also accepts the machine-to-machine token used by ops tooling.
  */
-export function requireAdmin(config: Config, db: SupabaseAdmin, logger: Logger) {
+export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Logger) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const internalToken = req.header('x-internal-token')
     if (internalToken) {
       if (config.server.internalApiToken && safeEqual(internalToken, config.server.internalApiToken)) {
         res.locals.caller = 'internal-token'
+        res.locals.callerRole = 'internal'
         return next()
       }
 
@@ -63,11 +66,66 @@ export function requireAdmin(config: Config, db: SupabaseAdmin, logger: Logger) 
     }
 
     return requirePortalUser(config, db, logger)(req, res, () => {
-      if (res.locals.callerRole !== 'admin') {
+      if (res.locals.callerRole !== 'super_admin') {
         logger.warn(`Forbidden API access by ${res.locals.caller} on ${req.method} ${req.path}`)
         return res.status(403).json({ error: 'Forbidden' })
       }
       return next()
     })
   }
+}
+
+/** Account administration: a signed-in super_admin only, never the machine token. */
+export function requireSuperAdminUser(config: Config, db: SupabaseAdmin, logger: Logger) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.header('x-internal-token')) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    return requireSuperAdmin(config, db, logger)(req, res, next)
+  }
+}
+
+/** True when the account may read the data of this hall (same rules as the database policies). */
+export async function canReadHall(
+  db: SupabaseAdmin,
+  userId: string,
+  role: string,
+  hallId: string,
+): Promise<boolean> {
+  if (isGlobalRole(role)) {
+    return true
+  }
+
+  if (isHallScopedRole(role)) {
+    const { data } = await db
+      .from('admin_hall_permissions')
+      .select('id')
+      .eq('profile_id', userId)
+      .eq('hall_id', hallId)
+      .maybeSingle()
+    return Boolean(data)
+  }
+
+  if (role !== 'merchant') {
+    return false
+  }
+
+  const { data: permission } = await db
+    .from('merchant_hall_permissions')
+    .select('id')
+    .eq('profile_id', userId)
+    .eq('hall_id', hallId)
+    .maybeSingle()
+  if (permission) {
+    return true
+  }
+
+  const { data: profile } = await db
+    .from('profiles')
+    .select('merchants!inner(hall_id)')
+    .eq('id', userId)
+    .maybeSingle()
+  const merchant = profile?.merchants as { hall_id: string } | { hall_id: string }[] | null | undefined
+  const merchantHallId = (Array.isArray(merchant) ? merchant[0] : merchant)?.hall_id
+  return merchantHallId === hallId
 }

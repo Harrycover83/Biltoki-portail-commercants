@@ -1,13 +1,14 @@
 import type { PropsWithChildren } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { homePathForRole } from '../../lib/roles'
 import type { UserRole } from '../../types/domain'
 
 type RoleRouteProps = PropsWithChildren<{
-  role: UserRole
+  roles: UserRole[]
 }>
 
-export function RoleRoute({ role, children }: RoleRouteProps) {
+export function RoleRoute({ roles, children }: RoleRouteProps) {
   const { loading, user, role: currentRole } = useAuth()
 
   if (loading) {
@@ -18,8 +19,8 @@ export function RoleRoute({ role, children }: RoleRouteProps) {
     return <Navigate to="/login" replace />
   }
 
-  if (currentRole !== role) {
-    return <Navigate to="/historique" replace />
+  if (!currentRole || !roles.includes(currentRole)) {
+    return <Navigate to={homePathForRole(currentRole)} replace />
   }
 
   return <>{children}</>

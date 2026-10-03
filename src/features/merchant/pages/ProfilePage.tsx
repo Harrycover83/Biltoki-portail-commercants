@@ -1,5 +1,6 @@
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
+import { roleLabel } from '../../../lib/roles'
 import { useAuth } from '../../auth/AuthProvider'
 
 export function ProfilePage() {
@@ -15,7 +16,7 @@ export function ProfilePage() {
           </div>
           <div className="border-b-2 border-[#15130f] pb-3">
             <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Role</dt>
-            <dd className="mt-1 font-semibold">{profile?.role ?? 'N/A'}</dd>
+            <dd className="mt-1 font-semibold">{roleLabel(profile?.role)}</dd>
           </div>
           <div className="border-b-2 border-[#15130f] pb-3">
             <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Prenom</dt>

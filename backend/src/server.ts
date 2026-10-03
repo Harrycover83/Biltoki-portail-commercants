@@ -4,7 +4,8 @@ import type { Logger } from './utils/logger.js'
 import { PennylaneSync } from './services/sync.service.js'
 import { syncLock } from './services/sync-lock.js'
 import { PennylaneClient } from './integrations/pennylane/client.js'
-import { requireAdmin, requirePortalUser } from './middleware/auth.js'
+import { canReadHall, requirePortalUser, requireSuperAdmin, requireSuperAdminUser } from './middleware/auth.js'
+import { createAdminUsersRouter } from './routes/admin-users.js'
 import type { Config } from './config.js'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
@@ -19,7 +20,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       res.setHeader('Access-Control-Allow-Origin', origin)
       res.setHeader('Vary', 'Origin')
       res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-internal-token')
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
     }
 
     if (req.method === 'OPTIONS') {
@@ -75,24 +76,8 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
       return res.status(404).json({ error: 'No Pennylane document is available for this charge' })
     }
 
-    if (res.locals.callerRole !== 'admin') {
-      const { data: merchantAccess, error: merchantAccessError } = await db
-        .from('merchant_hall_permissions')
-        .select('id')
-        .eq('profile_id', res.locals.caller)
-        .eq('hall_id', charge.hall_id)
-        .maybeSingle()
-      const { data: profile } = await db
-        .from('profiles')
-        .select('merchants!inner(hall_id)')
-        .eq('id', res.locals.caller)
-        .maybeSingle()
-      const merchant = profile?.merchants as { hall_id: string } | { hall_id: string }[] | null
-      const merchantHallId = (Array.isArray(merchant) ? merchant[0] : merchant)?.hall_id
-
-      if (merchantAccessError || (!merchantAccess && merchantHallId !== charge.hall_id)) {
-        return res.status(403).json({ error: 'Forbidden' })
-      }
+    if (!(await canReadHall(db, res.locals.caller, res.locals.callerRole, charge.hall_id))) {
+      return res.status(403).json({ error: 'Forbidden' })
     }
 
     try {
@@ -122,7 +107,10 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
     }
   })
 
-  app.use('/api', requireAdmin(config, db, logger))
+  // Account administration (signed-in super_admin only)
+  app.use('/api/admin', requireSuperAdminUser(config, db, logger), createAdminUsersRouter(db, logger))
+
+  app.use('/api', requireSuperAdmin(config, db, logger))
 
   // Manual sync endpoint for a specific hall
   app.post('/api/sync/pennylane/:hallId', async (req, res) => {
