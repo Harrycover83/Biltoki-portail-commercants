@@ -90,9 +90,14 @@ Points clefs:
 
 ## RLS et securite
 
-- RLS activee sur toutes les tables metier
-- `merchant`: acces strict a ses donnees
+- RLS activee sur toutes les tables metier (et deny-by-default pour toute table sans policy)
+- `merchant`: acces strict a ses propres donnees (commercant, stands, repartitions, factures, paiements), plus les charges communes de sa/ses halle(s)
+- `merchant`: ne peut jamais modifier `role`, `merchant_id` ou `email` de son profil (trigger + droits par colonne); seuls prenom/nom sont modifiables
 - `admin`: acces selon halles autorisees (`admin_hall_permissions`)
+- Aucun acces anonyme aux tables ni aux fonctions RPC
+- Les roles se changent uniquement cote serveur (`npm run portal:users`, cle service role ou dashboard SQL)
+- Reference: `supabase/migrations/20261003160000_harden_access_control.sql`
+- Prerequis dashboard Supabase: desactiver l'inscription publique (Authentication > Providers > Email > "Allow new users to sign up")
 - Les calculs critiques sont cote base
 - Les secrets ne sont jamais exposes au frontend
 

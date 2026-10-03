@@ -531,3 +531,7 @@ create policy "portal_access_admin_write"
   with check (public.is_admin_user());
 
 revoke all on public.portal_access from anon;
+
+-- IMPORTANT: apply supabase/migrations/20261003160000_harden_access_control.sql after this file.
+-- It restricts merchants to their own rows, locks profiles.role/merchant_id/email against
+-- self-modification and removes anonymous access. The policies above are the pre-hardening state.
