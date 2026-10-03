@@ -1,4 +1,4 @@
-export const PASSWORD_POLICY_MIN_LENGTH = 12
+const PASSWORD_POLICY_MIN_LENGTH = 12
 
 export function validatePasswordPolicy(password: string): string | null {
   if (password.length < PASSWORD_POLICY_MIN_LENGTH) {

@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
+import { formatEuroRounded as formatEuro } from '../../../lib/money'
 
 const palette = ['#d84d2c', '#348b57', '#2468a8', '#9b5de5', '#d18b21', '#ef476f', '#06d6a0', '#118ab2']
 
@@ -130,14 +131,6 @@ const defaultData: MerchantRevenueRow[] = [
     ],
   },
 ]
-
-function formatEuro(value: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 function formatMonthKey(month: string): string {
   const [year, monthNumber] = month.split('-')

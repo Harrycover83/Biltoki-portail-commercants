@@ -10,19 +10,6 @@ export type Profile = {
   merchant_id: string | null
 }
 
-export type PortalAccessEntry = {
-  id: string
-  email: string
-  first_name: string | null
-  last_name: string | null
-  role: UserRole
-  job_title: string | null
-  merchant_id: string | null
-  hall_id: string | null
-  active: boolean
-  provisioned_at: string | null
-}
-
 export type MerchantHallOption = {
   hallId: string
   hallName: string
@@ -36,13 +23,6 @@ export type ChargeLine = {
   invoiceDate: string | null
 }
 
-export type MerchantHistoryRow = {
-  periodId: string
-  periodLabel: string
-  totalChargesCents: number
-  periodEnd: string
-}
-
 export type MerchantYearGroup = {
   year: string
   totalChargesCents: number
@@ -54,11 +34,4 @@ export type MerchantMonthGroup = {
   monthLabel: string // 'Janvier 2026'
   totalChargesCents: number
   charges: ChargeLine[]
-}
-
-export type MerchantChargePeriodDetail = {
-  periodId: string
-  periodLabel: string
-  totalChargesCents: number
-  lines: ChargeLine[]
 }

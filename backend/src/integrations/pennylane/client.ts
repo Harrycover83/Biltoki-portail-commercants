@@ -61,6 +61,7 @@ export class PennylaneClient {
     }
 
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(30_000),
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         Accept: 'application/json',

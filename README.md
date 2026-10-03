@@ -50,8 +50,6 @@ src/
     auth/
     merchant/
     admin/
-  integrations/
-    pennylane/
   lib/
     env.ts
     money.ts
@@ -175,17 +173,7 @@ Routes admin (protegees + role admin):
 
 ## Integration Pennylane
 
-Fichiers scaffoldes:
-
-- `src/integrations/pennylane/client.ts`
-- `src/integrations/pennylane/types.ts`
-- `src/integrations/pennylane/sync.ts`
-- `supabase/functions/pennylane-sync/index.ts`
-
-Le code bloque volontairement l'execution tant que:
-
-- la documentation officielle Pennylane n'est pas validee
-- les mappings metier ne sont pas confirms
+L'integration Pennylane vit **uniquement dans le backend** (`backend/src/integrations/pennylane`, synchronisation planifiee + bouton de l'onglet Charges communes). La cle Pennylane n'est jamais exposee au navigateur.
 
 ## Installation locale
 
@@ -195,14 +183,12 @@ Le code bloque volontairement l'execution tant que:
 npm install
 ```
 
-2. Creer `.env` depuis `.env.example` et renseigner:
+2. Creer `.env` depuis `.env.example` et renseigner (variables publiques uniquement; les secrets serveur vont dans `backend/.env`):
 
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-PENNYLANE_API_KEY=
-PENNYLANE_BASE_URL=
+VITE_BACKEND_URL=
 ```
 
 3. Lancer le frontend:

@@ -3,8 +3,7 @@ import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { formatEuroFromCents } from '../../../lib/money'
-import { getBackendUrl } from '../../../lib/env'
-import { getSupabaseClient } from '../../../lib/supabase'
+import { openChargeDocument } from '../../../lib/openChargeDocument'
 import { getMerchantChargesByYear, getMerchantHallOptions } from '../services/merchantService'
 import type { MerchantHallOption, MerchantYearGroup } from '../../../types/domain'
 
@@ -94,46 +93,9 @@ export function HistoryPage() {
   }
 
   const openDocument = async (chargeId: string) => {
-    const backendUrl = getBackendUrl()
-    const client = getSupabaseClient()
-    if (!backendUrl || !client) {
-      setError('Service de documents non configure.')
-      return
-    }
-
-    const documentWindow = window.open('', '_blank')
-    if (!documentWindow) {
-      setError('Autorisez les fenetres pop-up pour ouvrir le justificatif.')
-      return
-    }
-
     setOpeningDocumentId(chargeId)
-    try {
-      const {
-        data: { session },
-      } = await client.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Session introuvable, reconnectez-vous.')
-      }
-
-      const response = await fetch(`${backendUrl}/api/service-charges/${chargeId}/document`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? `Justificatif indisponible (HTTP ${response.status})`)
-      }
-
-      const documentUrl = URL.createObjectURL(await response.blob())
-      documentWindow.location.replace(documentUrl)
-      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60_000)
-      setError(null)
-    } catch (documentError) {
-      documentWindow.close()
-      setError(documentError instanceof Error ? documentError.message : 'Justificatif indisponible.')
-    } finally {
-      setOpeningDocumentId(null)
-    }
+    setError(await openChargeDocument(chargeId))
+    setOpeningDocumentId(null)
   }
 
   return (

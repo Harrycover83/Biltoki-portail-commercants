@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
-import { getSupabaseClient } from '../../../lib/supabase'
 import { formatEuroFromCents } from '../../../lib/money'
-import { getBackendUrl } from '../../../lib/env'
+import { openChargeDocument } from '../../../lib/openChargeDocument'
 import { isStaffRole } from '../../../lib/roles'
 import { useAuth } from '../../auth/AuthProvider'
 import { useAdminHall } from '../AdminHallContext'
@@ -153,46 +152,9 @@ export function AdminServiceChargesPage() {
   }
 
   const openDocument = async (chargeId: string) => {
-    const backendUrl = getBackendUrl()
-    const client = getSupabaseClient()
-    if (!backendUrl || !client) {
-      setError('Service de documents non configure.')
-      return
-    }
-
-    const documentWindow = window.open('', '_blank')
-    if (!documentWindow) {
-      setError('Autorisez les fenetres pop-up pour ouvrir le justificatif.')
-      return
-    }
-
     setOpeningDocumentId(chargeId)
-    try {
-      const {
-        data: { session },
-      } = await client.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Session admin introuvable, reconnectez-vous.')
-      }
-
-      const response = await fetch(`${backendUrl}/api/service-charges/${chargeId}/document`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? `Justificatif indisponible (HTTP ${response.status})`)
-      }
-
-      const documentUrl = URL.createObjectURL(await response.blob())
-      documentWindow.location.replace(documentUrl)
-      window.setTimeout(() => URL.revokeObjectURL(documentUrl), 60_000)
-      setError(null)
-    } catch (documentError) {
-      documentWindow.close()
-      setError(documentError instanceof Error ? documentError.message : 'Justificatif indisponible.')
-    } finally {
-      setOpeningDocumentId(null)
-    }
+    setError(await openChargeDocument(chargeId))
+    setOpeningDocumentId(null)
   }
 
   return (

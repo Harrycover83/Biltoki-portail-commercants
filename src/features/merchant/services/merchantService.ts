@@ -1,9 +1,7 @@
 import { getSupabaseClient } from '../../../lib/supabase'
 import type {
   ChargeLine,
-  MerchantChargePeriodDetail,
   MerchantHallOption,
-  MerchantHistoryRow,
   MerchantMonthGroup,
   MerchantYearGroup,
 } from '../../../types/domain'
@@ -151,74 +149,6 @@ export async function getMerchantHallOptions(): Promise<ServiceResult<MerchantHa
   }
 
   return { data: buildHallOptions(data ?? []), error: null }
-}
-
-export async function getMerchantHistory(hallId?: string): Promise<ServiceResult<MerchantHistoryRow[]>> {
-  const { data, error } = await fetchVisibleServiceCharges()
-  if (error) {
-    return { data: null, error }
-  }
-
-  const rows = filterByHall(data ?? [], hallId)
-  if (rows.length === 0) {
-    return { data: [], error: null }
-  }
-
-  const rowsByPeriod = new Map<string, MerchantHistoryRow>()
-
-  for (const row of rows) {
-    const periodId = row.period_id
-    const periodLabel = row.service_charge_periods?.label ?? 'Periode inconnue'
-    const periodEnd = row.service_charge_periods?.period_end ?? ''
-    const totalCharge = toCents(Number(row.amount_incl_tax))
-
-    const existing = rowsByPeriod.get(periodId)
-    if (!existing) {
-      rowsByPeriod.set(periodId, {
-        periodId,
-        periodLabel,
-        totalChargesCents: totalCharge,
-        periodEnd,
-      })
-      continue
-    }
-
-    existing.totalChargesCents += totalCharge
-  }
-
-  const history = [...rowsByPeriod.values()].sort((a, b) =>
-    b.periodEnd.localeCompare(a.periodEnd),
-  )
-
-  return { data: history, error: null }
-}
-
-export async function getMerchantChargePeriodDetail(
-  periodId: string,
-  hallId?: string,
-): Promise<ServiceResult<MerchantChargePeriodDetail>> {
-  const { data, error } = await fetchVisibleServiceCharges()
-  if (error) {
-    return { data: null, error }
-  }
-
-  const rows = filterByHall(data ?? [], hallId).filter((row) => row.period_id === periodId)
-  if (rows.length === 0) {
-    return { data: null, error: null }
-  }
-
-  const lines = mapChargeLines(rows)
-  const totalChargesCents = lines.reduce((sum, row) => sum + row.totalCents, 0)
-
-  return {
-    data: {
-      periodId,
-      periodLabel: rows[0].service_charge_periods?.label ?? 'Periode inconnue',
-      totalChargesCents,
-      lines,
-    },
-    error: null,
-  }
 }
 
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })

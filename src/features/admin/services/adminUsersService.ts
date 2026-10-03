@@ -1,5 +1,5 @@
 import { getBackendUrl } from '../../../lib/env'
-import { getSupabaseClient } from '../../../lib/supabase'
+import { getAccessToken } from '../../../lib/session'
 import type { UserRole } from '../../../types/domain'
 
 export type ManagedUser = {
@@ -51,11 +51,8 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
     return { data: null, error: 'VITE_BACKEND_URL non configure.' }
   }
 
-  const client = getSupabaseClient()
-  const {
-    data: { session },
-  } = (await client?.auth.getSession()) ?? { data: { session: null } }
-  if (!session?.access_token) {
+  const token = await getAccessToken()
+  if (!token) {
     return { data: null, error: 'Session introuvable, reconnectez-vous.' }
   }
 
@@ -63,7 +60,7 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
     const response = await fetch(`${backendUrl}/api/admin${path}`, {
       method: init.method ?? 'GET',
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${token}`,
         ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,

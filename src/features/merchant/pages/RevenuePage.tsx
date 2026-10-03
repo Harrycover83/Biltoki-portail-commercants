@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
+import { formatEuroRounded as formatEuro } from '../../../lib/money'
 import { useAuth } from '../../auth/AuthProvider'
 
 type MonthlyRevenueEntry = {
@@ -28,14 +29,6 @@ const defaultEntries: MonthlyRevenueEntry[] = [
   { month: '2026-07', amount: 15382.03 },
   { month: '2026-08', amount: 15382.03 },
 ]
-
-function formatEuro(value: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 function formatMonthKey(month: string): string {
   const [year, monthNumber] = month.split('-')

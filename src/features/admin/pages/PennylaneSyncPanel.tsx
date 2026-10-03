@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getSupabaseClient } from '../../../lib/supabase'
+import { getAccessToken } from '../../../lib/session'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
 
@@ -39,13 +39,9 @@ export function PennylaneSyncPanel() {
       return
     }
 
-    const client = getSupabaseClient()
-    const {
-      data: { session },
-    } = (await client?.auth.getSession()) ?? { data: { session: null } }
-
-    if (!session?.access_token) {
-      setSyncMessage('Session admin introuvable, reconnectez-vous.')
+    const token = await getAccessToken()
+    if (!token) {
+      setSyncMessage('Session introuvable, reconnectez-vous.')
       return
     }
 
@@ -55,7 +51,7 @@ export function PennylaneSyncPanel() {
     try {
       const response = await fetch(`${backendUrl}/api/sync/pennylane/${selectedHallId}/backfill`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       })
       const body = await response.json()
 

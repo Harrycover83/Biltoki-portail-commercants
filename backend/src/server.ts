@@ -12,12 +12,20 @@ import {
   requireSuperAdminUser,
 } from './middleware/auth.js'
 import { createAdminUsersRouter } from './routes/admin-users.js'
+import { fetchDocument } from './utils/documents.js'
 import type { Config } from './config.js'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
   const app = express()
 
   app.disable('x-powered-by')
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('X-Frame-Options', 'DENY')
+    res.setHeader('Referrer-Policy', 'no-referrer')
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
+    next()
+  })
   app.use(express.json({ limit: '100kb' }))
 
   app.use((req, res, next) => {
@@ -93,20 +101,12 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
         return res.status(404).json({ error: 'No source document is attached to this Pennylane invoice' })
       }
 
-      const documentResponse = await fetch(invoice.public_file_url)
-      if (!documentResponse.ok) {
-        logger.warn(`Pennylane document download failed for invoice ${invoice.id}: ${documentResponse.status}`)
-        return res.status(502).json({ error: 'Unable to download the Pennylane document' })
-      }
-
-      const contentType = documentResponse.headers.get('content-type')
-      const safeContentType = contentType?.startsWith('application/pdf') || contentType?.startsWith('image/')
-        ? contentType
-        : 'application/octet-stream'
-      res.setHeader('Content-Type', safeContentType)
+      const { body, contentType } = await fetchDocument(invoice.public_file_url)
+      res.setHeader('Content-Type', contentType)
+      res.setHeader('X-Content-Type-Options', 'nosniff')
       res.setHeader('Content-Disposition', `inline; filename="pennylane-${invoice.id}"`)
       res.setHeader('Cache-Control', 'private, no-store')
-      return res.send(Buffer.from(await documentResponse.arrayBuffer()))
+      return res.send(body)
     } catch (error) {
       logger.error('Unable to retrieve Pennylane invoice document:', error)
       return res.status(502).json({ error: 'Unable to retrieve the Pennylane document' })
@@ -119,89 +119,56 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   // Pennylane syncs: any staff account, limited to the halls in its scope (or the ops token).
   const hallSyncGuard = requireStaffForHall(config, db, logger)
 
+  const hallSyncHandler =
+    (label: string, run: (sync: PennylaneSync) => ReturnType<PennylaneSync['syncServiceCharges']>) =>
+    async (req: express.Request, res: express.Response) => {
+      const { hallId } = req.params
+
+      if (!config.biltoki.hallsToSync.includes(hallId)) {
+        return res.status(403).json({ error: 'Hall not in configured sync list' })
+      }
+
+      logger.info(`${label} triggered for hall: ${hallId} by ${res.locals.caller}`)
+
+      if (syncLock.isRunning(hallId)) {
+        return res.status(409).json({
+          error: 'Sync already running for this hall',
+          hallId,
+        })
+      }
+
+      try {
+        const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+        const result = await syncLock.runExclusive(hallId, async () =>
+          run(new PennylaneSync(db, pennylaneClient, hallId, logger)),
+        )
+
+        return res.status(200).json({
+          syncId: result.syncId,
+          hallId: result.hallId,
+          status: result.status,
+          recordsProcessed: result.recordsProcessed,
+          errors: result.errors,
+        })
+      } catch (error) {
+        logger.error(`${label} error:`, error)
+        return res.status(500).json({ error: 'Sync failed' })
+      }
+    }
+
   // Manual sync endpoint for a specific hall
-  app.post('/api/sync/pennylane/:hallId', hallSyncGuard, async (req, res) => {
-    const { hallId } = req.params
-
-    if (!config.biltoki.hallsToSync.includes(hallId)) {
-      return res.status(403).json({
-        error: 'Hall not in configured sync list',
-        configuredHalls: config.biltoki.hallsToSync,
-      })
-    }
-
-    logger.info(`📧 Manual sync triggered for hall: ${hallId} by ${res.locals.caller}`)
-
-    if (syncLock.isRunning(hallId)) {
-      return res.status(409).json({
-        error: 'Sync already running for this hall',
-        hallId,
-      })
-    }
-
-    try {
-      const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
-      const result = await syncLock.runExclusive(hallId, async () => {
-        const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
-        return await syncService.syncServiceCharges()
-      })
-
-      return res.status(200).json({
-        syncId: result.syncId,
-        hallId: result.hallId,
-        status: result.status,
-        recordsProcessed: result.recordsProcessed,
-        errors: result.errors,
-      })
-    } catch (error) {
-      logger.error('Sync error:', error)
-      return res.status(500).json({
-        error: 'Sync failed',
-      })
-    }
-  })
+  app.post(
+    '/api/sync/pennylane/:hallId',
+    hallSyncGuard,
+    hallSyncHandler('Manual sync', (sync) => sync.syncServiceCharges()),
+  )
 
   // One-off full historical import for a hall (all invoices ever categorized, not just recent months)
-  app.post('/api/sync/pennylane/:hallId/backfill', hallSyncGuard, async (req, res) => {
-    const { hallId } = req.params
-
-    if (!config.biltoki.hallsToSync.includes(hallId)) {
-      return res.status(403).json({
-        error: 'Hall not in configured sync list',
-        configuredHalls: config.biltoki.hallsToSync,
-      })
-    }
-
-    logger.info(`📦 Full history backfill triggered for hall: ${hallId} by ${res.locals.caller}`)
-
-    if (syncLock.isRunning(hallId)) {
-      return res.status(409).json({
-        error: 'Sync already running for this hall',
-        hallId,
-      })
-    }
-
-    try {
-      const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
-      const result = await syncLock.runExclusive(hallId, async () => {
-        const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
-        return await syncService.backfillHistory()
-      })
-
-      return res.status(200).json({
-        syncId: result.syncId,
-        hallId: result.hallId,
-        status: result.status,
-        recordsProcessed: result.recordsProcessed,
-        errors: result.errors,
-      })
-    } catch (error) {
-      logger.error('Backfill error:', error)
-      return res.status(500).json({
-        error: 'Backfill failed',
-      })
-    }
-  })
+  app.post(
+    '/api/sync/pennylane/:hallId/backfill',
+    hallSyncGuard,
+    hallSyncHandler('Full history backfill', (sync) => sync.backfillHistory()),
+  )
 
   // Everything below is reserved to the super_admin (or the ops token)
   app.use('/api', requireSuperAdmin(config, db, logger))
