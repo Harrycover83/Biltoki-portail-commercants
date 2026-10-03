@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Card } from '../../../components/ui/Card'
 import { getSupabaseClient } from '../../../lib/supabase'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
@@ -28,7 +27,8 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
-  const triggerPennylaneSync = async (mode: 'recent' | 'backfill') => {
+  // Synchronisation complete et idempotente : le backend met a jour par pennylane_id, sans doublon.
+  const triggerPennylaneSync = async () => {
     const backendUrl = getBackendUrl()
     if (!backendUrl) {
       setSyncMessage('VITE_BACKEND_URL non configure.')
@@ -52,10 +52,8 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
     setSyncing(true)
     setSyncMessage(null)
 
-    const path = mode === 'backfill' ? `/${selectedHallId}/backfill` : `/${selectedHallId}`
-
     try {
-      const response = await fetch(`${backendUrl}/api/sync/pennylane${path}`, {
+      const response = await fetch(`${backendUrl}/api/sync/pennylane/${selectedHallId}/backfill`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
@@ -67,7 +65,7 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
         const formattedErrors = formatSyncErrors(body.errors)
         const errorDetails = formattedErrors ? ` ${formattedErrors}` : ''
         setSyncMessage(
-          `${mode === 'backfill' ? 'Backfill' : 'Sync'} ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
+          `Synchronisation ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
         )
         onSynced()
       }
@@ -79,37 +77,23 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
   }
 
   return (
-    <Card title="Synchronisation Pennylane" subtitle="Recupere les factures depuis Pennylane et les range par mois.">
+    <div className="flex flex-wrap items-center justify-end gap-3 text-sm text-[#4d5562]">
       {syncing ? (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#e1dacd] bg-[#f7e7b8] px-3 py-2 text-sm font-medium text-[#171511]" role="status">
-          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
-          Synchronisation en cours. Cette operation peut prendre plusieurs minutes pour l'historique complet.
-        </div>
+        <span className="flex items-center gap-2" role="status">
+          <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
+          Synchronisation en cours...
+        </span>
+      ) : syncMessage ? (
+        <span aria-live="polite">{syncMessage}</span>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          className="brand-button"
-          disabled={syncing}
-          type="button"
-          onClick={() => void triggerPennylaneSync('recent')}
-        >
-          {syncing ? 'Synchronisation...' : 'Sync mois recents'}
-        </button>
-
-        <button
-          className="rounded-full border border-[#13223a33] px-4 py-2 text-sm font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
-          disabled={syncing}
-          type="button"
-          onClick={() => void triggerPennylaneSync('backfill')}
-        >
-          {syncing ? 'En cours...' : 'Backfill historique complet'}
-        </button>
-      </div>
-      {syncMessage ? (
-        <p className="mt-3 text-sm text-[#4d5562]" aria-live="polite">
-          {syncMessage}
-        </p>
-      ) : null}
-    </Card>
+      <button
+        className="rounded-full border border-[#13223a33] px-3 py-1 text-xs font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+        disabled={syncing}
+        type="button"
+        onClick={() => void triggerPennylaneSync()}
+      >
+        Synchroniser Pennylane
+      </button>
+    </div>
   )
 }

@@ -195,7 +195,7 @@ export function AdminServiceChargesPage() {
   return (
     <PageContainer>
       {!loadingHalls ? (
-        <div className="mb-6">
+        <div className="mb-4">
           <PennylaneSyncPanel onSynced={() => setReloadKey((key) => key + 1)} />
         </div>
       ) : null}
@@ -205,13 +205,13 @@ export function AdminServiceChargesPage() {
         <StateMessage
           variant="empty"
           title="Aucune charge commune"
-          message="Aucune charge synchronisee depuis Pennylane pour cette halle. Lancez une synchronisation ci-dessus."
+          message="Aucune charge synchronisee depuis Pennylane pour cette halle. Lancez une synchronisation."
         />
       ) : null}
 
       {!loadingHalls && !loadingRows && !error && years.length > 0 ? (
         <div className="space-y-6">
-          <Card title="Charges communes" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par la synchronisation ci-dessus.">
+          <Card title="Charges communes" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par la synchronisation Pennylane.">
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">

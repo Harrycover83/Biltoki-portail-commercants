@@ -51,21 +51,21 @@ describe('AdminServiceChargesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows the sync buttons next to the common charges', async () => {
+  it('shows a single discreet sync button next to the common charges', async () => {
     render(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Eau')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Charges communes' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sync mois recents' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Backfill historique complet' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Synchroniser Pennylane' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Backfill/ })).not.toBeInTheDocument()
   })
 
-  it('keeps the sync buttons available when the hall has no charge yet', async () => {
+  it('keeps the sync button available when the hall has no charge yet', async () => {
     mockGetAdminCharges.mockResolvedValue({ data: [], error: null })
     render(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Aucune charge commune')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sync mois recents' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Synchroniser Pennylane' })).toBeInTheDocument()
   })
 
   it('reloads the charges in the background once a sync completes', async () => {
@@ -79,15 +79,15 @@ describe('AdminServiceChargesPage', () => {
     await screen.findByText('Eau')
 
     mockGetAdminCharges.mockResolvedValue({ data: [{ ...charge, label: 'Eau actualisee' }], error: null })
-    fireEvent.click(screen.getByRole('button', { name: 'Sync mois recents' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Synchroniser Pennylane' }))
 
     expect(await screen.findByText('Eau actualisee')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://backend.test/api/sync/pennylane/hall-1',
+      'https://backend.test/api/sync/pennylane/hall-1/backfill',
       expect.objectContaining({ method: 'POST' }),
     )
     expect(mockGetAdminCharges).toHaveBeenCalledTimes(2)
-    expect(screen.getByText(/Sync success : 3 facture\(s\) traitee\(s\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Synchronisation success : 3 facture\(s\) traitee\(s\)/)).toBeInTheDocument()
   })
 
   it('ignores a response that arrives after the hall changed', async () => {
