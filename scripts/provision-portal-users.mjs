@@ -4,7 +4,8 @@
  *
  * Only emails listed (and active) in `portal_access` get a Supabase auth user.
  * Each account gets its OWN random provisional password plus the
- * `must_change_password` flag, which the portal enforces on first login.
+ * `must_change_password` flag (stored in app_metadata, writable by the server only), which the
+ * portal and the database enforce: no data access until the password has been rotated.
  * passwords are never stored in the database: they are written once to a local
  * CSV so the operator can distribute them, then that file must be deleted.
  *
@@ -173,7 +174,7 @@ async function syncCommand(dryRun) {
         email,
         password,
         email_confirm: true,
-        user_metadata: { must_change_password: true },
+        app_metadata: { must_change_password: true },
       })
 
       if (createError) {
@@ -192,17 +193,35 @@ async function syncCommand(dryRun) {
       continue
     }
 
-    // Account exists: make sure it is unbanned and linked, but never touch its password.
     if (!dryRun) {
-      if (existing.banned_until) {
-        await admin.auth.admin.updateUserById(existing.id, { ban_duration: 'none' })
-      }
-      await upsertProfile(entry, existing.id)
       if (entry.user_id !== existing.id) {
+        // An auth user this tool never provisioned owns the allowlisted address: its password may
+        // have been chosen by someone else (e.g. a public sign-up). Take it over instead of trusting
+        // it: new provisional password, forced rotation, existing sessions dropped.
+        console.log(`[claim] ${email} (existing auth user not provisioned by this tool: password reset)`)
+        const password = generatePassword()
+        const { error: claimError } = await admin.auth.admin.updateUserById(existing.id, {
+          password,
+          ban_duration: 'none',
+          app_metadata: { ...existing.app_metadata, must_change_password: true },
+        })
+        if (claimError) {
+          console.error(`  ! ${claimError.message}`)
+          continue
+        }
+        await admin.rpc('admin_revoke_user_sessions', { p_user_id: existing.id })
+        await upsertProfile(entry, existing.id)
         await admin
           .from('portal_access')
           .update({ user_id: existing.id, provisioned_at: entry.provisioned_at ?? new Date().toISOString() })
           .eq('id', entry.id)
+        credentials.push({ email, password })
+      } else {
+        // Already provisioned by this tool: make sure it is unbanned and linked, never touch its password.
+        if (existing.banned_until) {
+          await admin.auth.admin.updateUserById(existing.id, { ban_duration: 'none' })
+        }
+        await upsertProfile(entry, existing.id)
       }
     }
     updated += 1
@@ -250,12 +269,14 @@ async function resetCommand(rawEmail) {
   const password = generatePassword()
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     password,
-    user_metadata: { ...user.user_metadata, must_change_password: true },
+    app_metadata: { ...user.app_metadata, must_change_password: true },
   })
 
   if (updateError) {
     throw new Error(updateError.message)
   }
+
+  await admin.rpc('admin_revoke_user_sessions', { p_user_id: user.id })
 
   console.log(`New provisional password for ${email}: ${password}`)
   console.log('Change forced on next login.')

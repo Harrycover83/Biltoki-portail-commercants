@@ -34,6 +34,11 @@ export function isSuperAdminRole(role: UserRole | null | undefined): boolean {
   return role === 'super_admin'
 }
 
+/** Roles that can trigger a Pennylane sync (on their own halls). Head office stays read-only. */
+export function canSyncRole(role: UserRole | null | undefined): boolean {
+  return role === 'hall_manager' || role === 'network_manager' || role === 'super_admin'
+}
+
 export function homePathForRole(role: UserRole | null | undefined): string {
   return isStaffRole(role) ? '/admin/dashboard' : '/historique'
 }

@@ -89,6 +89,15 @@ export class UserAdminService {
     }
   }
 
+  // Best effort: access is already cut by the database (inactive account / forced rotation),
+  // this additionally invalidates refresh tokens so no session can be renewed.
+  private async revokeSessions(userId: string) {
+    const { error } = await this.db.rpc('admin_revoke_user_sessions', { p_user_id: userId })
+    if (error) {
+      this.logger.warn('Unable to revoke sessions:', error)
+    }
+  }
+
   private async findAuthUser(userId: string) {
     const { data, error } = await this.db.auth.admin.getUserById(userId)
     if (error || !data.user) {
@@ -216,7 +225,7 @@ export class UserAdminService {
       email: input.email,
       password: provisionalPassword,
       email_confirm: true,
-      user_metadata: { must_change_password: true },
+      app_metadata: { must_change_password: true },
     })
 
     if (error || !data.user) {
@@ -285,6 +294,10 @@ export class UserAdminService {
       throw new UserAdminError('Statut mis a jour, mais la session n’a pas pu etre bloquee.', 500)
     }
 
+    if (!active) {
+      await this.revokeSessions(userId)
+    }
+
     await this.audit(actor, active ? 'user.activate' : 'user.deactivate', access.email)
   }
 
@@ -295,12 +308,13 @@ export class UserAdminService {
     const provisionalPassword = generatePassword()
     const { error } = await this.db.auth.admin.updateUserById(userId, {
       password: provisionalPassword,
-      user_metadata: { ...user.user_metadata, must_change_password: true },
+      app_metadata: { ...user.app_metadata, must_change_password: true },
     })
     if (error) {
       throw new UserAdminError('Reinitialisation impossible.', 500)
     }
 
+    await this.revokeSessions(userId)
     await this.audit(actor, 'user.reset_password', access.email)
     return { provisionalPassword }
   }

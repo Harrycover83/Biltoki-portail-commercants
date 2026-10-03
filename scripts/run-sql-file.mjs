@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { Client } from 'pg'
+import { getDbSslConfig } from './lib/db-ssl.mjs'
 
 const connectionString = process.env.SUPABASE_DB_URL
 const sqlFiles = process.argv.slice(2)
@@ -15,7 +16,7 @@ if (sqlFiles.length === 0) {
   process.exit(1)
 }
 
-const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } })
+const client = new Client({ connectionString, ssl: getDbSslConfig() })
 
 try {
   await client.connect()

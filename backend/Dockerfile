@@ -12,7 +12,7 @@ COPY tsconfig.json ./
 COPY prisma.config.ts ./
 COPY src ./src
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN ./node_modules/.bin/prisma generate
 RUN npm run build
 
 FROM node:22-alpine
@@ -22,7 +22,7 @@ ENV NODE_ENV=production
 
 # Install production-only dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy compiled app and generated Prisma client
 COPY --from=build /app/dist ./dist
@@ -36,4 +36,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Apply every pending Prisma migration before accepting sync requests.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Uses the pinned prisma from package-lock (never `npx`, which could download another version).
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main.js"]

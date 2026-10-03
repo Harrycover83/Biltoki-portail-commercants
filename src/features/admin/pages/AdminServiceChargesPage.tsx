@@ -4,7 +4,7 @@ import { Card } from '../../../components/ui/Card'
 import { StateMessage } from '../../../components/ui/StateMessage'
 import { formatEuroFromCents } from '../../../lib/money'
 import { openChargeDocument } from '../../../lib/openChargeDocument'
-import { isStaffRole } from '../../../lib/roles'
+import { canSyncRole } from '../../../lib/roles'
 import { useAuth } from '../../auth/AuthProvider'
 import { useAdminHall } from '../AdminHallContext'
 import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
@@ -159,7 +159,7 @@ export function AdminServiceChargesPage() {
 
   return (
     <PageContainer>
-      {isStaffRole(role) ? (
+      {canSyncRole(role) ? (
         <div className="mb-4 flex justify-end">
           <PennylaneSyncPanel />
         </div>

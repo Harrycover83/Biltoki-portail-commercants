@@ -57,7 +57,7 @@ describe('AdminServiceChargesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it.each(['hall_manager', 'network_manager', 'hq', 'super_admin'])('shows the Pennylane sync to %s', async (role) => {
+  it.each(['hall_manager', 'network_manager', 'super_admin'])('shows the Pennylane sync to %s', async (role) => {
     mockUseAuth.mockReturnValue({ role })
     render(<AdminServiceChargesPage />)
 
@@ -66,8 +66,8 @@ describe('AdminServiceChargesPage', () => {
     expect(screen.getByRole('button', { name: /Synchroniser Pennylane/ })).toBeInTheDocument()
   })
 
-  it('does not show the sync to a merchant', async () => {
-    mockUseAuth.mockReturnValue({ role: 'merchant' })
+  it.each(['hq', 'merchant'])('does not show the sync to %s', async (role) => {
+    mockUseAuth.mockReturnValue({ role })
     render(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Eau')).toBeInTheDocument()

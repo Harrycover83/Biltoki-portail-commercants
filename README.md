@@ -101,13 +101,14 @@ Points clefs:
 - Seul le `super_admin` voit l'onglet **Administration** (`/admin/administration`) : creation, modification, desactivation, suppression des comptes, mot de passe provisoire, journal des actions. Cela passe par le backend (`/api/admin/*`, cle service role) ; aucune action n'est faite depuis le navigateur sur la base.
 - Desactiver un compte coupe l'acces immediatement (verifie par la base a chaque requete, sans attendre l'expiration du jeton).
 - La base garantit qu'il reste toujours au moins un `super_admin` actif.
-- La synchronisation Pennylane (bouton de l'onglet Charges communes) est ouverte a tous les comptes hors commercants, **uniquement sur les halles de leur perimetre** (verifie par le backend).
+- La synchronisation Pennylane (bouton de l'onglet Charges communes) est ouverte aux responsables de halle, responsables reseau et a l'administrateur total, **uniquement sur les halles de leur perimetre** (verifie par le backend). Le siege reste en lecture seule.
 
 Les migrations d'acces sont des **migrations Prisma** (`backend/prisma/migrations/`) : elles s'appliquent automatiquement au demarrage du backend (`npm start` lance `prisma migrate deploy`), ou a la main avec `npm run prisma:deploy` dans `backend/` (variable `DATABASE_URL`). Dans l'ordre :
 
 1. `20261003160000_harden_access_control` : isolation des commercants, profils verrouilles, plus d'acces anonyme
 2. `20261004090000_add_role_values` : nouveaux roles (valeurs d'enum validees avant utilisation)
 3. `20261004090100_role_based_access` : perimetres par role, administration des comptes, journal
+4. `20261005090000_audit_followups` : mot de passe provisoire verrouille cote base, verrou « dernier administrateur », revocation de sessions
 
 Le compte `admin` existant devient `super_admin` automatiquement. Ces migrations supposent que le schema Supabase de base (`supabase/migrations/2026081*`/`20260903*`: RLS, `portal_access`, fonctions) est deja en place.
 
@@ -120,7 +121,11 @@ Le compte `admin` existant devient `super_admin` automatiquement. Ces migrations
 - Aucun acces anonyme aux tables ni aux fonctions RPC
 - Les roles se changent uniquement cote serveur (onglet Administration, `npm run portal:users`, cle service role ou dashboard SQL)
 - Reference: `backend/prisma/migrations/20261003160000_harden_access_control` et `backend/prisma/migrations/20261004090100_role_based_access`
-- Prerequis dashboard Supabase: desactiver l'inscription publique (Authentication > Providers > Email > "Allow new users to sign up")
+- Prerequis dashboard Supabase: desactiver l'inscription publique (Authentication > Providers > Email > "Allow new users to sign up") et fixer la longueur minimale des mots de passe a 12 (Authentication > Sign In / Providers > Password)
+- Mot de passe provisoire: le drapeau `must_change_password` est dans `app_metadata` (ecrit uniquement par le serveur). Tant qu'il est actif, la base et le backend refusent tout acces; le changement passe par `POST /api/account/password` (politique de mot de passe appliquee cote serveur)
+- Reinitialisation / desactivation d'un compte: ses sessions et jetons de rafraichissement sont revoques
+- Scripts de base de donnees (`db:run-sql`, `db:migrate:remote`): certificat TLS verifie par defaut. Fournir le certificat Supabase avec `SUPABASE_DB_CA_FILE=<fichier.crt>` (Dashboard > Database > SSL Configuration)
+- Le backend utilise `prisma` en version exacte (jamais `npx`) pour appliquer les migrations au demarrage
 - Les calculs critiques sont cote base
 - Les secrets ne sont jamais exposes au frontend
 

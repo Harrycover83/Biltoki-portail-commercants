@@ -1,3 +1,8 @@
+-- !!! DO NOT BOOTSTRAP A DATABASE FROM THIS FILE ALONE !!!
+-- It (like supabase/migrations/2026081*-2026091*) holds the PRE-HARDENING state: permissive policies,
+-- profiles that users can edit (self-promotion to admin), no hall/role scoping. The authoritative,
+-- secured schema is the Prisma migration history in backend/prisma/migrations (apply ALL of it).
+--
 -- Core schema for Biltoki merchants portal.
 
 create extension if not exists pgcrypto;

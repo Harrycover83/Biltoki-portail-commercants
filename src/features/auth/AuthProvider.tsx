@@ -8,6 +8,8 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { getSupabaseClient } from '../../lib/supabase'
+import { getBackendUrl } from '../../lib/env'
+import { getAccessToken } from '../../lib/session'
 import type { Profile, UserRole } from '../../types/domain'
 
 const ACCESS_DENIED_MESSAGE =
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
 
-  const mustChangePassword = user?.user_metadata?.must_change_password === true
+  const mustChangePassword = user?.app_metadata?.must_change_password === true
 
   const configurationError = client
     ? null
@@ -164,18 +166,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await client.auth.signOut()
       },
       updatePassword: async (newPassword) => {
-        if (!client || !user) {
+        const backendUrl = getBackendUrl()
+        const token = await getAccessToken()
+        if (!client || !user || !backendUrl || !token) {
           return { error: configurationError ?? 'Session invalide.' }
         }
 
-        const { error } = await client.auth.updateUser({
-          password: newPassword,
-          data: {
-            ...user.user_metadata,
-            must_change_password: false,
-          },
-        })
+        // The backend enforces the password policy and lifts the forced-change lock, which only the
+        // server can write (app_metadata).
+        try {
+          const response = await fetch(`${backendUrl}/api/account/password`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: newPassword }),
+          })
+          const body = (await response.json().catch(() => ({}))) as { error?: string }
+          if (!response.ok) {
+            return { error: body.error ?? `Mise a jour impossible (HTTP ${response.status}).` }
+          }
+        } catch {
+          return { error: 'Service indisponible, reessayez dans un instant.' }
+        }
 
+        // Fetch a token that no longer carries the lock.
+        const { error } = await client.auth.refreshSession()
         return { error: error?.message ?? null }
       },
     }),

@@ -16,6 +16,11 @@ export function isStaffRole(role: unknown): boolean {
   return isUserRole(role) && role !== 'merchant'
 }
 
+/** Roles allowed to trigger a Pennylane sync (on their own halls). Head office stays read-only. */
+export function canSyncRole(role: unknown): boolean {
+  return role === 'hall_manager' || role === 'network_manager' || role === 'super_admin'
+}
+
 export function isGlobalRole(role: unknown): boolean {
   return isUserRole(role) && GLOBAL_ROLES.includes(role)
 }

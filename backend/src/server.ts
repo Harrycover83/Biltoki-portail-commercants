@@ -12,6 +12,7 @@ import {
   requireSuperAdminUser,
 } from './middleware/auth.js'
 import { createAdminUsersRouter } from './routes/admin-users.js'
+import { createAccountRouter } from './routes/account.js'
 import { fetchDocument } from './utils/documents.js'
 import type { Config } from './config.js'
 
@@ -113,6 +114,9 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
     }
   })
 
+  // Account self-service (password rotation)
+  app.use('/api/account', createAccountRouter(config, db, logger))
+
   // Account administration (signed-in super_admin only)
   app.use('/api/admin', requireSuperAdminUser(config, db, logger), createAdminUsersRouter(db, logger))
 
@@ -148,7 +152,13 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
           hallId: result.hallId,
           status: result.status,
           recordsProcessed: result.recordsProcessed,
-          errors: result.errors,
+          // Raw errors can contain database details: only the super admin / ops token get them.
+          errors:
+            res.locals.callerRole === 'super_admin' || res.locals.callerRole === 'internal'
+              ? result.errors
+              : result.errors.length > 0
+                ? ['Certaines factures n’ont pas pu etre synchronisees. Contactez l’administrateur.']
+                : [],
         })
       } catch (error) {
         logger.error(`${label} error:`, error)

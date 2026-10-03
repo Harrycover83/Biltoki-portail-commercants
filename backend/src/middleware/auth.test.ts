@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Request, Response } from 'express'
-import { requireStaffForHall } from './auth.js'
+import { requirePortalUser, requireStaffForHall } from './auth.js'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
@@ -8,7 +8,7 @@ import type { Logger } from '../utils/logger.js'
 const HALL_OK = '11111111-1111-1111-1111-111111111111'
 const HALL_OTHER = '22222222-2222-2222-2222-222222222222'
 
-function fakeDb(role: string, scopedHalls: string[] = []): SupabaseAdmin {
+function fakeDb(role: string, scopedHalls: string[] = [], appMetadata: Record<string, unknown> = {}): SupabaseAdmin {
   const from = (table: string) => {
     const filters: Record<string, unknown> = {}
     const chain = {
@@ -28,7 +28,15 @@ function fakeDb(role: string, scopedHalls: string[] = []): SupabaseAdmin {
     }
     return chain
   }
-  return { from, auth: { getUser: async () => ({ data: { user: { id: 'u1', email: 'a@b.c' } }, error: null }) } } as unknown as SupabaseAdmin
+  return {
+    from,
+    auth: {
+      getUser: async () => ({
+        data: { user: { id: 'u1', email: 'a@b.c', app_metadata: appMetadata } },
+        error: null,
+      }),
+    },
+  } as unknown as SupabaseAdmin
 }
 
 const logger = { warn: vi.fn(), error: vi.fn(), info: vi.fn() } as unknown as Logger
@@ -60,10 +68,15 @@ describe('requireStaffForHall', () => {
     expect(denied.status).toHaveBeenCalledWith(403)
   })
 
-  it('lets head office and super admin sync any hall', async () => {
-    for (const role of ['hq', 'super_admin']) {
-      expect((await run(fakeDb(role), HALL_OTHER)).next).toHaveBeenCalled()
+  it('lets hall managers, network managers and the super admin sync, but not head office', async () => {
+    for (const role of ['hall_manager', 'network_manager']) {
+      expect((await run(fakeDb(role, [HALL_OK]), HALL_OK)).next).toHaveBeenCalled()
     }
+    expect((await run(fakeDb('super_admin'), HALL_OTHER)).next).toHaveBeenCalled()
+
+    const hq = await run(fakeDb('hq'), HALL_OK)
+    expect(hq.next).not.toHaveBeenCalled()
+    expect(hq.status).toHaveBeenCalledWith(403)
   })
 
   it('never lets a merchant trigger a sync', async () => {
@@ -85,5 +98,43 @@ describe('requireStaffForHall', () => {
     const result = await run(fakeDb('super_admin'), HALL_OK, {})
     expect(result.next).not.toHaveBeenCalled()
     expect(result.status).toHaveBeenCalledWith(401)
+  })
+
+  it('locks accounts that still have to change their provisional password', async () => {
+    const result = await run(fakeDb('super_admin', [], { must_change_password: true }), HALL_OK)
+    expect(result.next).not.toHaveBeenCalled()
+    expect(result.status).toHaveBeenCalledWith(403)
+  })
+})
+
+describe('requirePortalUser and the forced password change', () => {
+  async function guard(db: SupabaseAdmin, allowPending: boolean) {
+    const status = vi.fn().mockReturnThis()
+    const json = vi.fn()
+    const res = { status, json, locals: {} } as unknown as Response
+    const next = vi.fn()
+    const req = {
+      params: {},
+      method: 'POST',
+      path: '/password',
+      ip: '1.1.1.1',
+      header: (name: string) => (name.toLowerCase() === 'authorization' ? 'Bearer t' : undefined),
+    } as unknown as Request
+    await requirePortalUser(config, db, logger, { allowPasswordChangePending: allowPending })(req, res, next)
+    return { next, status, json }
+  }
+
+  it('refuses a locked account everywhere except on the password route', async () => {
+    const db = fakeDb('merchant', [], { must_change_password: true })
+
+    const blocked = await guard(db, false)
+    expect(blocked.next).not.toHaveBeenCalled()
+    expect(blocked.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'password_change_required' }))
+
+    expect((await guard(db, true)).next).toHaveBeenCalled()
+  })
+
+  it('lets an unlocked account through', async () => {
+    expect((await guard(fakeDb('merchant', [], { must_change_password: false }), false)).next).toHaveBeenCalled()
   })
 })

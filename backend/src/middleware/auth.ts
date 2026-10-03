@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
-import { isGlobalRole, isHallScopedRole, isStaffRole } from '../auth/roles.js'
+import { isGlobalRole, isHallScopedRole, canSyncRole } from '../auth/roles.js'
 
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)
@@ -16,8 +16,17 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufferA, bufferB)
 }
 
-/** Guards document routes for any active portal account. */
-export function requirePortalUser(_config: Config, db: SupabaseAdmin, logger: Logger) {
+/**
+ * Guards routes for any active portal account.
+ * An account that still has to rotate its provisional password is refused everywhere except on the
+ * route that performs the rotation (allowPasswordChangePending).
+ */
+export function requirePortalUser(
+  _config: Config,
+  db: SupabaseAdmin,
+  logger: Logger,
+  options: { allowPasswordChangePending?: boolean } = {},
+) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const [scheme, token] = (req.header('authorization') ?? '').split(' ')
     if (scheme?.toLowerCase() !== 'bearer' || !token) {
@@ -40,9 +49,15 @@ export function requirePortalUser(_config: Config, db: SupabaseAdmin, logger: Lo
       return res.status(403).json({ error: 'Forbidden' })
     }
 
+    const appMetadata = (data.user.app_metadata ?? {}) as Record<string, unknown>
+    if (appMetadata.must_change_password === true && !options.allowPasswordChangePending) {
+      return res.status(403).json({ error: 'Password change required', code: 'password_change_required' })
+    }
+
     res.locals.caller = data.user.id
     res.locals.callerEmail = data.user.email ?? null
     res.locals.callerRole = profile.role
+    res.locals.callerAppMetadata = appMetadata
     return next()
   }
 }
@@ -76,8 +91,8 @@ export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Log
 }
 
 /**
- * Hall-scoped actions (Pennylane sync): any non-merchant account, but only on a hall it can see.
- * The ops token keeps working as before.
+ * Hall-scoped Pennylane sync: hall managers, network managers and the super admin, only on a hall
+ * they can see (hq is read-only). The ops token keeps working as before.
  */
 export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: Logger) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -89,7 +104,7 @@ export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: L
       try {
         const hallId = req.params.hallId
         const allowed =
-          isStaffRole(res.locals.callerRole) &&
+          canSyncRole(res.locals.callerRole) &&
           typeof hallId === 'string' &&
           (await canReadHall(db, res.locals.caller, res.locals.callerRole, hallId))
 
