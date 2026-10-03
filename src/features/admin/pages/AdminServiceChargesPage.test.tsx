@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminServiceChargesPage } from './AdminServiceChargesPage'
 import type { AdminChargeRow } from '../services/adminChargeService'
@@ -51,43 +51,24 @@ describe('AdminServiceChargesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows a single discreet sync button next to the common charges', async () => {
+  it('shows the common charges without any sync control in the page body', async () => {
     render(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Eau')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Charges communes' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Synchroniser Pennylane' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Backfill/ })).not.toBeInTheDocument()
-  })
-
-  it('keeps the sync button available when the hall has no charge yet', async () => {
-    mockGetAdminCharges.mockResolvedValue({ data: [], error: null })
-    render(<AdminServiceChargesPage />)
-
-    expect(await screen.findByText('Aucune charge commune')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Synchroniser Pennylane' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Synchroniser/ })).not.toBeInTheDocument()
   })
 
   it('reloads the charges in the background once a sync completes', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ status: 'success', recordsProcessed: 3, errors: [] }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    render(<AdminServiceChargesPage />)
+    const { rerender } = render(<AdminServiceChargesPage />)
     await screen.findByText('Eau')
 
     mockGetAdminCharges.mockResolvedValue({ data: [{ ...charge, label: 'Eau actualisee' }], error: null })
-    fireEvent.click(screen.getByRole('button', { name: 'Synchroniser Pennylane' }))
+    mockUseAdminHall.mockReturnValue({ selectedHallId: 'hall-1', loading: false, syncVersion: 1 })
+    rerender(<AdminServiceChargesPage />)
 
     expect(await screen.findByText('Eau actualisee')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://backend.test/api/sync/pennylane/hall-1/backfill',
-      expect.objectContaining({ method: 'POST' }),
-    )
     expect(mockGetAdminCharges).toHaveBeenCalledTimes(2)
-    expect(screen.getByText(/Synchronisation success : 3 facture\(s\) traitee\(s\)/)).toBeInTheDocument()
   })
 
   it('ignores a response that arrives after the hall changed', async () => {

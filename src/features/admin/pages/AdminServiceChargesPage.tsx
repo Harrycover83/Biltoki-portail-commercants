@@ -7,7 +7,6 @@ import { formatEuroFromCents } from '../../../lib/money'
 import { getBackendUrl } from '../../../lib/env'
 import { useAdminHall } from '../AdminHallContext'
 import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
-import { PennylaneSyncPanel } from './PennylaneSyncPanel'
 
 type MonthGroup = {
   month: string // '01'..'12'
@@ -75,13 +74,12 @@ function capitalize(value: string): string {
 }
 
 export function AdminServiceChargesPage() {
-  const { selectedHallId, loading: loadingHalls } = useAdminHall()
+  const { selectedHallId, loading: loadingHalls, syncVersion } = useAdminHall()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
-  const [selectedYear, setSelectedYear] = useState('')
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [pickedYear, setPickedYear] = useState('')
+  const [pickedMonth, setPickedMonth] = useState('')
   const [chargeSort, setChargeSort] = useState<ChargeSort>('date-asc')
   const [loadedHallId, setLoadedHallId] = useState<string | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const loadingRows = Boolean(selectedHallId) && loadedHallId !== selectedHallId
@@ -114,20 +112,20 @@ export function AdminServiceChargesPage() {
     return () => {
       cancelled = true
     }
-  }, [selectedHallId, reloadKey])
+  }, [selectedHallId, syncVersion])
 
   const years = useMemo(() => groupByYearMonth(rows), [rows])
 
-  useEffect(() => {
-    setSelectedYear(years[0]?.year ?? '')
-    setSelectedMonth(years[0]?.months[0]?.month ?? '')
-  }, [years])
-
-  const selectedYearGroup = useMemo(() => years.find((year) => year.year === selectedYear) ?? null, [years, selectedYear])
-  const selectedMonthGroup = useMemo(
-    () => selectedYearGroup?.months.find((month) => month.month === selectedMonth) ?? null,
-    [selectedYearGroup, selectedMonth],
+  const selectedYearGroup = useMemo(
+    () => years.find((year) => year.year === pickedYear) ?? years[0] ?? null,
+    [years, pickedYear],
   )
+  const selectedYear = selectedYearGroup?.year ?? ''
+  const selectedMonthGroup = useMemo(
+    () => selectedYearGroup?.months.find((month) => month.month === pickedMonth) ?? selectedYearGroup?.months[0] ?? null,
+    [selectedYearGroup, pickedMonth],
+  )
+  const selectedMonth = selectedMonthGroup?.month ?? ''
   const displayedCharges = useMemo(() => {
     if (!selectedMonthGroup) {
       return []
@@ -144,9 +142,10 @@ export function AdminServiceChargesPage() {
     })
   }, [chargeSort, selectedMonthGroup])
 
+  // Une selection vide ou obsolete retombe sur le mois le plus recent.
   const onYearChange = (year: string) => {
-    setSelectedYear(year)
-    setSelectedMonth(years.find((y) => y.year === year)?.months[0]?.month ?? '')
+    setPickedYear(year)
+    setPickedMonth('')
   }
 
   const openDocument = async (chargeId: string) => {
@@ -194,11 +193,6 @@ export function AdminServiceChargesPage() {
 
   return (
     <PageContainer>
-      {!loadingHalls ? (
-        <div className="mb-4">
-          <PennylaneSyncPanel onSynced={() => setReloadKey((key) => key + 1)} />
-        </div>
-      ) : null}
       {loadingHalls || loadingRows ? <StateMessage variant="loading" title="Chargement des charges communes..." /> : null}
       {!loadingHalls && !loadingRows && error ? <StateMessage variant="error" title="Erreur" message={error} /> : null}
       {!loadingHalls && !loadingRows && !error && years.length === 0 ? (
@@ -239,7 +233,7 @@ export function AdminServiceChargesPage() {
                   <select
                     id="admin-month-select"
                     value={selectedMonth}
-                    onChange={(event) => setSelectedMonth(event.target.value)}
+                    onChange={(event) => setPickedMonth(event.target.value)}
                     className="brand-input"
                   >
                     {selectedYearGroup.months.map((month) => (

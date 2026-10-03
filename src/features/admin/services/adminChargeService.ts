@@ -38,7 +38,7 @@ export async function getAdminCharges(hallId: string): Promise<AdminChargeResult
   const allRows: unknown[] = []
   let from = 0
 
-  do {
+  for (;;) {
     let { data, error } = await client
       .from('service_charges')
       .select('id, label, category, supplier_name, amount_incl_tax, pennylane_id, invoice_date, created_at, service_charge_periods!inner(period_end)')
@@ -70,7 +70,7 @@ export async function getAdminCharges(hallId: string): Promise<AdminChargeResult
       break
     }
     from += CHARGES_PAGE_SIZE
-  } while (true)
+  }
 
   const normalized = (allRows as RawAdminChargeRow[]).map((row) => {
     const relation = row.service_charge_periods

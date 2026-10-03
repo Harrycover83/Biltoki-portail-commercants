@@ -39,6 +39,12 @@ function amountCents(row: AdminChargeRow): number {
 }
 
 export function AdminChartsPage() {
+  const { selectedHallId } = useAdminHall()
+  // Le changement de halle remonte le contenu pour repartir d'un etat vide.
+  return <AdminChartsPageContent key={selectedHallId} />
+}
+
+function AdminChartsPageContent() {
   const { selectedHallId, loading: loadingHalls } = useAdminHall()
   const [rows, setRows] = useState<AdminChargeRow[]>([])
   const [catalogQuery, setCatalogQuery] = useState('')
@@ -48,9 +54,6 @@ export function AdminChartsPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setSelectedSuppliers([])
-    setRows([])
-    setError(null)
     let cancelled = false
     let requestInFlight = false
 

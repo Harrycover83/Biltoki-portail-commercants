@@ -68,7 +68,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 export function AuthProvider({ children }: PropsWithChildren) {
   const client = getSupabaseClient()
 
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(client !== null)
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -81,7 +81,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!client) {
-      setLoading(false)
       return
     }
 
@@ -186,6 +185,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) {

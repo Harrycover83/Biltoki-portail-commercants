@@ -22,8 +22,8 @@ function formatSyncErrors(errors: unknown): string {
     .join(' ')
 }
 
-export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
-  const { selectedHallId } = useAdminHall()
+export function PennylaneSyncPanel() {
+  const { selectedHallId, notifySynced } = useAdminHall()
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
@@ -67,7 +67,7 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
         setSyncMessage(
           `Synchronisation ${body.status} : ${body.recordsProcessed} facture(s) traitee(s).${errorDetails}`,
         )
-        onSynced()
+        notifySynced()
       }
     } catch (err) {
       setSyncMessage(err instanceof Error ? err.message : 'Erreur reseau')
@@ -77,17 +77,19 @@ export function PennylaneSyncPanel({ onSynced }: { onSynced: () => void }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-3 text-sm text-[#4d5562]">
+    <div className="flex min-w-0 items-center gap-3 text-xs font-medium text-[#171511]">
       {syncing ? (
         <span className="flex items-center gap-2" role="status">
           <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#d99226] border-t-[#171511]" aria-hidden="true" />
           Synchronisation en cours...
         </span>
       ) : syncMessage ? (
-        <span aria-live="polite">{syncMessage}</span>
+        <span className="truncate" title={syncMessage} aria-live="polite">
+          {syncMessage}
+        </span>
       ) : null}
       <button
-        className="rounded-full border border-[#13223a33] px-3 py-1 text-xs font-semibold text-[#13223a] hover:bg-[#13223a0f] disabled:opacity-50"
+        className="shrink-0 rounded-full border border-[#d6cebf] bg-[#fffcf6] px-4 py-2 text-sm font-semibold text-[#171511] shadow-sm hover:bg-white disabled:opacity-50"
         disabled={syncing}
         type="button"
         onClick={() => void triggerPennylaneSync()}

@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useAdminHall } from '../../features/admin/AdminHallContext'
+import { PennylaneSyncPanel } from '../../features/admin/pages/PennylaneSyncPanel'
 import { useAuth } from '../../features/auth/AuthProvider'
 
 export function AppHeader() {
@@ -64,8 +65,8 @@ export function AppHeader() {
 
       {isAdmin && location.pathname.startsWith('/admin') ? (
         <div className="border-t border-[#e4ddd1] bg-[#f7e7b8]">
-          <div className="mx-auto max-w-6xl px-4 py-3 md:px-6">
-            <label className="flex items-center gap-3 text-sm font-semibold text-[#171511]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
+            <label className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
               <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle observee</span>
               <select
                 value={selectedHallId}
@@ -80,6 +81,7 @@ export function AppHeader() {
                 ))}
               </select>
             </label>
+            <PennylaneSyncPanel />
           </div>
         </div>
       ) : null}

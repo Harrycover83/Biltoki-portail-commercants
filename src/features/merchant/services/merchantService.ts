@@ -99,7 +99,7 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
   const allRows: ServiceChargeRowRaw[] = []
   let from = 0
 
-  do {
+  for (;;) {
     const { data, error } = await client
       .from('service_charges')
       .select(
@@ -136,7 +136,7 @@ async function fetchVisibleServiceCharges(): Promise<ServiceResult<ServiceCharge
       break
     }
     from += CHARGES_PAGE_SIZE
-  } while (true)
+  }
 
   return {
     data: normalizeChargeRows(allRows),

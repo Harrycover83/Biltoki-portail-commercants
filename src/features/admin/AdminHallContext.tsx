@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getSupabaseClient } from '../../lib/supabase'
 
 export type AdminHallOption = {
@@ -11,6 +11,8 @@ type AdminHallContextValue = {
   selectedHallId: string
   setSelectedHallId: (hallId: string) => void
   loading: boolean
+  syncVersion: number
+  notifySynced: () => void
 }
 
 const STORAGE_KEY = 'biltoki-admin-selected-hall'
@@ -20,6 +22,8 @@ export function AdminHallProvider({ children }: { children: ReactNode }) {
   const [halls, setHalls] = useState<AdminHallOption[]>([])
   const [selectedHallId, setSelectedHallId] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [syncVersion, setSyncVersion] = useState(0)
+  const notifySynced = useCallback(() => setSyncVersion((version) => version + 1), [])
 
   useEffect(() => {
     const loadHalls = async () => {
@@ -63,13 +67,16 @@ export function AdminHallProvider({ children }: { children: ReactNode }) {
       selectedHallId,
       setSelectedHallId,
       loading,
+      syncVersion,
+      notifySynced,
     }),
-    [halls, loading, selectedHallId],
+    [halls, loading, notifySynced, selectedHallId, syncVersion],
   )
 
   return <AdminHallContext.Provider value={value}>{children}</AdminHallContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdminHall(): AdminHallContextValue {
   const context = useContext(AdminHallContext)
   if (!context) {
