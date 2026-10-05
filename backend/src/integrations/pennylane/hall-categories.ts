@@ -1,4 +1,4 @@
-export type HallCategoryMapping = {
+type HallCategoryMapping = {
   /** Pennylane analytical category that carries the "charges communes" of the hall. */
   categoryId: number
   /** Label stored on imported charges. */

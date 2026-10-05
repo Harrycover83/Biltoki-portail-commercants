@@ -4,6 +4,7 @@ import {
   parseHallCategories,
   type HallCategoryMap,
 } from './integrations/pennylane/hall-categories.js'
+import { PENNYLANE_API_URL } from './integrations/pennylane/client.js'
 
 dotenv.config()
 
@@ -92,7 +93,7 @@ export function getConfig(): Config {
     },
     pennylane: {
       apiKey: optionalEnv('PENNYLANE_API_KEY', ''),
-      apiUrl: optionalEnv('PENNYLANE_API_URL', 'https://app.pennylane.com/api/external/v2'),
+      apiUrl: optionalEnv('PENNYLANE_API_URL', PENNYLANE_API_URL),
       hallCategories: { ...DEFAULT_HALL_CATEGORIES, ...parseHallCategories(optionalEnv('PENNYLANE_HALL_CATEGORIES', '')) },
     },
     server: {

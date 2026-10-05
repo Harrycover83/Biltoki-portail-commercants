@@ -7,7 +7,7 @@ import { createSafeLookup } from './network.js'
 // supplier invoices are untrusted, and an SVG opened from the portal's origin could run scripts.
 const INLINE_CONTENT_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
-export const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024
 const MAX_REDIRECTS = 3
 const FETCH_TIMEOUT_MS = 20_000
 
@@ -41,7 +41,7 @@ export function isSafeDocumentUrl(raw: string): boolean {
   )
 }
 
-export class DocumentFetchError extends Error {}
+class DocumentFetchError extends Error {}
 
 /** One HTTPS GET without redirect following; the DNS answer is validated when the socket connects. */
 function get(url: string): Promise<IncomingMessage> {

@@ -120,7 +120,7 @@ describe('requirePortalUser and the forced password change', () => {
       ip: '1.1.1.1',
       header: (name: string) => (name.toLowerCase() === 'authorization' ? 'Bearer t' : undefined),
     } as unknown as Request
-    await requirePortalUser(config, db, logger, { allowPasswordChangePending: allowPending })(req, res, next)
+    await requirePortalUser(db, logger, { allowPasswordChangePending: allowPending })(req, res, next)
     return { next, status, json }
   }
 

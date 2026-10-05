@@ -1,4 +1,4 @@
-export const PASSWORD_MIN_LENGTH = 12
+const PASSWORD_MIN_LENGTH = 12
 
 /** Server-side password policy (mirrors the one shown in the browser). Returns an error message or null. */
 export function validatePassword(password: unknown): string | null {

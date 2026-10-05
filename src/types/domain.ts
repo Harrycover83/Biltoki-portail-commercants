@@ -29,7 +29,7 @@ export type MerchantYearGroup = {
   months: MerchantMonthGroup[]
 }
 
-export type MerchantMonthGroup = {
+type MerchantMonthGroup = {
   month: string // '01'..'12'
   monthLabel: string // 'Janvier 2026'
   totalChargesCents: number

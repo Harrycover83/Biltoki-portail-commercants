@@ -3,10 +3,10 @@ export const USER_ROLES = ['merchant', 'hall_manager', 'network_manager', 'hq', 
 export type UserRole = (typeof USER_ROLES)[number]
 
 /** Roles bound to a list of halls stored in admin_hall_permissions. */
-export const HALL_SCOPED_ROLES: readonly UserRole[] = ['hall_manager', 'network_manager']
+const HALL_SCOPED_ROLES: readonly UserRole[] = ['hall_manager', 'network_manager']
 
 /** Roles that see every hall. */
-export const GLOBAL_ROLES: readonly UserRole[] = ['hq', 'super_admin']
+const GLOBAL_ROLES: readonly UserRole[] = ['hq', 'super_admin']
 
 export function isUserRole(value: unknown): value is UserRole {
   return typeof value === 'string' && (USER_ROLES as readonly string[]).includes(value)

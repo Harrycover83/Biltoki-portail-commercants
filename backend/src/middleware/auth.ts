@@ -23,7 +23,6 @@ function safeEqual(a: string, b: string): boolean {
  * route that performs the rotation (allowPasswordChangePending).
  */
 export function requirePortalUser(
-  _config: Config,
   db: SupabaseAdmin,
   logger: Logger,
   options: { allowPasswordChangePending?: boolean } = {},
@@ -81,7 +80,7 @@ export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Log
       return res.status(403).json({ error: 'Forbidden' })
     }
 
-    return requirePortalUser(config, db, logger)(req, res, (error?: unknown) => {
+    return requirePortalUser(db, logger)(req, res, (error?: unknown) => {
       if (error) {
         return next(error)
       }
@@ -104,7 +103,7 @@ export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: L
       return requireSuperAdmin(config, db, logger)(req, res, next)
     }
 
-    return requirePortalUser(config, db, logger)(req, res, async (error?: unknown) => {
+    return requirePortalUser(db, logger)(req, res, async (error?: unknown) => {
       if (error) {
         return next(error)
       }

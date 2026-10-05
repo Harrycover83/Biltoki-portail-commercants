@@ -4,7 +4,7 @@ import type { Logger } from '../utils/logger.js'
 import type { PennylaneClient } from '../integrations/pennylane/client.js'
 import type { PennylaneServiceCharge } from '../integrations/pennylane/types.js'
 
-export type SyncStatus = 'running' | 'success' | 'error'
+type SyncStatus = 'running' | 'success' | 'error'
 
 export type SyncResult = {
   syncId: string

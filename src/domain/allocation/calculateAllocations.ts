@@ -3,7 +3,7 @@ export type AllocationInput = {
   linearMetersMilli: number
 }
 
-export type AllocationResult = {
+type AllocationResult = {
   merchantId: string
   allocationBps: number
   allocatedCents: number

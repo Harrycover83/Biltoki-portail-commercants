@@ -26,7 +26,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   app.use('/api/service-charges', createServiceChargesRouter(config, db, logger))
 
   // Account self-service (password rotation)
-  app.use('/api/account', createAccountRouter(config, db, logger))
+  app.use('/api/account', createAccountRouter(db, logger))
 
   // Account administration (signed-in super_admin only)
   app.use('/api/admin', requireSuperAdminUser(config, db, logger), createAdminUsersRouter(db, logger))

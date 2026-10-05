@@ -117,9 +117,3 @@ export type PennylaneServiceChargesResponse = {
   totalCount: number
   hasMore: boolean
 }
-
-export type PennylaneError = {
-  code: string
-  message: string
-  details?: Record<string, unknown>
-}

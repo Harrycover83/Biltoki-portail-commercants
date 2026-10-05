@@ -12,7 +12,7 @@ import { fetchDocument } from '../utils/documents.js'
 export function createServiceChargesRouter(config: Config, db: SupabaseAdmin, logger: Logger) {
   const router = Router()
 
-  router.use(requirePortalUser(config, db, logger))
+  router.use(requirePortalUser(db, logger))
 
   // Streams the source document (invoice) of a charge, after checking the caller can see its hall.
   router.get(

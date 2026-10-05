@@ -1,6 +1,6 @@
 const MONTH_NAME_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
 
-export type MonthBucket<T> = {
+type MonthBucket<T> = {
   month: string // '01'..'12'
   monthLabel: string // 'janvier'
   items: T[]
