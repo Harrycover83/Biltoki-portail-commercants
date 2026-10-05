@@ -146,15 +146,7 @@ describe('buildSupplierHistory', () => {
     expect(history.invoices.map((invoice) => invoice.id)).toEqual(['7', '2', '1'])
   })
 
-  it('spreads amounts by year and month', () => {
-    expect(history.years.map((year) => year.year)).toEqual(['2025', '2026'])
-    expect(history.years[0].monthCents[7]).toBe(10000)
-    expect(history.years[1].monthCents[7]).toBe(15000)
-    expect(history.years[1].monthCents[8]).toBe(12000)
-    expect(history.years[1].totalCents).toBe(27000)
-  })
-
   it('is empty for an unknown supplier', () => {
-    expect(buildSupplierHistory(rows, 'Inconnu')).toMatchObject({ count: 0, totalCents: 0, averageCents: 0, years: [] })
+    expect(buildSupplierHistory(rows, 'Inconnu')).toMatchObject({ count: 0, totalCents: 0, averageCents: 0, invoices: [] })
   })
 })

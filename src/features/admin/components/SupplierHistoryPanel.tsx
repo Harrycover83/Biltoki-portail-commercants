@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/Card'
-import { capitalize } from '@/lib/format'
 import { formatEuroFromCents } from '@/lib/money'
 import type { AdminChargeRow } from '@/features/admin/services/adminChargeService'
 import { ChargeDocumentButton } from '@/features/admin/components/ChargeDocumentButton'
@@ -14,11 +13,6 @@ type SupplierHistoryPanelProps = {
   onError: (message: string | null) => void
 }
 
-const MONTH_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long', timeZone: 'UTC' })
-const MONTH_LABELS = Array.from({ length: 12 }, (_, index) =>
-  capitalize(MONTH_FORMATTER.format(new Date(Date.UTC(2000, index, 1)))),
-)
-
 export function SupplierHistoryPanel({ rows, supplier, onSelectSupplier, onError }: SupplierHistoryPanelProps) {
   const suppliers = useMemo(() => listSuppliers(rows), [rows])
   const selected = suppliers.find((entry) => entry.name === supplier)?.name ?? suppliers[0]?.name ?? ''
@@ -30,7 +24,7 @@ export function SupplierHistoryPanel({ rows, supplier, onSelectSupplier, onError
 
   return (
     <div className="space-y-6">
-      <Card title="Historique d'un fournisseur" subtitle="Toutes les factures du fournisseur, mois par mois et année après année.">
+      <Card title="Historique d'un fournisseur" subtitle="Choisissez un fournisseur pour retrouver toutes ses factures, toutes années confondues.">
         <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="supplier-select">
           Fournisseur
         </label>
@@ -61,45 +55,6 @@ export function SupplierHistoryPanel({ rows, supplier, onSelectSupplier, onError
             <dd className="mt-1 text-xl font-semibold text-[#13223a]">{formatEuroFromCents(history.averageCents)}</dd>
           </div>
         </dl>
-      </Card>
-
-      <Card title="Mois par mois" subtitle="Total TTC facturé, une colonne par année.">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#13223a1f] text-[#626a78]">
-                <th className="py-2">Mois</th>
-                {history.years.map(({ year }) => (
-                  <th key={year} className="py-2 text-right">
-                    {year}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MONTH_LABELS.map((label, monthIndex) => (
-                <tr key={label} className="border-b border-slate-100/80">
-                  <td className="py-2">{label}</td>
-                  {history.years.map(({ year, monthCents }) => (
-                    <td key={year} className="py-2 text-right whitespace-nowrap">
-                      {monthCents[monthIndex] === 0 ? <span className="text-[#a79f90]">-</span> : formatEuroFromCents(monthCents[monthIndex])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="font-semibold text-[#13223a]">
-                <td className="pt-3">Total</td>
-                {history.years.map(({ year, totalCents }) => (
-                  <td key={year} className="pt-3 text-right whitespace-nowrap">
-                    {formatEuroFromCents(totalCents)}
-                  </td>
-                ))}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
       </Card>
 
       <Card title="Toutes les factures" subtitle={`${history.count} facture(s), de la plus récente à la plus ancienne`}>

@@ -160,14 +160,10 @@ export function listSuppliers(rows: AdminChargeRow[]): SupplierSummary[] {
   )
 }
 
-export type SupplierYear = { year: string; monthCents: number[]; totalCents: number }
-
 export type SupplierHistory = {
   totalCents: number
   count: number
   averageCents: number
-  /** Ascending years, each with 12 monthly totals (index 0 = January). */
-  years: SupplierYear[]
   /** Newest first. */
   invoices: AdminChargeRow[]
 }
@@ -176,25 +172,12 @@ export function buildSupplierHistory(rows: AdminChargeRow[], supplier: string): 
   const invoices = rows
     .filter((row) => supplierOf(row) === supplier)
     .sort((left, right) => adminChargeDate(right).localeCompare(adminChargeDate(left)))
-
-  const yearsByKey = new Map<string, SupplierYear>()
-  let totalCents = 0
-  for (const row of invoices) {
-    const isoDate = adminChargeDate(row)
-    const year = isoDate.slice(0, 4)
-    const entry = yearsByKey.get(year) ?? { year, monthCents: Array<number>(12).fill(0), totalCents: 0 }
-    const cents = chargeCents(row)
-    entry.monthCents[Number(isoDate.slice(5, 7)) - 1] += cents
-    entry.totalCents += cents
-    totalCents += cents
-    yearsByKey.set(year, entry)
-  }
+  const totalCents = invoices.reduce((sum, row) => sum + chargeCents(row), 0)
 
   return {
     totalCents,
     count: invoices.length,
     averageCents: invoices.length > 0 ? Math.round(totalCents / invoices.length) : 0,
-    years: [...yearsByKey.values()].sort((left, right) => left.year.localeCompare(right.year)),
     invoices,
   }
 }
