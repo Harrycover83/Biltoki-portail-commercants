@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { getAccessToken } from '../../../lib/session'
-import { getBackendUrl } from '../../../lib/env'
-import { useAdminHall } from '../AdminHallContext'
+import { getAccessToken } from '@/lib/session'
+import { getBackendUrl } from '@/lib/env'
+import { useAdminHall } from '@/features/admin/AdminHallContext'
 
 function formatSyncErrors(errors: unknown): string {
   if (!Array.isArray(errors)) {

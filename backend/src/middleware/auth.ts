@@ -114,7 +114,7 @@ export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: L
         }
         return next()
       } catch (error) {
-        logger.error('Hall access check failed:', error)
+        logger.error({ err: error }, 'Hall access check failed')
         return res.status(500).json({ error: 'Unable to verify access' })
       }
     })

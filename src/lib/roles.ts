@@ -1,4 +1,4 @@
-import type { UserRole } from '../types/domain'
+import type { UserRole } from '@/types/domain'
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   merchant: 'Commerçant',
@@ -20,7 +20,7 @@ export const ROLE_ORDER: UserRole[] = ['super_admin', 'hq', 'network_manager', '
 
 export const JOB_TITLE_SUGGESTIONS = ['Capitaine', 'RX (responsable d’exploitation)', 'Manager de service']
 
-const STAFF_ROLES: UserRole[] = ['hall_manager', 'network_manager', 'hq', 'super_admin']
+export const STAFF_ROLES: UserRole[] = ['hall_manager', 'network_manager', 'hq', 'super_admin']
 
 export function roleLabel(role: UserRole | null | undefined): string {
   return role ? (ROLE_LABELS[role] ?? role) : 'N/A'

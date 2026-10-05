@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
-import { ROLE_LABELS, ROLE_ORDER, roleLabel } from '../../../lib/roles'
-import type { UserRole } from '../../../types/domain'
-import { useAuth } from '../../auth/AuthProvider'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
+import { ROLE_LABELS, ROLE_ORDER, roleLabel } from '@/lib/roles'
+import type { UserRole } from '@/types/domain'
+import { useAuth } from '@/features/auth/AuthProvider'
 import {
   adminUsersService,
   emptyUserForm,
@@ -12,8 +12,8 @@ import {
   type AuditEntry,
   type ManagedUser,
   type UserFormValues,
-} from '../services/adminUsersService'
-import { UserForm } from './UserForm'
+} from '@/features/admin/services/adminUsersService'
+import { UserForm } from '@/features/admin/components/UserForm'
 
 type Credentials = { email: string; password: string; reason: 'created' | 'reset' }
 

@@ -7,10 +7,10 @@ import {
   type PropsWithChildren,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { getSupabaseClient } from '../../lib/supabase'
-import { getBackendUrl } from '../../lib/env'
-import { getAccessToken } from '../../lib/session'
-import type { Profile, UserRole } from '../../types/domain'
+import { getSupabaseClient } from '@/lib/supabase'
+import { getBackendUrl } from '@/lib/env'
+import { getAccessToken } from '@/lib/session'
+import type { Profile, UserRole } from '@/types/domain'
 
 const ACCESS_DENIED_MESSAGE =
   "Cet email n'est pas autorise a acceder au portail. Contactez le gestionnaire de la halle."

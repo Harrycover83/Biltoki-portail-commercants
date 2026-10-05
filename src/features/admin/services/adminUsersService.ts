@@ -1,6 +1,6 @@
-import { getBackendUrl } from '../../../lib/env'
-import { getAccessToken } from '../../../lib/session'
-import type { UserRole } from '../../../types/domain'
+import { getBackendUrl } from '@/lib/env'
+import { getAccessToken } from '@/lib/session'
+import type { UserRole } from '@/types/domain'
 
 export type ManagedUser = {
   userId: string | null

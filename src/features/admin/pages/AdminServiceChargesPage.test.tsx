@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminServiceChargesPage } from './AdminServiceChargesPage'
-import type { AdminChargeRow } from '../services/adminChargeService'
+import type { AdminChargeRow } from '@/features/admin/services/adminChargeService'
 
 const { mockGetAdminCharges, mockUseAdminHall, mockUseAuth } = vi.hoisted(() => ({
   mockGetAdminCharges: vi.fn(),
@@ -9,24 +9,24 @@ const { mockGetAdminCharges, mockUseAdminHall, mockUseAuth } = vi.hoisted(() => 
   mockUseAuth: vi.fn(),
 }))
 
-vi.mock('../AdminHallContext', () => ({
+vi.mock('@/features/admin/AdminHallContext', () => ({
   useAdminHall: mockUseAdminHall,
 }))
 
-vi.mock('../../auth/AuthProvider', () => ({
+vi.mock('@/features/auth/AuthProvider', () => ({
   useAuth: mockUseAuth,
 }))
 
-vi.mock('../services/adminChargeService', () => ({
+vi.mock('@/features/admin/services/adminChargeService', () => ({
   adminChargeDate: (row: { invoice_date?: string | null }) => row.invoice_date ?? '',
   getAdminCharges: mockGetAdminCharges,
 }))
 
-vi.mock('../../../lib/env', () => ({
+vi.mock('@/lib/env', () => ({
   getBackendUrl: () => 'https://backend.test',
 }))
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   getSupabaseClient: () => ({
     auth: { getSession: async () => ({ data: { session: { access_token: 'token' } } }) },
   }),

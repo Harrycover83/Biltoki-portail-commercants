@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { clsx } from 'clsx'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
 import {
   mockAlerts,
   mockDailyRevenue,
@@ -11,7 +11,7 @@ import {
   mockStock,
   mockTasks,
   type DashboardAlert,
-} from '../dashboard/mockDashboardData'
+} from '@/features/admin/dashboard/mockDashboardData'
 
 const alertStyles: Record<DashboardAlert['level'], string> = {
   high: 'border-l-4 border-[#d84d2c] bg-[#fdeee9]',

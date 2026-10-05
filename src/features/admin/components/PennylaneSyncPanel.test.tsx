@@ -7,15 +7,15 @@ const { mockUseAdminHall, mockNotifySynced } = vi.hoisted(() => ({
   mockNotifySynced: vi.fn(),
 }))
 
-vi.mock('../AdminHallContext', () => ({
+vi.mock('@/features/admin/AdminHallContext', () => ({
   useAdminHall: mockUseAdminHall,
 }))
 
-vi.mock('../../../lib/env', () => ({
+vi.mock('@/lib/env', () => ({
   getBackendUrl: () => 'https://backend.test',
 }))
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   getSupabaseClient: () => ({
     auth: { getSession: async () => ({ data: { session: { access_token: 'token' } } }) },
   }),

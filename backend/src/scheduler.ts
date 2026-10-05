@@ -1,59 +1,49 @@
 import cron from 'node-cron'
+import type { Config } from './config.js'
 import type { SupabaseAdmin } from './db/supabase.js'
 import type { Logger } from './utils/logger.js'
+import { PennylaneClient } from './integrations/pennylane/client.js'
 import { PennylaneSync } from './services/sync.service.js'
 import { syncLock } from './services/sync-lock.js'
-import { PennylaneClient } from './integrations/pennylane/client.js'
-import type { Config } from './config.js'
 
+/** Schedules the Pennylane sync of every configured hall (sequentially, one at a time). */
 export function setupScheduler(config: Config, db: SupabaseAdmin, logger: Logger) {
-  logger.info(`Scheduling Pennylane sync: ${config.biltoki.syncCronSchedule}`)
-  logger.info(`Halls to sync: ${config.biltoki.hallsToSync.join(', ')}`)
+  const { syncCronSchedule, hallsToSync } = config.biltoki
 
-  // Validate cron expression
-  if (!cron.validate(config.biltoki.syncCronSchedule)) {
-    logger.error(`Invalid cron expression: ${config.biltoki.syncCronSchedule}`)
-    throw new Error('Invalid cron schedule')
+  if (!cron.validate(syncCronSchedule)) {
+    throw new Error(`Invalid SYNC_CRON_SCHEDULE: ${syncCronSchedule}`)
   }
 
-  // Schedule the sync
-  const task = cron.schedule(config.biltoki.syncCronSchedule, async () => {
-    logger.info(`⏰ Running scheduled Pennylane sync for ${config.biltoki.hallsToSync.length} hall(s)...`)
-
-    const pennylaneClient = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
-
-    // Sync each hall in sequence
-    for (const hallId of config.biltoki.hallsToSync) {
-      try {
-        if (syncLock.isRunning(hallId)) {
-          logger.warn(`Skipping hall ${hallId}: sync already running`)
-          continue
-        }
-
-        logger.info(`Syncing hall: ${hallId}`)
-        const result = await syncLock.runExclusive(hallId, async () => {
-          const syncService = new PennylaneSync(db, pennylaneClient, hallId, logger)
-          return await syncService.syncServiceCharges()
-        })
-
-        if (result.status === 'success') {
-          logger.info(`✅ Hall ${hallId}: ${result.recordsProcessed} charges imported`)
-        } else {
-          logger.error(`❌ Hall ${hallId} sync failed: ${result.errors.join(', ')}`)
-        }
-      } catch (error) {
-        logger.error(`Sync error for hall ${hallId}:`, error)
-      }
+  const syncHall = async (pennylane: PennylaneClient, hallId: string) => {
+    if (syncLock.isRunning(hallId)) {
+      logger.warn(`Skipping hall ${hallId}: sync already running`)
+      return
     }
 
-    logger.info(`✅ All halls synced`)
+    const result = await syncLock.runExclusive(hallId, () =>
+      new PennylaneSync(db, pennylane, hallId, logger).syncServiceCharges(),
+    )
+
+    if (result.status === 'success') {
+      logger.info(`Hall ${hallId}: ${result.recordsProcessed} charges imported`)
+    } else {
+      logger.error(`Hall ${hallId} sync failed: ${result.errors.join(', ')}`)
+    }
+  }
+
+  const task = cron.schedule(syncCronSchedule, async () => {
+    logger.info(`Running scheduled Pennylane sync for ${hallsToSync.length} hall(s)`)
+    const pennylane = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+
+    for (const hallId of hallsToSync) {
+      try {
+        await syncHall(pennylane, hallId)
+      } catch (error) {
+        logger.error({ err: error }, `Sync error for hall ${hallId}`)
+      }
+    }
   })
 
-  logger.info('✅ Scheduler initialized')
-
+  logger.info(`Scheduler initialized (${syncCronSchedule}) for halls: ${hallsToSync.join(', ')}`)
   return task
-}
-
-export function stopScheduler(task: ReturnType<typeof cron.schedule>) {
-  task.stop()
 }

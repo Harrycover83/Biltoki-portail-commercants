@@ -1,29 +1,40 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AppHeader } from '../components/layout/AppHeader'
+import { AppHeader } from '@/components/layout/AppHeader'
+import { AdminHallProvider } from '@/features/admin/AdminHallContext'
+import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage'
+import { AdminRevenuePage } from '@/features/admin/pages/AdminRevenuePage'
+import { AdminServiceChargesPage } from '@/features/admin/pages/AdminServiceChargesPage'
+import { AdministrationPage } from '@/features/admin/pages/AdministrationPage'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { UpdatePasswordPage } from '@/features/auth/pages/UpdatePasswordPage'
+import { NotFoundPage } from '@/features/common/pages/NotFoundPage'
+import { HistoryPage } from '@/features/merchant/pages/HistoryPage'
+import { ProfilePage } from '@/features/merchant/pages/ProfilePage'
+import { RevenuePage } from '@/features/merchant/pages/RevenuePage'
+import { homePathForRole, STAFF_ROLES } from '@/lib/roles'
+import type { UserRole } from '@/types/domain'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RoleRoute } from './guards/RoleRoute'
-import { LoginPage } from '../features/auth/pages/LoginPage'
-import { UpdatePasswordPage } from '../features/auth/pages/UpdatePasswordPage'
-import { HistoryPage } from '../features/merchant/pages/HistoryPage'
-import { RevenuePage } from '../features/merchant/pages/RevenuePage'
-import { ProfilePage } from '../features/merchant/pages/ProfilePage'
-import { AdminServiceChargesPage } from '../features/admin/pages/AdminServiceChargesPage'
-import { AdminRevenuePage } from '../features/admin/pages/AdminRevenuePage'
-import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
-import { AdminHallProvider } from '../features/admin/AdminHallContext'
-import { NotFoundPage } from '../features/common/pages/NotFoundPage'
-import { useAuth } from '../features/auth/AuthProvider'
-import { AdministrationPage } from '../features/admin/pages/AdministrationPage'
-import { homePathForRole } from '../lib/roles'
-import type { UserRole } from '../types/domain'
 
-const STAFF_ROLES: UserRole[] = ['hall_manager', 'network_manager', 'hq', 'super_admin']
 const SUPER_ADMIN_ONLY: UserRole[] = ['super_admin']
 
 const AdminChartsPage = lazy(() =>
-  import('../features/admin/pages/AdminChartsPage').then((module) => ({ default: module.AdminChartsPage })),
+  import('@/features/admin/pages/AdminChartsPage').then((module) => ({ default: module.AdminChartsPage })),
 )
+
+/** Legacy URLs kept alive for bookmarks; each one now lands on its replacement. */
+const MERCHANT_REDIRECTS: Record<string, string> = {
+  '/frais': '/historique',
+  '/frais/:periodId': '/historique',
+}
+
+const STAFF_REDIRECTS: Record<string, string> = {
+  '/admin/commercants': '/admin/frais',
+  '/admin/repartitions': '/admin/frais',
+  '/admin/synchronisation': '/admin/frais',
+}
 
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
@@ -33,6 +44,20 @@ function PrivateLayout({ children }: { children: ReactNode }) {
         {children}
       </div>
     </AdminHallProvider>
+  )
+}
+
+/** Requires a session and, when `roles` is given, one of these roles. */
+function Guarded({ roles, children }: { roles?: UserRole[]; children: ReactNode }) {
+  return <ProtectedRoute>{roles ? <RoleRoute roles={roles}>{children}</RoleRoute> : children}</ProtectedRoute>
+}
+
+/** A guarded page rendered inside the application shell (header + hall selector). */
+function Page({ roles, children }: { roles?: UserRole[]; children: ReactNode }) {
+  return (
+    <Guarded roles={roles}>
+      <PrivateLayout>{children}</PrivateLayout>
+    </Guarded>
   )
 }
 
@@ -50,180 +75,55 @@ export function AppRouter() {
         <Route
           path="/security/update-password"
           element={
-            <ProtectedRoute>
+            <Guarded>
               <UpdatePasswordPage />
-            </ProtectedRoute>
+            </Guarded>
           }
         />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <HomeRedirect />
-            </ProtectedRoute>
-          }
-        />
+        {['/', '/dashboard'].map((path) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <Guarded>
+                <HomeRedirect />
+              </Guarded>
+            }
+          />
+        ))}
 
-        <Route
-          path="/frais"
-          element={
-            <ProtectedRoute>
-              <Navigate to="/historique" replace />
-            </ProtectedRoute>
-          }
-        />
+        {Object.entries(MERCHANT_REDIRECTS).map(([from, to]) => (
+          <Route key={from} path={from} element={<Guarded><Navigate to={to} replace /></Guarded>} />
+        ))}
 
-        <Route
-          path="/frais/:periodId"
-          element={
-            <ProtectedRoute>
-              <Navigate to="/historique" replace />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/historique" element={<Page><HistoryPage /></Page>} />
+        <Route path="/ca" element={<Page><RevenuePage /></Page>} />
+        <Route path="/profil" element={<Page><ProfilePage /></Page>} />
 
-        <Route
-          path="/historique"
-          element={
-            <ProtectedRoute>
-              <PrivateLayout>
-                <HistoryPage />
-              </PrivateLayout>
-            </ProtectedRoute>
-          }
-        />
+        {Object.entries(STAFF_REDIRECTS).map(([from, to]) => (
+          <Route
+            key={from}
+            path={from}
+            element={<Guarded roles={STAFF_ROLES}><Navigate to={to} replace /></Guarded>}
+          />
+        ))}
 
-        <Route
-          path="/ca"
-          element={
-            <ProtectedRoute>
-              <PrivateLayout>
-                <RevenuePage />
-              </PrivateLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/profil"
-          element={
-            <ProtectedRoute>
-              <PrivateLayout>
-                <ProfilePage />
-              </PrivateLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <PrivateLayout>
-                  <AdminDashboardPage />
-                </PrivateLayout>
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/commercants"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <Navigate to="/admin/frais" replace />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/frais"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <PrivateLayout>
-                  <AdminServiceChargesPage />
-                </PrivateLayout>
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/repartitions"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <Navigate to="/admin/frais" replace />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/synchronisation"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <Navigate to="/admin/frais" replace />
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
+        <Route path="/admin/dashboard" element={<Page roles={STAFF_ROLES}><AdminDashboardPage /></Page>} />
+        <Route path="/admin/frais" element={<Page roles={STAFF_ROLES}><AdminServiceChargesPage /></Page>} />
+        <Route path="/admin/ca" element={<Page roles={STAFF_ROLES}><AdminRevenuePage /></Page>} />
         <Route
           path="/admin/graphiques"
           element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <PrivateLayout>
-                  <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
-                    <AdminChartsPage />
-                  </Suspense>
-                </PrivateLayout>
-              </RoleRoute>
-            </ProtectedRoute>
+            <Page roles={STAFF_ROLES}>
+              <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
+                <AdminChartsPage />
+              </Suspense>
+            </Page>
           }
         />
+        <Route path="/admin/administration" element={<Page roles={SUPER_ADMIN_ONLY}><AdministrationPage /></Page>} />
 
-        <Route
-          path="/admin/administration"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={SUPER_ADMIN_ONLY}>
-                <PrivateLayout>
-                  <AdministrationPage />
-                </PrivateLayout>
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/ca"
-          element={
-            <ProtectedRoute>
-              <RoleRoute roles={STAFF_ROLES}>
-                <PrivateLayout>
-                  <AdminRevenuePage />
-                </PrivateLayout>
-              </RoleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <HomeRedirect />
-            </ProtectedRoute>
-          }
-        />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

@@ -26,7 +26,7 @@ export function createAdminUsersRouter(db: SupabaseAdmin, logger: Logger) {
           res.status(error.status).json({ error: error.message })
           return
         }
-        logger.error('Admin users route failed:', error)
+        logger.error({ err: error }, 'Admin users route failed')
         res.status(500).json({ error: 'Operation impossible pour le moment.' })
       }
     }

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
-import { StateMessage } from '../../../components/ui/StateMessage'
-import { formatEuroFromCents } from '../../../lib/money'
-import { openChargeDocument } from '../../../lib/openChargeDocument'
-import { canSyncRole } from '../../../lib/roles'
-import { useAuth } from '../../auth/AuthProvider'
-import { useAdminHall } from '../AdminHallContext'
-import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
-import { PennylaneSyncPanel } from './PennylaneSyncPanel'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
+import { StateMessage } from '@/components/ui/StateMessage'
+import { formatEuroFromCents } from '@/lib/money'
+import { capitalize } from '@/lib/format'
+import { groupByYearMonth } from '@/lib/grouping'
+import { openChargeDocument } from '@/lib/openChargeDocument'
+import { canSyncRole } from '@/lib/roles'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { useAdminHall } from '@/features/admin/AdminHallContext'
+import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '@/features/admin/services/adminChargeService'
+import { PennylaneSyncPanel } from '@/features/admin/components/PennylaneSyncPanel'
 
 type MonthGroup = {
   month: string // '01'..'12'
@@ -25,54 +27,21 @@ type YearGroup = {
 
 type ChargeSort = 'date-asc' | 'amount-desc' | 'amount-asc'
 
-const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
-function dateForGrouping(row: AdminChargeRow): string {
-  return adminChargeDate(row)
-}
+function groupCharges(rows: AdminChargeRow[]): YearGroup[] {
+  return groupByYearMonth(rows, adminChargeDate).map(({ year, months }) => {
+    const monthGroups: MonthGroup[] = months.map(({ month, monthLabel, items }) => ({
+      month,
+      monthLabel,
+      charges: items,
+      totalCents: items.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
+    }))
 
-function groupByYearMonth(rows: AdminChargeRow[]): YearGroup[] {
-  const monthsByYear = new Map<string, Map<string, AdminChargeRow[]>>()
-
-  for (const row of rows) {
-    const isoDate = dateForGrouping(row)
-    const year = isoDate.slice(0, 4)
-    const month = isoDate.slice(5, 7)
-
-    if (!monthsByYear.has(year)) {
-      monthsByYear.set(year, new Map())
+    return {
+      year,
+      months: monthGroups,
+      totalCents: monthGroups.reduce((sum, month) => sum + month.totalCents, 0),
     }
-    const monthMap = monthsByYear.get(year)!
-    if (!monthMap.has(month)) {
-      monthMap.set(month, [])
-    }
-    monthMap.get(month)!.push(row)
-  }
-
-  return [...monthsByYear.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([year, monthMap]) => {
-      const months: MonthGroup[] = [...monthMap.entries()]
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([month, monthRows]) => {
-          const sorted = [...monthRows].sort((a, b) => dateForGrouping(a).localeCompare(dateForGrouping(b)))
-          return {
-            month,
-            monthLabel: MONTH_LABEL_FORMATTER.format(new Date(Date.UTC(Number(year), Number(month) - 1, 1))),
-            charges: sorted,
-            totalCents: sorted.reduce((sum, row) => sum + Math.round(Number(row.amount_incl_tax) * 100), 0),
-          }
-        })
-
-      return {
-        year,
-        months,
-        totalCents: months.reduce((sum, month) => sum + month.totalCents, 0),
-      }
-    })
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
+  })
 }
 
 export function AdminServiceChargesPage() {
@@ -117,7 +86,7 @@ export function AdminServiceChargesPage() {
     }
   }, [selectedHallId, syncVersion])
 
-  const years = useMemo(() => groupByYearMonth(rows), [rows])
+  const years = useMemo(() => groupCharges(rows), [rows])
 
   const selectedYearGroup = useMemo(
     () => years.find((year) => year.year === pickedYear) ?? years[0] ?? null,
@@ -141,7 +110,7 @@ export function AdminServiceChargesPage() {
       if (chargeSort === 'amount-asc') {
         return Number(left.amount_incl_tax) - Number(right.amount_incl_tax)
       }
-      return dateForGrouping(left).localeCompare(dateForGrouping(right))
+      return adminChargeDate(left).localeCompare(adminChargeDate(right))
     })
   }, [chargeSort, selectedMonthGroup])
 

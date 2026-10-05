@@ -1,10 +1,10 @@
-import { getSupabaseClient } from '../../../lib/supabase'
+import { groupByYearMonth } from '@/lib/grouping'
+import { getSupabaseClient } from '@/lib/supabase'
 import type {
   ChargeLine,
   MerchantHallOption,
-  MerchantMonthGroup,
   MerchantYearGroup,
-} from '../../../types/domain'
+} from '@/types/domain'
 
 type ServiceResult<T> = {
   data: T | null
@@ -151,8 +151,6 @@ export async function getMerchantHallOptions(): Promise<ServiceResult<MerchantHa
   return { data: buildHallOptions(data ?? []), error: null }
 }
 
-const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
-
 function chargeDateForGrouping(row: ServiceChargeRow): string {
   return row.invoice_date ?? row.service_charge_periods?.period_end ?? row.created_at
 }
@@ -173,48 +171,23 @@ export async function getMerchantChargesByYear(hallId?: string): Promise<Service
     return { data: [], error: null }
   }
 
-  const sortedRows = [...rows].sort((a, b) =>
-    chargeDateForGrouping(a).localeCompare(chargeDateForGrouping(b)),
-  )
-
-  const monthsByYear = new Map<string, Map<string, ServiceChargeRow[]>>()
-
-  for (const row of sortedRows) {
-    const isoDate = chargeDateForGrouping(row)
-    const year = isoDate.slice(0, 4)
-    const month = isoDate.slice(5, 7)
-
-    if (!monthsByYear.has(year)) {
-      monthsByYear.set(year, new Map())
-    }
-    const monthMap = monthsByYear.get(year)!
-    if (!monthMap.has(month)) {
-      monthMap.set(month, [])
-    }
-    monthMap.get(month)!.push(row)
-  }
-
-  const years: MerchantYearGroup[] = [...monthsByYear.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([year, monthMap]) => {
-      const months: MerchantMonthGroup[] = [...monthMap.entries()]
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([month, monthRows]) => {
-          const charges = mapChargeLines(monthRows)
-          return {
-            month,
-            monthLabel: MONTH_LABEL_FORMATTER.format(new Date(Date.UTC(Number(year), Number(month) - 1, 1))),
-            totalChargesCents: charges.reduce((sum, charge) => sum + charge.totalCents, 0),
-            charges,
-          }
-        })
-
+  const years: MerchantYearGroup[] = groupByYearMonth(rows, chargeDateForGrouping).map(({ year, months }) => {
+    const monthGroups = months.map(({ month, monthLabel, items }) => {
+      const charges = mapChargeLines(items)
       return {
-        year,
-        totalChargesCents: months.reduce((sum, month) => sum + month.totalChargesCents, 0),
-        months,
+        month,
+        monthLabel,
+        totalChargesCents: charges.reduce((sum, charge) => sum + charge.totalCents, 0),
+        charges,
       }
     })
+
+    return {
+      year,
+      totalChargesCents: monthGroups.reduce((sum, month) => sum + month.totalChargesCents, 0),
+      months: monthGroups,
+    }
+  })
 
   return { data: years, error: null }
 }

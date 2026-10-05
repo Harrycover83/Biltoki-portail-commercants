@@ -5,57 +5,38 @@ import { createServer } from './server.js'
 import { setupScheduler } from './scheduler.js'
 
 async function main() {
-  try {
-    // Load config
-    const config = getConfig()
-    const logger = createLogger(config)
+  const config = getConfig()
+  const logger = createLogger(config)
 
-    logger.info('🚀 Starting Biltoki Pennylane Sync Backend')
-    logger.info(`Environment: ${config.server.nodeEnv}`)
+  logger.info(`Starting Biltoki Pennylane Sync Backend (${config.server.nodeEnv})`)
 
-    // Initialize Supabase
-    const db = createSupabaseAdmin(config, logger)
-    const connected = await verifySupabaseConnection(db, logger)
-    if (!connected) {
-      logger.error('Failed to connect to Supabase')
-      process.exit(1)
-    }
-
-    // Create Express server
-    const app = createServer(config, db, logger)
-
-    // Setup scheduler
-    const scheduler = setupScheduler(config, db, logger)
-
-    // Start server
-    const server = app.listen(config.server.port, () => {
-      logger.info(`✅ Server listening on port ${config.server.port}`)
-      logger.info(`📧 Sync endpoint: POST http://localhost:${config.server.port}/api/sync/pennylane`)
-      logger.info(`❤️  Health check: GET http://localhost:${config.server.port}/health`)
-    })
-
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM received, shutting down gracefully...')
-      scheduler.stop()
-      server.close(() => {
-        logger.info('Server closed')
-        process.exit(0)
-      })
-    })
-
-    process.on('SIGINT', () => {
-      logger.info('SIGINT received, shutting down gracefully...')
-      scheduler.stop()
-      server.close(() => {
-        logger.info('Server closed')
-        process.exit(0)
-      })
-    })
-  } catch (error) {
-    console.error('Fatal error:', error)
+  const db = createSupabaseAdmin(config, logger)
+  if (!(await verifySupabaseConnection(db, logger))) {
+    logger.error('Failed to connect to Supabase')
     process.exit(1)
   }
+
+  const app = createServer(config, db, logger)
+  const scheduler = setupScheduler(config, db, logger)
+
+  const server = app.listen(config.server.port, () => {
+    logger.info(`Server listening on port ${config.server.port}`)
+  })
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    logger.info(`${signal} received, shutting down gracefully...`)
+    scheduler.stop()
+    server.close(() => {
+      logger.info('Server closed')
+      process.exit(0)
+    })
+  }
+
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
 }
 
-main()
+main().catch((error) => {
+  console.error('Fatal error:', error)
+  process.exit(1)
+})

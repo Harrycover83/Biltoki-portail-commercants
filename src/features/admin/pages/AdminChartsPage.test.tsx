@@ -1,29 +1,29 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminChartsPage } from './AdminChartsPage'
-import type { AdminChargeRow } from '../services/adminChargeService'
+import type { AdminChargeRow } from '@/features/admin/services/adminChargeService'
 
 const { mockGetAdminCharges, mockUseAdminHall } = vi.hoisted(() => ({
   mockGetAdminCharges: vi.fn(),
   mockUseAdminHall: vi.fn(),
 }))
 
-vi.mock('../AdminHallContext', () => ({
+vi.mock('@/features/admin/AdminHallContext', () => ({
   useAdminHall: mockUseAdminHall,
 }))
 
-vi.mock('../services/adminChargeService', () => ({
+vi.mock('@/features/admin/services/adminChargeService', () => ({
   adminChargeDate: (row: { invoice_date?: string | null; period_end?: string; created_at?: string }) => (
     row.invoice_date ?? row.period_end ?? row.created_at ?? ''
   ),
   getAdminCharges: mockGetAdminCharges,
 }))
 
-vi.mock('../../../lib/env', () => ({
+vi.mock('@/lib/env', () => ({
   getBackendUrl: () => null,
 }))
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   getSupabaseClient: () => null,
 }))
 

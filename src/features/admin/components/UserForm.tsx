@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { JOB_TITLE_SUGGESTIONS, ROLE_DESCRIPTIONS, ROLE_LABELS, ROLE_ORDER } from '../../../lib/roles'
-import type { UserRole } from '../../../types/domain'
-import type { AdminOptions, UserFormValues } from '../services/adminUsersService'
+import { JOB_TITLE_SUGGESTIONS, ROLE_DESCRIPTIONS, ROLE_LABELS, ROLE_ORDER } from '@/lib/roles'
+import type { UserRole } from '@/types/domain'
+import type { AdminOptions, UserFormValues } from '@/features/admin/services/adminUsersService'
 
 type UserFormProps = {
   mode: 'create' | 'edit'

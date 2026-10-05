@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../AuthProvider'
-import { validatePasswordPolicy } from '../../../lib/passwordPolicy'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { validatePasswordPolicy } from '@/lib/passwordPolicy'
 
 export function UpdatePasswordPage() {
   const { user, mustChangePassword, updatePassword } = useAuth()

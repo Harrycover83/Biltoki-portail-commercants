@@ -1,21 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../AuthProvider'
-import { getRuntimeConfig } from '../../../lib/env'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 export function LoginPage() {
   const { user, signIn, configurationError } = useAuth()
   const location = useLocation()
-  const config = getRuntimeConfig()
-
-  let supabaseHost: string | null = null
-  if (config.supabaseUrl) {
-    try {
-      supabaseHost = new URL(config.supabaseUrl).host
-    } catch {
-      supabaseHost = config.supabaseUrl
-    }
-  }
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,10 +81,6 @@ export function LoginPage() {
         <p className="mt-2 text-sm text-[#4d5562]">
           Mot de passe oublie ? Contactez le gestionnaire de votre halle pour une reinitialisation.
         </p>
-
-        {supabaseHost ? (
-          <p className="mt-3 text-xs text-[#626a78]">Projet Supabase detecte: {supabaseHost}</p>
-        ) : null}
       </div>
     </div>
   )

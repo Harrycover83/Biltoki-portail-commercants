@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Card } from '../../../components/ui/Card'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { StateMessage } from '../../../components/ui/StateMessage'
-import { formatEuroFromCents } from '../../../lib/money'
-import { openChargeDocument } from '../../../lib/openChargeDocument'
-import { getMerchantChargesByYear, getMerchantHallOptions } from '../services/merchantService'
-import type { MerchantHallOption, MerchantYearGroup } from '../../../types/domain'
+import { Card } from '@/components/ui/Card'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { StateMessage } from '@/components/ui/StateMessage'
+import { capitalize } from '@/lib/format'
+import { formatEuroFromCents } from '@/lib/money'
+import { openChargeDocument } from '@/lib/openChargeDocument'
+import { getMerchantChargesByYear, getMerchantHallOptions } from '@/features/merchant/services/merchantService'
+import type { MerchantHallOption, MerchantYearGroup } from '@/types/domain'
 
 export function HistoryPage() {
   const [halls, setHalls] = useState<MerchantHallOption[]>([])
@@ -239,8 +240,4 @@ export function HistoryPage() {
       ) : null}
     </PageContainer>
   )
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
 }

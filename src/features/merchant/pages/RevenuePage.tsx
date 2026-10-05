@@ -9,10 +9,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
-import { formatEuroRounded as formatEuro } from '../../../lib/money'
-import { useAuth } from '../../auth/AuthProvider'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
+import { Metric } from '@/components/ui/Metric'
+import { formatMonthKey } from '@/lib/format'
+import { formatEuroRounded as formatEuro } from '@/lib/money'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 type MonthlyRevenueEntry = {
   month: string
@@ -29,12 +31,6 @@ const defaultEntries: MonthlyRevenueEntry[] = [
   { month: '2026-07', amount: 15382.03 },
   { month: '2026-08', amount: 15382.03 },
 ]
-
-function formatMonthKey(month: string): string {
-  const [year, monthNumber] = month.split('-')
-  const date = new Date(Number(year), Number(monthNumber) - 1, 1)
-  return new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(date)
-}
 
 export function RevenuePage() {
   const { profile } = useAuth()
@@ -133,14 +129,5 @@ export function RevenuePage() {
         </Card>
       </div>
     </PageContainer>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-l-4 border-[#348b57] bg-[#fffcf6] px-5 py-4 shadow-sm">
-      <p className="text-xs font-bold uppercase text-[#626a78]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-[#13223a]">{value}</p>
-    </div>
   )
 }

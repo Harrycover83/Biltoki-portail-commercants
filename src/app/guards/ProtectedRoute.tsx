@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../../features/auth/AuthProvider'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 export function ProtectedRoute({ children }: PropsWithChildren) {
   const { loading, user, configurationError, mustChangePassword } = useAuth()

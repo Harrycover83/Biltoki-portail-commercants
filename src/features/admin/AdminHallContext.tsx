@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { getSupabaseClient } from '../../lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 
 export type AdminHallOption = {
   id: string

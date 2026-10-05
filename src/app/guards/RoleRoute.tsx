@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../../features/auth/AuthProvider'
-import { homePathForRole } from '../../lib/roles'
-import type { UserRole } from '../../types/domain'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { homePathForRole } from '@/lib/roles'
+import type { UserRole } from '@/types/domain'
 
 type RoleRouteProps = PropsWithChildren<{
   roles: UserRole[]

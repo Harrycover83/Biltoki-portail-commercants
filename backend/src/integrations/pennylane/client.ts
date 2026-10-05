@@ -31,7 +31,7 @@ const HALL_PENNYLANE_CATEGORY: Record<string, { categoryId: number; label: strin
  * Pennylane Company API v2 client.
  *
  * The token is scoped to a single Pennylane company, so one client instance
- * covers one company. Falls back to mock data when no key is configured.
+ * covers one company. Every call fails fast when no key is configured.
  */
 export class PennylaneClient {
   private readonly apiKey: string
@@ -42,10 +42,6 @@ export class PennylaneClient {
     this.apiKey = apiKey
     this.apiUrl = (apiUrl || PENNYLANE_API_URL).replace(/\/+$/, '')
     this.logger = logger
-
-    if (!apiKey) {
-      this.logger.warn('⚠️  Pennylane API key not configured. Using mock data.')
-    }
   }
 
   private async request<T>(path: string, query: Record<string, string | undefined> = {}): Promise<T> {
@@ -170,10 +166,6 @@ export class PennylaneClient {
   ): Promise<PennylaneServiceChargesResponse> {
     this.logger.info(`Fetching service charges for hall: ${hallId}`)
 
-    if (!this.apiKey) {
-      return this.getMockServiceCharges()
-    }
-
     const mapping = HALL_PENNYLANE_CATEGORY[hallId]
     if (!mapping) {
       // A Pennylane token is company-scoped and knows nothing about our hall UUIDs.
@@ -220,74 +212,6 @@ export class PennylaneClient {
     return {
       charges,
       totalCount: charges.length,
-      hasMore: false,
-    }
-  }
-
-  private getMockServiceCharges(): PennylaneServiceChargesResponse {
-    const mockData: PennylaneServiceCharge[] = [
-      {
-        id: 'PLN-2026-08-001',
-        label: 'Nettoyage des locaux',
-        categoryLabel: 'Opérations',
-        amountExclTax: 3500.0,
-        taxAmount: 700.0,
-        amountInclTax: 4200.0,
-        taxRate: 20,
-        description: 'Nettoyage hall Toulon - Août 2026',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'PLN-2026-08-002',
-        label: 'Sécurité et surveillance',
-        categoryLabel: 'Opérations',
-        amountExclTax: 1800.0,
-        taxAmount: 360.0,
-        amountInclTax: 2160.0,
-        taxRate: 20,
-        description: 'Sécurité hall - Août 2026',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'PLN-2026-08-003',
-        label: 'Maintenance équipements',
-        categoryLabel: 'Maintenance',
-        amountExclTax: 2250.0,
-        taxAmount: 450.0,
-        amountInclTax: 2700.0,
-        taxRate: 20,
-        description: 'Maintenance frigos et systèmes - Août 2026',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'PLN-2026-08-004',
-        label: 'Assurance locaux',
-        categoryLabel: 'Assurance',
-        amountExclTax: 500.0,
-        taxAmount: 100.0,
-        amountInclTax: 600.0,
-        taxRate: 20,
-        description: 'Assurance immeuble - Août 2026',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'PLN-2026-08-005',
-        label: 'Eau et électricité',
-        categoryLabel: 'Services',
-        amountExclTax: 1950.0,
-        taxAmount: 390.0,
-        amountInclTax: 2340.0,
-        taxRate: 20,
-        description: 'Consommations - Août 2026',
-        createdAt: new Date().toISOString(),
-      },
-    ]
-
-    this.logger.debug(`Mock: Returning ${mockData.length} service charges`)
-
-    return {
-      charges: mockData,
-      totalCount: mockData.length,
       hasMore: false,
     }
   }

@@ -9,9 +9,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
-import { formatEuroRounded as formatEuro } from '../../../lib/money'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
+import { formatMonthKey } from '@/lib/format'
+import { formatEuroRounded as formatEuro } from '@/lib/money'
 
 const palette = ['#d84d2c', '#348b57', '#2468a8', '#9b5de5', '#d18b21', '#ef476f', '#06d6a0', '#118ab2']
 
@@ -131,12 +132,6 @@ const defaultData: MerchantRevenueRow[] = [
     ],
   },
 ]
-
-function formatMonthKey(month: string): string {
-  const [year, monthNumber] = month.split('-')
-  const date = new Date(Number(year), Number(monthNumber) - 1, 1)
-  return new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(date)
-}
 
 export function AdminRevenuePage() {
   const [data, setData] = useState<MerchantRevenueRow[]>(defaultData)

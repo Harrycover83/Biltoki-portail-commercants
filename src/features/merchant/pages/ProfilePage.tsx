@@ -1,7 +1,7 @@
-import { Card } from '../../../components/ui/Card'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { roleLabel } from '../../../lib/roles'
-import { useAuth } from '../../auth/AuthProvider'
+import { Card } from '@/components/ui/Card'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { roleLabel } from '@/lib/roles'
+import { useAuth } from '@/features/auth/AuthProvider'
 
 export function ProfilePage() {
   const { user, profile } = useAuth()

@@ -4,23 +4,21 @@ import type { Logger } from '../utils/logger.js'
 import type { PennylaneClient } from '../integrations/pennylane/client.js'
 import type { PennylaneServiceCharge } from '../integrations/pennylane/types.js'
 
+export type SyncStatus = 'running' | 'success' | 'error'
+
 export type SyncResult = {
   syncId: string
   hallId: string
-  status: 'running' | 'success' | 'error'
+  status: SyncStatus
   startedAt: string
   completedAt?: string
   recordsProcessed: number
   errors: string[]
 }
 
-type DbServiceCharge = {
-  id: string
-  label: string
-  amount_excl_tax: number
-  amount_tax: number
-  amount_incl_tax: number
-  pennylane_id: string
+type SyncOutcome = {
+  recordsProcessed: number
+  errors: string[]
 }
 
 type DbPeriod = {
@@ -51,94 +49,40 @@ function getErrorMessage(error: unknown): string {
 }
 
 export class PennylaneSync {
-  private readonly db: SupabaseAdmin
-  private readonly pennylane: PennylaneClient
-  private readonly logger: Logger
-  private readonly hallId: string
-
-  constructor(db: SupabaseAdmin, pennylane: PennylaneClient, hallId: string, logger: Logger) {
-    this.db = db
-    this.pennylane = pennylane
-    this.hallId = hallId
-    this.logger = logger
-  }
+  constructor(
+    private readonly db: SupabaseAdmin,
+    private readonly pennylane: PennylaneClient,
+    private readonly hallId: string,
+    private readonly logger: Logger,
+  ) {}
 
   /** Nightly/manual sync: re-checks the current month plus the last few, to catch late corrections. */
-  async syncServiceCharges(): Promise<SyncResult> {
-    const syncId = this.generateSyncId()
-    const startedAt = new Date().toISOString()
-
-    this.logger.info(`Starting Pennylane sync for hall ${this.hallId}: ${syncId}`)
-
-    try {
-      await this.createSyncRecord(syncId, 'running', startedAt)
-
-      const months = this.lastNMonths(RECENT_MONTHS_WINDOW)
+  syncServiceCharges(): Promise<SyncResult> {
+    return this.run('sync', async () => {
       let recordsProcessed = 0
       const errors: string[] = []
 
-      for (const month of months) {
+      for (const month of this.lastNMonths(RECENT_MONTHS_WINDOW)) {
         try {
           recordsProcessed += await this.syncMonth(month)
         } catch (err) {
-          const msg = `Failed to sync month ${month.toISOString().slice(0, 7)}: ${getErrorMessage(err)}`
-          this.logger.error(msg)
-          errors.push(msg)
+          errors.push(this.recordMonthFailure('sync', month.toISOString().slice(0, 7), err))
         }
       }
 
-      const result: SyncResult = {
-        syncId,
-        hallId: this.hallId,
-        status: errors.length > 0 ? 'error' : 'success',
-        startedAt,
-        completedAt: new Date().toISOString(),
-        recordsProcessed,
-        errors,
-      }
-
-      await this.updateSyncRecord(syncId, result.status, result, errors.join('; ') || undefined)
-      this.logger.info(`✅ Sync completed: ${recordsProcessed} charges imported/updated`)
-
-      return result
-    } catch (error) {
-      const errorMsg = getErrorMessage(error)
-      this.logger.error(`❌ Sync failed: ${errorMsg}`)
-
-      const result: SyncResult = {
-        syncId,
-        hallId: this.hallId,
-        status: 'error',
-        startedAt,
-        completedAt: new Date().toISOString(),
-        recordsProcessed: 0,
-        errors: [errorMsg],
-      }
-
-      await this.updateSyncRecord(syncId, 'error', result, errorMsg)
-      return result
-    }
+      return { recordsProcessed, errors }
+    })
   }
 
   /** One-off full historical import: fetches every invoice ever categorized for this hall. */
-  async backfillHistory(): Promise<SyncResult> {
-    const syncId = this.generateSyncId()
-    const startedAt = new Date().toISOString()
-
-    this.logger.info(`Starting Pennylane FULL HISTORY backfill for hall ${this.hallId}: ${syncId}`)
-
-    try {
-      await this.createSyncRecord(syncId, 'running', startedAt)
-
-      const pennylaneCharges = await this.pennylane.fetchServiceCharges(this.hallId)
+  backfillHistory(): Promise<SyncResult> {
+    return this.run('full history backfill', async (startedAt) => {
+      const { charges } = await this.pennylane.fetchServiceCharges(this.hallId)
 
       const byMonth = new Map<string, PennylaneServiceCharge[]>()
-      for (const charge of pennylaneCharges.charges) {
+      for (const charge of charges) {
         const monthKey = (charge.date ?? charge.createdAt ?? startedAt).slice(0, 7) // YYYY-MM
-        if (!byMonth.has(monthKey)) {
-          byMonth.set(monthKey, [])
-        }
-        byMonth.get(monthKey)!.push(charge)
+        byMonth.set(monthKey, [...(byMonth.get(monthKey) ?? []), charge])
       }
 
       let recordsProcessed = 0
@@ -147,19 +91,31 @@ export class PennylaneSync {
       for (const [monthKey, monthCharges] of [...byMonth.entries()].sort()) {
         try {
           const [year, month] = monthKey.split('-').map(Number)
-          const monthStart = new Date(Date.UTC(year, month - 1, 1))
-          const period = await this.resolveMonthPeriod(monthStart)
+          const period = await this.resolveMonthPeriod(new Date(Date.UTC(year, month - 1, 1)))
           for (const charge of monthCharges) {
             await this.upsertServiceCharge(period.id, charge)
             recordsProcessed += 1
           }
         } catch (err) {
-          const msg = `Failed to backfill month ${monthKey}: ${getErrorMessage(err)}`
-          this.logger.error(msg)
-          errors.push(msg)
+          errors.push(this.recordMonthFailure('backfill', monthKey, err))
         }
       }
 
+      return { recordsProcessed, errors }
+    })
+  }
+
+  /** Wraps a sync job with its audit record (pennylane_syncs) and a uniform result. */
+  private async run(label: string, work: (startedAt: string) => Promise<SyncOutcome>): Promise<SyncResult> {
+    const syncId = randomUUID()
+    const startedAt = new Date().toISOString()
+
+    this.logger.info(`Starting Pennylane ${label} for hall ${this.hallId}: ${syncId}`)
+
+    try {
+      await this.createSyncRecord(syncId, startedAt)
+
+      const { recordsProcessed, errors } = await work(startedAt)
       const result: SyncResult = {
         syncId,
         hallId: this.hallId,
@@ -170,15 +126,12 @@ export class PennylaneSync {
         errors,
       }
 
-      await this.updateSyncRecord(syncId, result.status, result, errors.join('; ') || undefined)
-      this.logger.info(
-        `✅ Backfill completed: ${recordsProcessed} charges imported/updated across ${byMonth.size} month(s)`,
-      )
-
+      await this.updateSyncRecord(result, errors.join('; ') || undefined)
+      this.logger.info(`Pennylane ${label} finished (${result.status}): ${recordsProcessed} charges imported/updated`)
       return result
     } catch (error) {
-      const errorMsg = getErrorMessage(error)
-      this.logger.error(`❌ Backfill failed: ${errorMsg}`)
+      const message = getErrorMessage(error)
+      this.logger.error(`Pennylane ${label} failed: ${message}`)
 
       const result: SyncResult = {
         syncId,
@@ -187,37 +140,42 @@ export class PennylaneSync {
         startedAt,
         completedAt: new Date().toISOString(),
         recordsProcessed: 0,
-        errors: [errorMsg],
+        errors: [message],
       }
 
-      await this.updateSyncRecord(syncId, 'error', result, errorMsg)
+      await this.updateSyncRecord(result, message)
       return result
     }
+  }
+
+  private recordMonthFailure(label: string, monthKey: string, error: unknown): string {
+    const message = `Failed to ${label} month ${monthKey}: ${getErrorMessage(error)}`
+    this.logger.error(message)
+    return message
   }
 
   /** Fetches + upserts a single calendar month, creating its period if needed. Returns charges processed. */
   private async syncMonth(monthStart: Date): Promise<number> {
     const period = await this.resolveMonthPeriod(monthStart)
 
-    const pennylaneCharges = await this.pennylane.fetchServiceCharges(this.hallId, {
+    const { charges } = await this.pennylane.fetchServiceCharges(this.hallId, {
       from: period.period_start,
       to: period.period_end,
     })
 
-    for (const charge of pennylaneCharges.charges) {
+    for (const charge of charges) {
       await this.upsertServiceCharge(period.id, charge)
     }
 
-    return pennylaneCharges.charges.length
+    return charges.length
   }
 
   private lastNMonths(count: number): Date[] {
     const now = new Date()
-    const months: Date[] = []
-    for (let i = 0; i < count; i++) {
-      months.push(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)))
-    }
-    return months
+    return Array.from(
+      { length: count },
+      (_, i) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)),
+    )
   }
 
   /** Finds a period covering the whole calendar month, or creates one labeled "YYYY-MM". */
@@ -242,12 +200,11 @@ export class PennylaneSync {
       return existing as DbPeriod
     }
 
-    const label = start.slice(0, 7) // YYYY-MM
     const { data: created, error: insertError } = await this.db
       .from('service_charge_periods')
       .insert({
         hall_id: this.hallId,
-        label,
+        label: start.slice(0, 7), // YYYY-MM
         period_start: start,
         period_end: end,
         status: 'draft',
@@ -262,79 +219,50 @@ export class PennylaneSync {
     return created as DbPeriod
   }
 
-  private async upsertServiceCharge(
-    periodId: string,
-    pennylaneCharge: PennylaneServiceCharge,
-  ): Promise<DbServiceCharge> {
-    // Try to find existing charge
+  private async upsertServiceCharge(periodId: string, charge: PennylaneServiceCharge): Promise<void> {
     const { data: existing, error: selectError } = await this.db
       .from('service_charges')
       .select('id')
       .eq('hall_id', this.hallId)
-      .eq('pennylane_id', pennylaneCharge.id)
+      .eq('pennylane_id', charge.id)
       .maybeSingle()
 
     if (selectError && selectError.code !== 'PGRST116') {
       throw selectError
     }
 
-    if (existing) {
-      // Update existing
-      const { error: updateError } = await this.db
-        .from('service_charges')
-        .update({
-          label: pennylaneCharge.label,
-          amount_excl_tax: pennylaneCharge.amountExclTax,
-          amount_tax: pennylaneCharge.taxAmount,
-          amount_incl_tax: pennylaneCharge.amountInclTax,
-          category: pennylaneCharge.categoryLabel || null,
-          supplier_name: pennylaneCharge.supplierName || null,
-          invoice_date: pennylaneCharge.date || null,
-        })
-        .eq('id', existing.id)
-
-      if (updateError) throw updateError
-
-      return {
-        id: existing.id,
-        label: pennylaneCharge.label,
-        amount_excl_tax: pennylaneCharge.amountExclTax,
-        amount_tax: pennylaneCharge.taxAmount,
-        amount_incl_tax: pennylaneCharge.amountInclTax,
-        pennylane_id: pennylaneCharge.id,
-      }
+    const fields = {
+      label: charge.label,
+      category: charge.categoryLabel || null,
+      supplier_name: charge.supplierName || null,
+      amount_excl_tax: charge.amountExclTax,
+      amount_tax: charge.taxAmount,
+      amount_incl_tax: charge.amountInclTax,
+      invoice_date: charge.date || null,
     }
 
-    // Create new
-    const { data: created, error: insertError } = await this.db
-      .from('service_charges')
-      .insert({
-        hall_id: this.hallId,
-        period_id: periodId,
-        label: pennylaneCharge.label,
-        category: pennylaneCharge.categoryLabel || null,
-        supplier_name: pennylaneCharge.supplierName || null,
-        amount_excl_tax: pennylaneCharge.amountExclTax,
-        amount_tax: pennylaneCharge.taxAmount,
-        amount_incl_tax: pennylaneCharge.amountInclTax,
-        pennylane_id: pennylaneCharge.id,
-        invoice_date: pennylaneCharge.date || null,
-        source: 'pennylane',
-      })
-      .select('id, label, amount_excl_tax, amount_tax, amount_incl_tax, pennylane_id')
-      .single()
+    if (existing) {
+      const { error } = await this.db.from('service_charges').update(fields).eq('id', existing.id)
+      if (error) throw error
+      return
+    }
 
-    if (insertError) throw insertError
-
-    return created as DbServiceCharge
+    const { error } = await this.db.from('service_charges').insert({
+      ...fields,
+      hall_id: this.hallId,
+      period_id: periodId,
+      pennylane_id: charge.id,
+      source: 'pennylane',
+    })
+    if (error) throw error
   }
 
-  private async createSyncRecord(syncId: string, status: string, startedAt: string) {
+  private async createSyncRecord(syncId: string, startedAt: string): Promise<void> {
     const { error } = await this.db.from('pennylane_syncs').insert({
       id: syncId,
       hall_id: this.hallId,
       sync_type: 'service_charges',
-      status: status as any,
+      status: 'running' satisfies SyncStatus,
       started_at: startedAt,
       records_processed: 0,
     })
@@ -345,23 +273,19 @@ export class PennylaneSync {
     }
   }
 
-  private async updateSyncRecord(syncId: string, status: string, result: SyncResult, errorMsg?: string) {
+  private async updateSyncRecord(result: SyncResult, errorMessage?: string): Promise<void> {
     const { error } = await this.db
       .from('pennylane_syncs')
       .update({
-        status: status as any,
+        status: result.status,
         completed_at: result.completedAt,
         records_processed: result.recordsProcessed,
-        error_message: errorMsg || null,
+        error_message: errorMessage ?? null,
       })
-      .eq('id', syncId)
+      .eq('id', result.syncId)
 
     if (error) {
       this.logger.error(`Failed to update sync record: ${error.message}`)
     }
-  }
-
-  private generateSyncId(): string {
-    return randomUUID()
   }
 }

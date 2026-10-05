@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdministrationPage } from './AdministrationPage'
-import type { ManagedUser } from '../services/adminUsersService'
+import type { ManagedUser } from '@/features/admin/services/adminUsersService'
 
 const { mockService, mockUseAuth } = vi.hoisted(() => ({
   mockService: {
@@ -17,11 +17,11 @@ const { mockService, mockUseAuth } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
 }))
 
-vi.mock('../services/adminUsersService', async () => {
-  const actual = await vi.importActual<typeof import('../services/adminUsersService')>('../services/adminUsersService')
+vi.mock('@/features/admin/services/adminUsersService', async () => {
+  const actual = await vi.importActual<typeof import('@/features/admin/services/adminUsersService')>('@/features/admin/services/adminUsersService')
   return { ...actual, adminUsersService: mockService }
 })
-vi.mock('../../auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
+vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
 
 const ME = '11111111-1111-1111-1111-111111111111'
 const OTHER = '22222222-2222-2222-2222-222222222222'

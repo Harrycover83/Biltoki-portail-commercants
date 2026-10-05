@@ -85,7 +85,7 @@ export class UserAdminService {
       details,
     })
     if (error) {
-      this.logger.error('Unable to write audit log:', error)
+      this.logger.error({ err: error }, 'Unable to write audit log')
     }
   }
 
@@ -94,7 +94,7 @@ export class UserAdminService {
   private async revokeSessions(userId: string) {
     const { error } = await this.db.rpc('admin_revoke_user_sessions', { p_user_id: userId })
     if (error) {
-      this.logger.warn('Unable to revoke sessions:', error)
+      this.logger.warn({ err: error }, 'Unable to revoke sessions')
     }
   }
 
@@ -290,7 +290,7 @@ export class UserAdminService {
       ban_duration: active ? 'none' : BAN_FOREVER,
     })
     if (error) {
-      this.logger.error('Unable to update the auth ban state:', error)
+      this.logger.error({ err: error }, 'Unable to update the auth ban state')
       throw new UserAdminError('Statut mis a jour, mais la session n’a pas pu etre bloquee.', 500)
     }
 
@@ -329,7 +329,7 @@ export class UserAdminService {
     // The profile is cascade-deleted; the database refuses to remove the last super_admin.
     const { error } = await this.db.auth.admin.deleteUser(userId)
     if (error) {
-      this.logger.error('Unable to delete auth user:', error)
+      this.logger.error({ err: error }, 'Unable to delete auth user')
       throw new UserAdminError('Suppression impossible (dernier administrateur total ?).', 409)
     }
 

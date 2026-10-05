@@ -21,13 +21,13 @@ export async function verifySupabaseConnection(client: SupabaseAdmin, logger: Lo
   try {
     const { error } = await client.from('halls').select('id').limit(1)
     if (error) {
-      logger.error('Supabase verification failed:', error)
+      logger.error({ err: error }, 'Supabase verification failed')
       return false
     }
-    logger.info('✅ Supabase connection verified')
+    logger.info('Supabase connection verified')
     return true
   } catch (err) {
-    logger.error('Supabase verification error:', err)
+    logger.error({ err }, 'Supabase verification error')
     return false
   }
 }

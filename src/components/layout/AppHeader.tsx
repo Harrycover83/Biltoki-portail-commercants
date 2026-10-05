@@ -1,7 +1,7 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { useAdminHall } from '../../features/admin/AdminHallContext'
-import { useAuth } from '../../features/auth/AuthProvider'
-import { homePathForRole, isStaffRole, isSuperAdminRole, roleLabel } from '../../lib/roles'
+import { useAdminHall } from '@/features/admin/AdminHallContext'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { homePathForRole, isStaffRole, isSuperAdminRole, roleLabel } from '@/lib/roles'
 
 export function AppHeader() {
   const { user, profile, signOut } = useAuth()

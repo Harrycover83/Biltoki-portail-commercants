@@ -1,15 +1,15 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AppHeader } from '../../../components/layout/AppHeader'
-import type { UserRole } from '../../../types/domain'
+import { AppHeader } from '@/components/layout/AppHeader'
+import type { UserRole } from '@/types/domain'
 import { AdminDashboardPage } from './AdminDashboardPage'
 
 const { mockUseAuth, mockUseAdminHall } = vi.hoisted(() => ({ mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn() }))
 
-vi.mock('../../auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
-vi.mock('../AdminHallContext', () => ({ useAdminHall: mockUseAdminHall }))
-vi.mock('./PennylaneSyncPanel', () => ({ PennylaneSyncPanel: () => <button>Synchroniser Pennylane</button> }))
+vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
+vi.mock('@/features/admin/AdminHallContext', () => ({ useAdminHall: mockUseAdminHall }))
+vi.mock('@/features/admin/components/PennylaneSyncPanel', () => ({ PennylaneSyncPanel: () => <button>Synchroniser Pennylane</button> }))
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

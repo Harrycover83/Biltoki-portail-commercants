@@ -9,13 +9,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { PageContainer } from '../../../components/layout/PageContainer'
-import { Card } from '../../../components/ui/Card'
-import { StateMessage } from '../../../components/ui/StateMessage'
-import { formatEuroFromCents } from '../../../lib/money'
-import { openChargeDocument } from '../../../lib/openChargeDocument'
-import { useAdminHall } from '../AdminHallContext'
-import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '../services/adminChargeService'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { Card } from '@/components/ui/Card'
+import { Metric } from '@/components/ui/Metric'
+import { StateMessage } from '@/components/ui/StateMessage'
+import { formatEuroFromCents } from '@/lib/money'
+import { openChargeDocument } from '@/lib/openChargeDocument'
+import { useAdminHall } from '@/features/admin/AdminHallContext'
+import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '@/features/admin/services/adminChargeService'
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
   day: '2-digit',
@@ -384,14 +385,5 @@ function AdminChartsPageContent() {
         </div>
       ) : null}
     </PageContainer>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-l-4 border-[#348b57] bg-[#fffcf6] px-5 py-4 shadow-sm">
-      <p className="text-xs font-bold uppercase text-[#626a78]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-[#13223a]">{value}</p>
-    </div>
   )
 }
