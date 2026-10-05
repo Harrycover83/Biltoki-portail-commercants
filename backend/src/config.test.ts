@@ -15,6 +15,7 @@ describe('getConfig', () => {
     vi.stubEnv('LOG_LEVEL', '')
     vi.stubEnv('PORT', '')
     vi.stubEnv('SYNC_CRON_SCHEDULE', '')
+    vi.stubEnv('TRUST_PROXY_HOPS', '')
   })
 
   afterEach(() => {
@@ -28,7 +29,19 @@ describe('getConfig', () => {
     expect(config.biltoki.syncCronSchedule).toBe('0 2 * * *')
     expect(config.server.port).toBe(3000)
     expect(config.server.internalApiToken).toBeNull()
+    expect(config.server.trustProxyHops).toBe(0)
     expect(config.logging.level).toBe('info')
+  })
+
+  it('trusts one reverse proxy in production unless told otherwise', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(getConfig().server.trustProxyHops).toBe(1)
+
+    vi.stubEnv('TRUST_PROXY_HOPS', '2')
+    expect(getConfig().server.trustProxyHops).toBe(2)
+
+    vi.stubEnv('TRUST_PROXY_HOPS', 'many')
+    expect(() => getConfig()).toThrow('TRUST_PROXY_HOPS')
   })
 
   it('requires Supabase credentials', () => {

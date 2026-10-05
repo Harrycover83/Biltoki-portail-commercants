@@ -1,8 +1,9 @@
-import { Router, type Request, type Response } from 'express'
+import { Router } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
 import { PennylaneClient } from '../integrations/pennylane/client.js'
+import { asyncHandler } from '../middleware/async-handler.js'
 import { requireStaffForHall } from '../middleware/auth.js'
 import { PennylaneSync, type SyncResult } from '../services/sync.service.js'
 import { syncLock } from '../services/sync-lock.js'
@@ -17,8 +18,8 @@ export function createHallSyncRouter(config: Config, db: SupabaseAdmin, logger: 
   const router = Router()
   const guard = requireStaffForHall(config, db, logger)
 
-  const trigger =
-    (label: string, run: (sync: PennylaneSync) => Promise<SyncResult>) => async (req: Request, res: Response) => {
+  const trigger = (label: string, run: (sync: PennylaneSync) => Promise<SyncResult>) =>
+    asyncHandler(async (req, res) => {
       const { hallId } = req.params
 
       if (!config.biltoki.hallsToSync.includes(hallId)) {
@@ -48,7 +49,7 @@ export function createHallSyncRouter(config: Config, db: SupabaseAdmin, logger: 
         logger.error({ err: error }, `${label} error`)
         return res.status(500).json({ error: 'Sync failed' })
       }
-    }
+    })
 
   router.post('/:hallId', guard, trigger('Manual sync', (sync) => sync.syncServiceCharges()))
 

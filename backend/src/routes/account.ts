@@ -3,6 +3,7 @@ import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
 import { requirePortalUser } from '../middleware/auth.js'
+import { asyncHandler } from '../middleware/async-handler.js'
 import { validatePassword } from '../services/password-policy.js'
 
 /** Routes available to a signed-in account about itself. */
@@ -14,7 +15,7 @@ export function createAccountRouter(config: Config, db: SupabaseAdmin, logger: L
   router.post(
     '/password',
     requirePortalUser(config, db, logger, { allowPasswordChangePending: true }),
-    async (req, res) => {
+    asyncHandler(async (req, res) => {
       res.setHeader('Cache-Control', 'no-store')
 
       const password = (req.body as { password?: unknown } | undefined)?.password
@@ -37,7 +38,7 @@ export function createAccountRouter(config: Config, db: SupabaseAdmin, logger: L
       }
 
       return res.json({ ok: true })
-    },
+    }),
   )
 
   return router

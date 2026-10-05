@@ -4,6 +4,7 @@ import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
 import { isGlobalRole, isHallScopedRole, canSyncRole } from '../auth/roles.js'
+import { asyncHandler } from './async-handler.js'
 
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)
@@ -27,7 +28,7 @@ export function requirePortalUser(
   logger: Logger,
   options: { allowPasswordChangePending?: boolean } = {},
 ) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const [scheme, token] = (req.header('authorization') ?? '').split(' ')
     if (scheme?.toLowerCase() !== 'bearer' || !token) {
       return res.status(401).json({ error: 'Unauthorized' })
@@ -59,7 +60,7 @@ export function requirePortalUser(
     res.locals.callerRole = profile.role
     res.locals.callerAppMetadata = appMetadata
     return next()
-  }
+  })
 }
 
 /**
@@ -67,7 +68,7 @@ export function requirePortalUser(
  * and manage accounts. Also accepts the machine-to-machine token used by ops tooling.
  */
 export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Logger) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const internalToken = req.header('x-internal-token')
     if (internalToken) {
       if (config.server.internalApiToken && safeEqual(internalToken, config.server.internalApiToken)) {
@@ -80,14 +81,17 @@ export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Log
       return res.status(403).json({ error: 'Forbidden' })
     }
 
-    return requirePortalUser(config, db, logger)(req, res, () => {
+    return requirePortalUser(config, db, logger)(req, res, (error?: unknown) => {
+      if (error) {
+        return next(error)
+      }
       if (res.locals.callerRole !== 'super_admin') {
         logger.warn(`Forbidden API access by ${res.locals.caller} on ${req.method} ${req.path}`)
         return res.status(403).json({ error: 'Forbidden' })
       }
       return next()
     })
-  }
+  })
 }
 
 /**
@@ -95,12 +99,16 @@ export function requireSuperAdmin(config: Config, db: SupabaseAdmin, logger: Log
  * they can see (hq is read-only). The ops token keeps working as before.
  */
 export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: Logger) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (req.header('x-internal-token')) {
       return requireSuperAdmin(config, db, logger)(req, res, next)
     }
 
-    return requirePortalUser(config, db, logger)(req, res, async () => {
+    return requirePortalUser(config, db, logger)(req, res, async (error?: unknown) => {
+      if (error) {
+        return next(error)
+      }
+
       try {
         const hallId = req.params.hallId
         const allowed =
@@ -118,7 +126,7 @@ export function requireStaffForHall(config: Config, db: SupabaseAdmin, logger: L
         return res.status(500).json({ error: 'Unable to verify access' })
       }
     })
-  }
+  })
 }
 
 /** Account administration: a signed-in super_admin only, never the machine token. */

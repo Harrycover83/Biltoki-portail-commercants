@@ -62,7 +62,9 @@ prisma/              Modèle, migrations, seed
 | `/api/admin/*` | `super_admin` connecté (jamais le jeton interne) | Gestion des comptes et journal |
 
 Authentification : `Authorization: Bearer <jeton Supabase>`, ou `x-internal-token` pour l'outillage d'exploitation.
-Une synchronisation déjà en cours pour une halle renvoie `409`.
+Une synchronisation déjà en cours pour une halle renvoie `409`. Toutes les routes `/api` sont limitées à 300 requêtes
+par minute et par IP (`429` au-delà ; `TRUST_PROXY_HOPS` doit refléter le nombre de reverse proxies). Les erreurs sont
+toujours renvoyées en JSON, sans trace d'erreur.
 
 ## Synchronisation planifiée
 

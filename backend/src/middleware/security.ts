@@ -1,5 +1,17 @@
 import type { RequestHandler } from 'express'
+import { rateLimit } from 'express-rate-limit'
 import type { Config } from '../config.js'
+
+/** Caps the request rate per client IP on the authenticated API (each call costs a Supabase lookup). */
+export function apiRateLimit(): RequestHandler {
+  return rateLimit({
+    windowMs: 60_000,
+    limit: 300,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many requests' },
+  })
+}
 
 /** Baseline hardening headers for an API that only serves JSON and proxied documents. */
 export const securityHeaders: RequestHandler = (_req, res, next) => {

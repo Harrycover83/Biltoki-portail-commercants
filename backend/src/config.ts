@@ -19,6 +19,7 @@ export type Config = {
     nodeEnv: (typeof NODE_ENVS)[number]
     internalApiToken: string | null
     allowedOrigins: string[]
+    trustProxyHops: number
   }
   biltoki: {
     hallsToSync: string[]
@@ -56,6 +57,15 @@ function listEnv(key: string): string[] {
     .filter((item) => item.length > 0)
 }
 
+function intEnv(key: string, defaultValue: number): number {
+  const raw = optionalEnv(key, String(defaultValue))
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${key} must be a non-negative integer`)
+  }
+  return value
+}
+
 export function getConfig(): Config {
   const hallsToSync = listEnv('HALLS_TO_SYNC')
   if (hallsToSync.length === 0) {
@@ -66,6 +76,8 @@ export function getConfig(): Config {
   if (internalApiToken && internalApiToken.length < 32) {
     throw new Error('INTERNAL_API_TOKEN must be at least 32 characters')
   }
+
+  const nodeEnv = enumEnv('NODE_ENV', NODE_ENVS, 'development')
 
   return {
     supabase: {
@@ -78,9 +90,11 @@ export function getConfig(): Config {
     },
     server: {
       port: parseInt(optionalEnv('PORT', '3000'), 10),
-      nodeEnv: enumEnv('NODE_ENV', NODE_ENVS, 'development'),
+      nodeEnv,
       internalApiToken: internalApiToken || null,
       allowedOrigins: listEnv('ALLOWED_ORIGINS'),
+      // Hosted deployments sit behind one reverse proxy; locally there is none.
+      trustProxyHops: intEnv('TRUST_PROXY_HOPS', nodeEnv === 'production' ? 1 : 0),
     },
     biltoki: {
       hallsToSync,
