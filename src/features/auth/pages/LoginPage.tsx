@@ -33,9 +33,9 @@ export function LoginPage() {
     <div className="brand-shell grid min-h-screen place-items-center px-4 py-10">
       <div className="brand-card w-full max-w-md p-7 md:p-8">
         <p className="brand-badge">Portail Biltoki</p>
-        <h1 className="brand-display mt-4 text-[2.3rem] leading-[0.98] font-semibold">Connexion commercant</h1>
+        <h1 className="brand-display mt-4 text-[2.3rem] leading-[0.98] font-semibold">Connexion commerçant</h1>
         <p className="mt-3 max-w-sm text-sm leading-6 text-[#4d5562]">
-          Acces reserve aux locataires de stands enregistres. Utilisez l'adresse email transmise au
+          Accès réservé aux locataires de stands enregistrés. Utilisez l'adresse email transmise au
           gestionnaire de votre halle.
         </p>
 
@@ -75,11 +75,11 @@ export function LoginPage() {
         </form>
 
         <p className="mt-5 text-sm text-[#4d5562]">
-          Premiere connexion : saisissez le mot de passe provisoire remis par le gestionnaire, le
-          portail vous demandera aussitot d'en choisir un personnel.
+          Première connexion : saisissez le mot de passe provisoire remis par le gestionnaire, le
+          portail vous demandera aussitôt d'en choisir un personnel.
         </p>
         <p className="mt-2 text-sm text-[#4d5562]">
-          Mot de passe oublie ? Contactez le gestionnaire de votre halle pour une reinitialisation.
+          Mot de passe oublié ? Contactez le gestionnaire de votre halle pour une réinitialisation.
         </p>
       </div>
     </div>

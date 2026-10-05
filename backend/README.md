@@ -69,8 +69,10 @@ toujours renvoyées en JSON, sans trace d'erreur.
 ## Synchronisation planifiée
 
 `SYNC_CRON_SCHEDULE` (défaut `0 2 * * *`, soit 2 h chaque nuit) synchronise séquentiellement chaque halle de
-`HALLS_TO_SYNC`. L'import est idempotent (mise à jour par `pennylane_id`, sans doublon). Une halle doit être déclarée
-dans la correspondance du [client Pennylane](src/integrations/pennylane/client.ts) pour être synchronisée.
+`HALLS_TO_SYNC`. L'import est idempotent (mise à jour par `pennylane_id`, sans doublon). Pour être synchronisée, une
+halle doit être associée à une catégorie analytique Pennylane : la halle de Toulon est déclarée dans
+[`hall-categories.ts`](src/integrations/pennylane/hall-categories.ts), les autres via la variable
+`PENNYLANE_HALL_CATEGORIES` (JSON, voir `.env.example`), sans modifier le code.
 
 ## Déploiement
 
@@ -81,6 +83,6 @@ serveur ; `GET /health` sert de sonde. Renseigner les variables d'environnement 
 ## Dépannage
 
 - **`Missing environment variable`** : une variable obligatoire de `.env` est absente.
-- **`No Pennylane mapping configured for hall …`** : la halle n'est pas déclarée dans le client Pennylane.
+- **`No Pennylane mapping configured for hall …`** : la halle n'a pas de catégorie Pennylane (voir `PENNYLANE_HALL_CATEGORIES`).
 - **`Pennylane API key is not configured`** : renseigner `PENNYLANE_API_KEY`.
 - **Synchronisation qui ne démarre pas** : vérifier `SYNC_CRON_SCHEDULE` et les logs du backend.

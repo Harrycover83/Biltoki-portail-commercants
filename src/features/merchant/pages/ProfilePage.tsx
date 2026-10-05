@@ -19,7 +19,7 @@ export function ProfilePage() {
             <dd className="mt-1 font-semibold">{roleLabel(profile?.role)}</dd>
           </div>
           <div className="border-b-2 border-[#15130f] pb-3">
-            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Prenom</dt>
+            <dt className="text-xs font-bold uppercase tracking-wide text-[#615b51]">Prénom</dt>
             <dd className="mt-1 font-semibold">{profile?.first_name ?? 'N/A'}</dd>
           </div>
           <div className="border-b-2 border-[#15130f] pb-3">

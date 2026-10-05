@@ -120,9 +120,9 @@ describe('AdminChartsPage', () => {
     await act(async () => {})
 
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.change(screen.getByLabelText('Liste de tous les creanciers'), { target: { value: 'Veolia' } })
-    const chart = screen.getByLabelText("Courbes d'evolution des montants TTC par creancier")
-    const input = screen.getByLabelText('Liste de tous les creanciers')
+    fireEvent.change(screen.getByLabelText('Liste de tous les créanciers'), { target: { value: 'Veolia' } })
+    const chart = screen.getByLabelText("Courbes d'évolution des montants TTC par créancier")
+    const input = screen.getByLabelText('Liste de tous les créanciers')
     input.focus()
 
     await act(async () => {
@@ -144,7 +144,7 @@ describe('AdminChartsPage', () => {
       refresh.resolve({ data: [{ ...charge, label: 'Eau actualisee' }], error: null })
     })
 
-    expect(screen.getByLabelText("Courbes d'evolution des montants TTC par creancier")).toBe(chart)
+    expect(screen.getByLabelText("Courbes d'évolution des montants TTC par créancier")).toBe(chart)
     expect(screen.getByText('Eau actualisee')).toBeInTheDocument()
     expect(screen.getByRole('checkbox')).toBeChecked()
   })
@@ -153,18 +153,18 @@ describe('AdminChartsPage', () => {
     render(<AdminChartsPage />)
     await screen.findByText('Eau')
 
-    mockGetAdminCharges.mockResolvedValueOnce({ data: null, error: 'Reseau indisponible' })
+    mockGetAdminCharges.mockResolvedValueOnce({ data: null, error: 'Réseau indisponible' })
     await act(async () => {
       window.dispatchEvent(new Event('focus'))
     })
 
-    expect(screen.getByText('Reseau indisponible')).toBeInTheDocument()
+    expect(screen.getByText('Réseau indisponible')).toBeInTheDocument()
     expect(screen.getByText('Eau')).toBeInTheDocument()
 
     await act(async () => {
       window.dispatchEvent(new Event('focus'))
     })
-    expect(screen.queryByText('Reseau indisponible')).not.toBeInTheDocument()
+    expect(screen.queryByText('Réseau indisponible')).not.toBeInTheDocument()
     expect(screen.getByText('Eau')).toBeInTheDocument()
   })
 

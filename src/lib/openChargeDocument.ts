@@ -14,7 +14,7 @@ export async function openChargeDocument(chargeId: string): Promise<string | nul
 
   const documentWindow = window.open('', '_blank')
   if (!documentWindow) {
-    return 'Autorisez les fenetres pop-up pour ouvrir le justificatif.'
+    return 'Autorisez les fenêtres pop-up pour ouvrir le justificatif.'
   }
 
   try {

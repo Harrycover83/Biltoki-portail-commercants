@@ -67,11 +67,11 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
     })
     const body = await response.json().catch(() => ({}))
     if (!response.ok) {
-      return { data: null, error: typeof body.error === 'string' ? body.error : `Echec (HTTP ${response.status})` }
+      return { data: null, error: typeof body.error === 'string' ? body.error : `Échec (HTTP ${response.status})` }
     }
     return { data: body as T, error: null }
   } catch (error) {
-    return { data: null, error: error instanceof Error ? error.message : 'Erreur reseau' }
+    return { data: null, error: error instanceof Error ? error.message : 'Erreur réseau' }
   }
 }
 

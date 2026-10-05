@@ -33,7 +33,7 @@ function cleanText(value: unknown, maxLength: number): string | null {
  */
 export function validateUserInput(body: unknown, options: { requireEmail: boolean }): ValidationResult {
   if (!body || typeof body !== 'object') {
-    return { ok: false, error: 'Corps de requete invalide.' }
+    return { ok: false, error: 'Corps de requête invalide.' }
   }
   const raw = body as Record<string, unknown>
 
@@ -45,7 +45,7 @@ export function validateUserInput(body: unknown, options: { requireEmail: boolea
   const firstName = cleanText(raw.firstName, 80)
   const lastName = cleanText(raw.lastName, 80)
   if (!firstName || !lastName) {
-    return { ok: false, error: 'Le prenom et le nom sont obligatoires.' }
+    return { ok: false, error: 'Le prénom et le nom sont obligatoires.' }
   }
 
   if (!isUserRole(raw.role)) {
@@ -57,12 +57,12 @@ export function validateUserInput(body: unknown, options: { requireEmail: boolea
     ? null
     : cleanText(raw.jobTitle, 80)
   if (raw.jobTitle && !jobTitle) {
-    return { ok: false, error: 'Intitule de poste invalide.' }
+    return { ok: false, error: 'Intitulé de poste invalide.' }
   }
 
   const merchantId = raw.merchantId === '' ? null : (raw.merchantId ?? null)
   if (merchantId !== null && !isUuid(merchantId)) {
-    return { ok: false, error: 'Commercant invalide.' }
+    return { ok: false, error: 'Commerçant invalide.' }
   }
 
   const rawHalls = raw.hallIds ?? []
@@ -73,23 +73,23 @@ export function validateUserInput(body: unknown, options: { requireEmail: boolea
 
   if (role === 'merchant') {
     if (!merchantId) {
-      return { ok: false, error: 'Selectionnez le commercant (stand) associe a ce compte.' }
+      return { ok: false, error: 'Sélectionnez le commerçant (stand) associé à ce compte.' }
     }
     if (hallIds.length > 0) {
-      return { ok: false, error: 'Un compte commercant n’a pas de perimetre de halles.' }
+      return { ok: false, error: 'Un compte commerçant n’a pas de périmètre de halles.' }
     }
   } else {
     if (merchantId) {
-      return { ok: false, error: 'Seul un compte commercant peut etre lie a un stand.' }
+      return { ok: false, error: 'Seul un compte commerçant peut être lié à un stand.' }
     }
     if (role === 'hall_manager' && hallIds.length !== 1) {
-      return { ok: false, error: 'Un responsable de halle est rattache a exactement une halle.' }
+      return { ok: false, error: 'Un responsable de halle est rattaché à exactement une halle.' }
     }
     if (role === 'network_manager' && hallIds.length < 1) {
-      return { ok: false, error: 'Un responsable reseau doit gerer au moins une halle.' }
+      return { ok: false, error: 'Un responsable réseau doit gérer au moins une halle.' }
     }
     if (!isHallScopedRole(role) && hallIds.length > 0) {
-      return { ok: false, error: 'Ce role voit toutes les halles : aucun perimetre a definir.' }
+      return { ok: false, error: 'Ce rôle voit toutes les halles : aucun périmètre à définir.' }
     }
   }
 

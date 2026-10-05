@@ -139,13 +139,13 @@ export function AdminServiceChargesPage() {
         <StateMessage
           variant="empty"
           title="Aucune charge commune"
-          message="Aucune charge synchronisee depuis Pennylane pour cette halle. Lancez une synchronisation."
+          message="Aucune charge synchronisée depuis Pennylane pour cette halle. Lancez une synchronisation."
         />
       ) : null}
 
       {!loadingHalls && !loadingRows && !error && years.length > 0 ? (
         <div className="space-y-6">
-          <Card title="Charges communes" subtitle="Source unique: Pennylane. Vue en lecture, alimentee par la synchronisation Pennylane.">
+          <Card title="Charges communes" subtitle="Source unique : Pennylane. Vue en lecture, alimentée par la synchronisation Pennylane.">
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="admin-year-select">
@@ -195,9 +195,9 @@ export function AdminServiceChargesPage() {
                   onChange={(event) => setChargeSort(event.target.value as ChargeSort)}
                   className="brand-input"
                 >
-                  <option value="date-asc">Date, du plus ancien au plus recent</option>
-                  <option value="amount-desc">Montant, du plus eleve au plus faible</option>
-                  <option value="amount-asc">Montant, du plus faible au plus eleve</option>
+                  <option value="date-asc">Date, du plus ancien au plus récent</option>
+                  <option value="amount-desc">Montant, du plus élevé au plus faible</option>
+                  <option value="amount-asc">Montant, du plus faible au plus élevé</option>
                 </select>
               </div>
             </div>
@@ -214,7 +214,7 @@ export function AdminServiceChargesPage() {
                     <tr className="border-b border-[#13223a1f] text-[#626a78]">
                       <th className="py-2">Date</th>
                       <th className="py-2">Poste</th>
-                      <th className="py-2">Categorie</th>
+                      <th className="py-2">Catégorie</th>
                       <th className="py-2 text-right">Montant TTC</th>
                       <th className="py-2 text-right">Justificatif</th>
                     </tr>

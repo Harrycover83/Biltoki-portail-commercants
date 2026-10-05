@@ -113,7 +113,7 @@ export function HistoryPage() {
 
       {!loading && !error && years.length > 0 ? (
         <div className="space-y-6">
-          <Card title="Historique des factures" subtitle="Charges communes refacturees, par annee et par mois">
+          <Card title="Historique des factures" subtitle="Charges communes refacturées, par année et par mois">
             <div className="grid gap-4 sm:grid-cols-3">
               {halls.length > 1 ? (
                 <div>
@@ -184,7 +184,7 @@ export function HistoryPage() {
                   className="brand-input"
                 >
                   <option value="chronological">Plus recentes d&apos;abord</option>
-                  <option value="amount">Montant decroissant</option>
+                  <option value="amount">Montant décroissant</option>
                 </select>
               </div>
             </div>
@@ -201,7 +201,7 @@ export function HistoryPage() {
                     <tr className="border-b border-[#13223a1f] text-[#626a78]">
                       <th className="py-2">Date</th>
                       <th className="py-2">Facture</th>
-                      <th className="py-2">Categorie</th>
+                      <th className="py-2">Catégorie</th>
                       <th className="py-2 text-right">Montant TTC</th>
                       <th className="py-2 text-right">Justificatif</th>
                     </tr>

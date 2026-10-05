@@ -52,19 +52,21 @@ Le backend se lance séparément, voir [backend/README.md](backend/README.md).
 | `npm run db:run-sql -- <fichier.sql>` | Exécute des fichiers SQL sur la base distante |
 | `npm run portal:users` | Provisioning des comptes du portail depuis l'allowlist |
 
-La CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute lint, typecheck, tests et build pour le frontend et le backend.
+La CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute audit des dépendances, lint, typecheck, tests et
+build (frontend, backend et image Docker) avec des permissions minimales et des actions épinglées par SHA.
+Politique de sécurité : [SECURITY.md](SECURITY.md).
 
 ## Organisation du frontend
 
 ```text
 src/
-  app/                 Routage et gardes d'accès (ProtectedRoute, RoleRoute)
+  app/                 Routage (pages chargées à la demande) et gardes d'accès
   components/          Composants transverses (layout, ui)
   domain/              Logique métier pure et testée (calcul des répartitions)
   features/
     auth/              Session Supabase, connexion, changement de mot de passe
     merchant/          Pages et services côté commerçant
-    admin/             Pages, composants et services côté équipes Biltoki
+    admin/             Côté équipes Biltoki : pages/, components/, hooks/, charts/ (calculs des graphiques), services/
     common/            Pages partagées (404)
   lib/                 Utilitaires (env, formats, regroupements, supabase, rôles)
   types/               Types du domaine

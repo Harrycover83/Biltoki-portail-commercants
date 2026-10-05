@@ -35,7 +35,7 @@ export function PennylaneSyncPanel() {
       return
     }
     if (!selectedHallId) {
-      setSyncMessage('Selectionnez une halle.')
+      setSyncMessage('Sélectionnez une halle.')
       return
     }
 
@@ -56,7 +56,7 @@ export function PennylaneSyncPanel() {
       const body = await response.json()
 
       if (!response.ok) {
-        setSyncMessage(body.error ?? `Echec (HTTP ${response.status})`)
+        setSyncMessage(body.error ?? `Échec (HTTP ${response.status})`)
       } else {
         const formattedErrors = formatSyncErrors(body.errors)
         const errorDetails = formattedErrors ? ` ${formattedErrors}` : ''
@@ -66,7 +66,7 @@ export function PennylaneSyncPanel() {
         notifySynced()
       }
     } catch (err) {
-      setSyncMessage(err instanceof Error ? err.message : 'Erreur reseau')
+      setSyncMessage(err instanceof Error ? err.message : 'Erreur réseau')
     } finally {
       setSyncing(false)
     }

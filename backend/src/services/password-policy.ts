@@ -6,7 +6,7 @@ export function validatePassword(password: unknown): string | null {
     return 'Mot de passe invalide.'
   }
   if (password.length < PASSWORD_MIN_LENGTH) {
-    return `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caracteres.`
+    return `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères.`
   }
   if (!/[a-z]/.test(password)) {
     return 'Le mot de passe doit contenir au moins une lettre minuscule.'
@@ -18,7 +18,7 @@ export function validatePassword(password: unknown): string | null {
     return 'Le mot de passe doit contenir au moins un chiffre.'
   }
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return 'Le mot de passe doit contenir au moins un caractere special.'
+    return 'Le mot de passe doit contenir au moins un caractère spécial.'
   }
   return null
 }

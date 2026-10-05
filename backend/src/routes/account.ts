@@ -31,10 +31,10 @@ export function createAccountRouter(config: Config, db: SupabaseAdmin, logger: L
 
       if (error) {
         if (error.status === 422) {
-          return res.status(400).json({ error: 'Choisissez un mot de passe different de l’actuel.' })
+          return res.status(400).json({ error: 'Choisissez un mot de passe différent de l’actuel.' })
         }
         logger.error({ err: error }, 'Password update failed')
-        return res.status(500).json({ error: 'Mise a jour impossible pour le moment.' })
+        return res.status(500).json({ error: 'Mise à jour impossible pour le moment.' })
       }
 
       return res.json({ ok: true })

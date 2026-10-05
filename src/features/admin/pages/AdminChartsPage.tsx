@@ -50,8 +50,8 @@ function AdminChartsPageContent() {
   const loading = loadingHalls || loadingRows
   const hasCriteria = rows.length > 0 || selectedSuppliers.length > 0
   const chartTitle = selectedSuppliers.length > 0
-    ? `Evolution de ${selectedSuppliers.length} creancier(s) selectionne(s)`
-    : 'Evolution de toutes les factures'
+    ? `Évolution de ${selectedSuppliers.length} créancier(s) sélectionné(s)`
+    : 'Évolution de toutes les factures'
 
   const toggleSupplier = (supplierName: string) => {
     setSelectedSuppliers((current) => (
@@ -75,14 +75,14 @@ function AdminChartsPageContent() {
       {!loading && (!error || rows.length > 0) ? (
         <div className="space-y-6">
           <Card
-            title="Evolution des factures"
-            subtitle="Liste exhaustive des factures par creancier et par annee."
+            title="Évolution des factures"
+            subtitle="Liste exhaustive des factures par créancier et par année."
           >
             <div className="mt-0 border-t-0 pt-0">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="min-w-[240px] flex-1">
                   <label className="mb-1 block text-sm font-medium text-[#4d5562]" htmlFor="invoice-catalog-search">
-                    Liste de tous les creanciers
+                    Liste de tous les créanciers
                   </label>
                   <input
                     id="invoice-catalog-search"
@@ -126,8 +126,8 @@ function AdminChartsPageContent() {
                 {visibleSuppliers.length === 0 ? (
                   <p className="px-3 py-4 text-sm text-[#626a78]">
                     {suppliers.length === 0
-                      ? 'Aucun creancier renseigne. Lancez un backfill historique apres la migration.'
-                      : 'Aucun creancier ne correspond a ce filtre.'}
+                      ? 'Aucun créancier renseigné. Lancez un backfill historique après la migration.'
+                      : 'Aucun créancier ne correspond à ce filtre.'}
                   </p>
                 ) : null}
               </div>
@@ -145,24 +145,24 @@ function AdminChartsPageContent() {
           {hasCriteria && matchingRows.length === 0 ? (
             <StateMessage
               variant="empty"
-              title="Aucune facture trouvee"
-              message="Aucun creancier ne correspond a cette selection."
+              title="Aucune facture trouvée"
+              message="Aucun créancier ne correspond à cette sélection."
             />
           ) : null}
 
           {matchingRows.length > 0 ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Metric label="Factures trouvees" value={matchingRows.length.toLocaleString('fr-FR')} />
+                <Metric label="Factures trouvées" value={matchingRows.length.toLocaleString('fr-FR')} />
                 <Metric label="Montant total" value={formatEuroFromCents(totalCents)} />
                 <Metric label="Montant moyen" value={formatEuroFromCents(averageCents)} />
               </div>
 
               <Card
                 title={chartTitle}
-                subtitle={`${matchingRows.length} facture(s), de ${chartData[0]?.date} a ${chartData.at(-1)?.date}`}
+                subtitle={`${matchingRows.length} facture(s), de ${chartData[0]?.date} à ${chartData.at(-1)?.date}`}
               >
-                <div className="h-[360px] w-full" aria-label="Courbes d'evolution des montants TTC par creancier">
+                <div className="h-[360px] w-full" aria-label="Courbes d'évolution des montants TTC par créancier">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
                       <CartesianGrid stroke="#e4ddd1" strokeDasharray="3 3" />
@@ -197,15 +197,15 @@ function AdminChartsPageContent() {
                 </div>
               </Card>
 
-              <Card title="Factures correspondantes" subtitle="Classement chronologique, de la plus ancienne a la plus recente.">
+              <Card title="Factures correspondantes" subtitle="Classement chronologique, de la plus ancienne à la plus récente.">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-[#13223a1f] text-[#626a78]">
                         <th className="py-2">Date</th>
-                        <th className="py-2">Creancier</th>
+                        <th className="py-2">Créancier</th>
                         <th className="py-2">Poste</th>
-                        <th className="py-2">Categorie</th>
+                        <th className="py-2">Catégorie</th>
                         <th className="py-2 text-right">Montant TTC</th>
                         <th className="py-2 text-right">Facture</th>
                       </tr>

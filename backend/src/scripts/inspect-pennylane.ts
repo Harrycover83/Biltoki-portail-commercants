@@ -118,18 +118,18 @@ async function main() {
   }
 
   console.log('\n=== COMPTE ===')
-  console.log(`Societe    : ${me.company?.name ?? 'inconnue'} (id ${me.company?.id ?? '?'})`)
+  console.log(`Société    : ${me.company?.name ?? 'inconnue'} (id ${me.company?.id ?? '?'})`)
   console.log(`Reg. no    : ${me.company?.reg_no ?? '-'}`)
   console.log(`Utilisateur: ${me.user?.email ?? '?'} (${me.user?.first_name ?? ''} ${me.user?.last_name ?? ''})`)
   console.log(`API        : ${apiUrl}`)
 
-  console.log(`\n=== AXES ANALYTIQUES (${groups.length} groupes / ${categories.length} categories) ===`)
+  console.log(`\n=== AXES ANALYTIQUES (${groups.length} groupes / ${categories.length} catégories) ===`)
   if (groups.length === 0 && categories.length === 0) {
-    console.log('Aucune categorie analytique. Les halles ne sont donc pas modelisees par axe analytique.')
+    console.log('Aucune catégorie analytique. Les halles ne sont donc pas modélisées par axe analytique.')
   }
   for (const group of groups) {
     const members = categories.filter((category) => category.category_group?.id === group.id)
-    console.log(`\n[${group.id}] ${group.name} — ${members.length} categorie(s)`)
+    console.log(`\n[${group.id}] ${group.name} — ${members.length} catégorie(s)`)
     for (const member of members) {
       console.log(`    - [${member.id}] ${member.label}`)
     }
@@ -167,8 +167,8 @@ async function main() {
   }
 
   console.log('\n=== SYNTHESE ===')
-  console.log(`Total TTC sur la periode : ${formatEuros(totalInclTax)}`)
-  console.log(`Factures sans categorie  : ${invoices.filter((i) => (invoiceCategories.get(i.id) ?? []).length === 0).length}`)
+  console.log(`Total TTC sur la période : ${formatEuros(totalInclTax)}`)
+  console.log(`Factures sans catégorie  : ${invoices.filter((i) => (invoiceCategories.get(i.id) ?? []).length === 0).length}`)
   console.log(`Statuts                  : ${[...byStatus].map(([key, count]) => `${key}=${count}`).join(', ')}`)
   console.log('Par mois:')
   for (const [month, total] of [...byMonth].sort()) {

@@ -18,5 +18,5 @@
    à supprimer lors du branchement.
 2. Remplacer les données de chiffre d'affaires codées en dur dans `RevenuePage` et `AdminRevenuePage`.
 3. Ajouter des tests d'intégration RLS (isolation commerçant / personnel).
-4. Externaliser la correspondance halle → catégorie Pennylane (aujourd'hui dans le client Pennylane) pour onboarder
-   de nouvelles halles sans modifier le code.
+4. Migrer Tailwind 3 → 4 pour éliminer les alertes `npm audit` de la chaîne de build (outil de développement
+   uniquement).

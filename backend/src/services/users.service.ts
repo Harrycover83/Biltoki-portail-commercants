@@ -67,7 +67,7 @@ function toAdminError(error: { message: string; code?: string }): UserAdminError
   if (error.code === '23514' || error.code === '22023') {
     return new UserAdminError(error.message, 400)
   }
-  return new UserAdminError('Operation impossible pour le moment.', 500)
+  return new UserAdminError('Opération impossible pour le moment.', 500)
 }
 
 export class UserAdminService {
@@ -113,7 +113,7 @@ export class UserAdminService {
       .eq('user_id', userId)
       .maybeSingle()
     if (error) {
-      throw new UserAdminError('Operation impossible pour le moment.', 500)
+      throw new UserAdminError('Opération impossible pour le moment.', 500)
     }
     if (!access) {
       throw new UserAdminError('Compte introuvable.', 404)
@@ -153,7 +153,7 @@ export class UserAdminService {
       this.db.from('admin_hall_permissions').select('profile_id, hall_id'),
     ])
     if (error) {
-      throw new UserAdminError('Operation impossible pour le moment.', 500)
+      throw new UserAdminError('Opération impossible pour le moment.', 500)
     }
 
     const hallsByProfile = new Map<string, string[]>()
@@ -214,7 +214,7 @@ export class UserAdminService {
       .order('created_at', { ascending: false })
       .limit(Math.min(Math.max(limit, 1), 200))
     if (error) {
-      throw new UserAdminError('Operation impossible pour le moment.', 500)
+      throw new UserAdminError('Opération impossible pour le moment.', 500)
     }
     return data ?? []
   }
@@ -231,7 +231,7 @@ export class UserAdminService {
     if (error || !data.user) {
       const exists = error?.message?.toLowerCase().includes('already')
       throw new UserAdminError(
-        exists ? 'Un compte existe deja avec cette adresse e-mail.' : 'Creation du compte impossible.',
+        exists ? 'Un compte existe déjà avec cette adresse e-mail.' : 'Création du compte impossible.',
         exists ? 409 : 500,
       )
     }
@@ -256,7 +256,7 @@ export class UserAdminService {
     const { access } = await this.loadAccess(userId)
 
     if (userId === actor.id && input.role !== 'super_admin') {
-      throw new UserAdminError('Vous ne pouvez pas modifier votre propre role.', 400)
+      throw new UserAdminError('Vous ne pouvez pas modifier votre propre rôle.', 400)
     }
 
     await this.saveAccess(userId, { ...input, email: access.email }, access.active)
@@ -268,7 +268,7 @@ export class UserAdminService {
 
   async setActive(userId: string, active: boolean, actor: Actor): Promise<void> {
     if (userId === actor.id && !active) {
-      throw new UserAdminError('Vous ne pouvez pas desactiver votre propre compte.', 400)
+      throw new UserAdminError('Vous ne pouvez pas désactiver votre propre compte.', 400)
     }
 
     const { access, hallIds } = await this.loadAccess(userId)
@@ -291,7 +291,7 @@ export class UserAdminService {
     })
     if (error) {
       this.logger.error({ err: error }, 'Unable to update the auth ban state')
-      throw new UserAdminError('Statut mis a jour, mais la session n’a pas pu etre bloquee.', 500)
+      throw new UserAdminError('Statut mis à jour, mais la session n’a pas pu être bloquée.', 500)
     }
 
     if (!active) {
@@ -311,7 +311,7 @@ export class UserAdminService {
       app_metadata: { ...user.app_metadata, must_change_password: true },
     })
     if (error) {
-      throw new UserAdminError('Reinitialisation impossible.', 500)
+      throw new UserAdminError('Réinitialisation impossible.', 500)
     }
 
     await this.revokeSessions(userId)

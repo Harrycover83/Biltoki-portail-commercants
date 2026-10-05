@@ -1,4 +1,4 @@
-// APERCU UNIQUEMENT : donnees fictives en dur pour visualiser le futur dashboard.
+// APERCU UNIQUEMENT : données fictives en dur pour visualiser le futur dashboard.
 // A supprimer (avec AdminDashboardPage.tsx) lors du branchement des vraies sources
 // (Popina/Jalia, Skello, Pennylane, Notion).
 

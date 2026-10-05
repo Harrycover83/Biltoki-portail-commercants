@@ -50,6 +50,19 @@ La logique des rôles est dupliquée côté frontend ([`src/lib/roles.ts`](../sr
   « Allow new users to sign up ») et fixer la longueur minimale des mots de passe à 12.
 - Scripts SQL distants : certificat TLS vérifié par défaut ; fournir le certificat Supabase avec
   `SUPABASE_DB_CA_FILE=<fichier.crt>` (Dashboard > Database > SSL Configuration).
+- Frontend : Content-Security-Policy générée au build (`vite.config.ts`) à partir de `VITE_SUPABASE_URL` et
+  `VITE_BACKEND_URL` (seules ces origines sont autorisées pour les appels réseau), polices auto-hébergées, en-têtes
+  HSTS / `X-Frame-Options` / COOP dans `netlify.toml`.
+- API : limitation à 300 requêtes/min/IP, erreurs toujours en JSON sans trace, middlewares asynchrones protégés
+  (`asyncHandler`), en-têtes de sécurité et CORS restreint aux origines configurées.
+- Téléchargement des justificatifs : HTTPS uniquement, redirections revalidées, taille et durée plafonnées, et
+  résolution DNS vérifiée **à la connexion** (toute adresse privée, loopback ou link-local est refusée, y compris
+  via un nom de domaine public pointant vers une IP interne).
+- Dépendances : `npm audit` des dépendances de production exécuté en CI, mises à jour hebdomadaires par Dependabot.
+  Le backend épingle des versions corrigées de sous-dépendances de la CLI Prisma via `overrides`
+  (`mysql2`, `deepmerge-ts`) ; à retirer lorsque Prisma les embarquera. Les alertes restantes concernent uniquement
+  des outils de développement (chaîne de build Tailwind 3, Vitest) sans exposition en production.
+- Signalement d'une vulnérabilité : voir [SECURITY.md](../SECURITY.md).
 
 ## Routes du frontend
 

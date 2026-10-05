@@ -44,7 +44,7 @@ export function UpdatePasswordPage() {
     }
 
     setSubmitting(false)
-    setSuccess('Mot de passe mis a jour. Redirection...')
+    setSuccess('Mot de passe mis à jour. Redirection...')
     setTimeout(() => {
       window.location.assign('/')
     }, 600)
@@ -56,7 +56,7 @@ export function UpdatePasswordPage() {
         <p className="brand-badge">Securite compte</p>
         <h1 className="brand-display mt-4 text-[2rem] leading-[1] font-semibold">Nouveau mot de passe obligatoire</h1>
         <p className="mt-3 text-sm leading-6 text-[#4d5562]">
-          Pour votre premiere connexion, vous devez definir un mot de passe personnel avant d'acceder au portail.
+          Pour votre première connexion, vous devez définir un mot de passe personnel avant d'accéder au portail.
         </p>
 
         {error ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
@@ -96,7 +96,7 @@ export function UpdatePasswordPage() {
             type="submit"
             className="brand-button w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Mise a jour...' : 'Mettre a jour mon mot de passe'}
+            {submitting ? 'Mise à jour...' : 'Mettre à jour mon mot de passe'}
           </button>
         </form>
       </div>

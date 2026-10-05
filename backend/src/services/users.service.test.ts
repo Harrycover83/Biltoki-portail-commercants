@@ -99,7 +99,7 @@ describe('UserAdminService self-protection', () => {
     await expect(service.setActive(admin.id!, false, admin)).rejects.toThrow('propre compte')
     await expect(service.deleteUser(admin.id!, admin)).rejects.toThrow('propre compte')
     await expect(service.updateUser(admin.id!, { ...input, role: 'hq', hallIds: [] }, admin)).rejects.toThrow(
-      'propre role',
+      'propre rôle',
     )
   })
 })

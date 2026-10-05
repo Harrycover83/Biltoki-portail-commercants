@@ -13,7 +13,7 @@ import { getAccessToken } from '@/lib/session'
 import type { Profile, UserRole } from '@/types/domain'
 
 const ACCESS_DENIED_MESSAGE =
-  "Cet email n'est pas autorise a acceder au portail. Contactez le gestionnaire de la halle."
+  "Cet email n'est pas autorisé à accéder au portail. Contactez le gestionnaire de la halle."
 
 type AuthContextValue = {
   loading: boolean
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const configurationError = client
     ? null
-    : 'Supabase n\'est pas configure. Renseignez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY.'
+    : 'Supabase n\'est pas configuré. Renseignez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY.'
 
   useEffect(() => {
     if (!client) {
@@ -182,10 +182,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
           })
           const body = (await response.json().catch(() => ({}))) as { error?: string }
           if (!response.ok) {
-            return { error: body.error ?? `Mise a jour impossible (HTTP ${response.status}).` }
+            return { error: body.error ?? `Mise à jour impossible (HTTP ${response.status}).` }
           }
         } catch {
-          return { error: 'Service indisponible, reessayez dans un instant.' }
+          return { error: 'Service indisponible, réessayez dans un instant.' }
         }
 
         // Fetch a token that no longer carries the lock.
