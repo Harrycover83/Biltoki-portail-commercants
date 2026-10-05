@@ -74,14 +74,13 @@ redirigent vers la page d'accueil du rôle (`/historique` pour un commerçant, `
 Personnel Biltoki (`hall_manager`, `network_manager`, `hq`, `super_admin`) :
 
 - `/admin/dashboard` – tableau de bord (aperçu avec données fictives)
-- `/admin/frais` – charges communes + synchronisation Pennylane
-- `/admin/graphiques` – analyse des factures
+- `/admin/frais` – charges communes : factures, comparateur de périodes et historique par fournisseur, synchronisation Pennylane
 - `/admin/ca` – chiffre d'affaires
 
 `super_admin` uniquement : `/admin/administration`.
 
 Anciennes URL conservées en redirection : `/frais`, `/frais/:periodId`, `/admin/commercants`,
-`/admin/repartitions`, `/admin/synchronisation`.
+`/admin/repartitions`, `/admin/synchronisation`, `/admin/graphiques`.
 
 ## Intégration Pennylane
 

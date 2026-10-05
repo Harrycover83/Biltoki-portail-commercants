@@ -31,9 +31,6 @@ const AdminDashboardPage = lazy(() =>
 const AdminServiceChargesPage = lazy(() =>
   import('@/features/admin/pages/AdminServiceChargesPage').then((m) => ({ default: m.AdminServiceChargesPage })),
 )
-const AdminChartsPage = lazy(() =>
-  import('@/features/admin/pages/AdminChartsPage').then((m) => ({ default: m.AdminChartsPage })),
-)
 const AdminRevenuePage = lazy(() =>
   import('@/features/admin/pages/AdminRevenuePage').then((m) => ({ default: m.AdminRevenuePage })),
 )
@@ -51,6 +48,7 @@ const STAFF_REDIRECTS: Record<string, string> = {
   '/admin/commercants': '/admin/frais',
   '/admin/repartitions': '/admin/frais',
   '/admin/synchronisation': '/admin/frais',
+  '/admin/graphiques': '/admin/frais',
 }
 
 function PageFallback() {
@@ -135,14 +133,6 @@ export function AppRouter() {
         <Route path="/admin/dashboard" element={<Page roles={STAFF_ROLES}><AdminDashboardPage /></Page>} />
         <Route path="/admin/frais" element={<Page roles={STAFF_ROLES}><AdminServiceChargesPage /></Page>} />
         <Route path="/admin/ca" element={<Page roles={STAFF_ROLES}><AdminRevenuePage /></Page>} />
-        <Route
-          path="/admin/graphiques"
-          element={
-            <Page roles={STAFF_ROLES}>
-              <AdminChartsPage />
-            </Page>
-          }
-        />
         <Route path="/admin/administration" element={<Page roles={SUPER_ADMIN_ONLY}><AdministrationPage /></Page>} />
 
         <Route path="*" element={<NotFoundPage />} />

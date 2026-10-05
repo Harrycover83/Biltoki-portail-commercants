@@ -66,7 +66,7 @@ src/
   features/
     auth/              Session Supabase, connexion, changement de mot de passe
     merchant/          Pages et services côté commerçant
-    admin/             Côté équipes Biltoki : pages/, components/, hooks/, charts/ (calculs des graphiques), services/
+    admin/             Côté équipes Biltoki : pages/, components/, charges/ (calculs de comparaison), services/
     common/            Pages partagées (404)
   lib/                 Utilitaires (env, formats, regroupements, supabase, rôles)
   types/               Types du domaine

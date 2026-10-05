@@ -33,9 +33,6 @@ export function AppHeader() {
               <NavLink to="/admin/frais" className={navClassName}>
                 Charges communes
               </NavLink>
-              <NavLink to="/admin/graphiques" className={navClassName}>
-                Graphiques
-              </NavLink>
               <NavLink to="/admin/ca" className={navClassName}>
                 CA stands
               </NavLink>

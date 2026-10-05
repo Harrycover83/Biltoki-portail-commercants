@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminServiceChargesPage } from './AdminServiceChargesPage'
 import type { AdminChargeRow } from '@/features/admin/services/adminChargeService'
@@ -84,6 +84,34 @@ describe('AdminServiceChargesPage', () => {
 
     expect(await screen.findByText('Eau actualisee')).toBeInTheDocument()
     expect(mockGetAdminCharges).toHaveBeenCalledTimes(2)
+  })
+
+  it('compares a month with the same month of the previous year', async () => {
+    mockGetAdminCharges.mockResolvedValue({
+      data: [
+        { ...charge, id: 'c-2025', amount_incl_tax: 100, invoice_date: '2025-09-02' },
+        { ...charge, id: 'c-2026', amount_incl_tax: 150, invoice_date: '2026-09-02' },
+      ],
+      error: null,
+    })
+    render(<AdminServiceChargesPage />)
+    await screen.findAllByText('Eau')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Comparer des périodes' }))
+
+    expect(await screen.findByText(/en hausse de 50 % \(\+50,00\s€\) par rapport à septembre 2025/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Période')).toHaveValue('2026-09')
+    expect(screen.getByLabelText('Comparée à')).toHaveValue('2025-09')
+  })
+
+  it('opens the history of a supplier from the invoice list', async () => {
+    render(<AdminServiceChargesPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Veolia' }))
+
+    expect(screen.getByRole('tab', { name: 'Par fournisseur' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Fournisseur')).toHaveValue('Veolia')
+    expect(screen.getByRole('heading', { name: 'Toutes les factures' })).toBeInTheDocument()
   })
 
   it('ignores a response that arrives after the hall changed', async () => {
