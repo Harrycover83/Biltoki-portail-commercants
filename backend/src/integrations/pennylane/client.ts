@@ -1,3 +1,4 @@
+import type { Config } from '../../config.js'
 import type { Logger } from '../../utils/logger.js'
 import type {
   PennylaneCategory,
@@ -12,20 +13,11 @@ import type {
   PennylaneSupplierInvoice,
   PennylaneWeightedCategory,
 } from './types.js'
+import { DEFAULT_HALL_CATEGORIES, type HallCategoryMap } from './hall-categories.js'
 
 export const PENNYLANE_API_URL = 'https://app.pennylane.com/api/external/v2'
 
 const MAX_PAGE_SIZE = 100
-
-/**
- * Maps a Biltoki hall UUID to the Pennylane analytical category that carries
- * the "charges communes" refacturees aux commercants for that hall.
- * One Pennylane token covers one company, so only halls whose invoices live
- * in this token's company can be mapped here.
- */
-const HALL_PENNYLANE_CATEGORY: Record<string, { categoryId: number; label: string }> = {
-  '29a1b758-07c9-481e-bd54-c72b6a9949c4': { categoryId: 9229710, label: '4105' }, // Halles de Toulon
-}
 
 /**
  * Pennylane Company API v2 client.
@@ -37,11 +29,18 @@ export class PennylaneClient {
   private readonly apiKey: string
   private readonly apiUrl: string
   private readonly logger: Logger
+  private readonly hallCategories: HallCategoryMap
 
-  constructor(apiKey: string, apiUrl: string, logger: Logger) {
+  constructor(
+    apiKey: string,
+    apiUrl: string,
+    logger: Logger,
+    hallCategories: HallCategoryMap = DEFAULT_HALL_CATEGORIES,
+  ) {
     this.apiKey = apiKey
     this.apiUrl = (apiUrl || PENNYLANE_API_URL).replace(/\/+$/, '')
     this.logger = logger
+    this.hallCategories = hallCategories
   }
 
   private async request<T>(path: string, query: Record<string, string | undefined> = {}): Promise<T> {
@@ -166,7 +165,7 @@ export class PennylaneClient {
   ): Promise<PennylaneServiceChargesResponse> {
     this.logger.info(`Fetching service charges for hall: ${hallId}`)
 
-    const mapping = HALL_PENNYLANE_CATEGORY[hallId]
+    const mapping = this.hallCategories[hallId]
     if (!mapping) {
       // A Pennylane token is company-scoped and knows nothing about our hall UUIDs.
       // Refuse to guess rather than importing the wrong invoices into the portal.
@@ -222,4 +221,9 @@ export class PennylaneClient {
       hasApiKey: Boolean(this.apiKey),
     }
   }
+}
+
+/** Builds the client from the validated application configuration. */
+export function createPennylaneClient(config: Config['pennylane'], logger: Logger): PennylaneClient {
+  return new PennylaneClient(config.apiKey, config.apiUrl, logger, config.hallCategories)
 }

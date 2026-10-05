@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { clsx } from 'clsx'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Card } from '@/components/ui/Card'
-import { ROLE_LABELS, ROLE_ORDER, roleLabel } from '@/lib/roles'
-import type { UserRole } from '@/types/domain'
-import { useAuth } from '@/features/auth/AuthProvider'
+import { AuditLog } from '@/features/admin/components/AuditLog'
+import { ConfirmBar } from '@/features/admin/components/ConfirmBar'
+import { CredentialsCard, type Credentials } from '@/features/admin/components/CredentialsCard'
+import { UserForm } from '@/features/admin/components/UserForm'
+import { UsersTable } from '@/features/admin/components/UsersTable'
 import {
   adminUsersService,
   emptyUserForm,
@@ -13,31 +14,21 @@ import {
   type ManagedUser,
   type UserFormValues,
 } from '@/features/admin/services/adminUsersService'
-import { UserForm } from '@/features/admin/components/UserForm'
-
-type Credentials = { email: string; password: string; reason: 'created' | 'reset' }
+import { useAuth } from '@/features/auth/AuthProvider'
+import { ROLE_LABELS, ROLE_ORDER } from '@/lib/roles'
+import type { UserRole } from '@/types/domain'
 
 type PendingAction =
   | { type: 'delete'; user: ManagedUser }
   | { type: 'deactivate'; user: ManagedUser }
   | { type: 'reset'; user: ManagedUser }
 
-const AUDIT_LABELS: Record<string, string> = {
-  'user.create': 'Compte créé',
-  'user.update': 'Compte modifié',
-  'user.activate': 'Compte réactivé',
-  'user.deactivate': 'Compte désactivé',
-  'user.reset_password': 'Mot de passe réinitialisé',
-  'user.delete': 'Compte supprimé',
-}
+type FormMode = { type: 'create' } | { type: 'edit'; user: ManagedUser }
 
-const actionButton =
-  'rounded-full border border-[#d6cebf] px-3 py-1 text-xs font-bold text-[#171511] hover:bg-[#f7e7b8] disabled:cursor-not-allowed disabled:opacity-40'
-
-function formatDate(value: string | null): string {
-  return value
-    ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
-    : '—'
+const PENDING_MESSAGES: Record<PendingAction['type'], string> = {
+  delete: 'Supprimer définitivement le compte de',
+  deactivate: 'Désactiver (bloquer la connexion de)',
+  reset: 'Générer un nouveau mot de passe provisoire pour',
 }
 
 function toFormValues(user: ManagedUser): UserFormValues {
@@ -61,8 +52,7 @@ export function AdministrationPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [credentials, setCredentials] = useState<Credentials | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [formMode, setFormMode] = useState<{ type: 'create' } | { type: 'edit'; user: ManagedUser } | null>(null)
+  const [formMode, setFormMode] = useState<FormMode | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [search, setSearch] = useState('')
@@ -154,7 +144,6 @@ export function AdministrationPage() {
         return
       }
       setCredentials({ email: values.email, password: result.data.provisionalPassword, reason: 'created' })
-      setCopied(false)
       setNotice(null)
       setFormMode(null)
       reload()
@@ -191,22 +180,8 @@ export function AdministrationPage() {
         return
       }
       setCredentials({ email: user.email, password: result.data.provisionalPassword, reason: 'reset' })
-      setCopied(false)
       reload()
     }
-  }
-
-  const copyPassword = async () => {
-    if (credentials) {
-      await navigator.clipboard?.writeText(credentials.password)
-      setCopied(true)
-    }
-  }
-
-  const pendingMessage: Record<PendingAction['type'], string> = {
-    delete: 'Supprimer définitivement le compte de',
-    deactivate: 'Désactiver (bloquer la connexion de)',
-    reset: 'Générer un nouveau mot de passe provisoire pour',
   }
 
   return (
@@ -241,22 +216,7 @@ export function AdministrationPage() {
         ) : null}
 
         {credentials ? (
-          <Card
-            title={credentials.reason === 'created' ? 'Compte créé' : 'Mot de passe réinitialisé'}
-            subtitle={`Transmettez ces identifiants à ${credentials.email}. Le mot de passe provisoire n’est affiché qu’une seule fois ; il devra être changé à la première connexion.`}
-          >
-            <div className="flex flex-wrap items-center gap-3">
-              <code className="bg-[#f7e7b8] px-3 py-2 text-base font-bold tracking-wide text-[#171511]">
-                {credentials.password}
-              </code>
-              <button type="button" className={actionButton} onClick={() => void copyPassword()}>
-                {copied ? 'Copié' : 'Copier'}
-              </button>
-              <button type="button" className={actionButton} onClick={() => setCredentials(null)}>
-                J’ai noté le mot de passe, fermer
-              </button>
-            </div>
-          </Card>
+          <CredentialsCard key={credentials.password} credentials={credentials} onClose={() => setCredentials(null)} />
         ) : null}
 
         {formMode ? (
@@ -275,19 +235,11 @@ export function AdministrationPage() {
         ) : null}
 
         {pending ? (
-          <div role="alertdialog" aria-label="Confirmation" className="border-l-4 border-[#d84d2c] bg-[#fdeee9] px-4 py-3">
-            <p className="text-sm font-semibold text-[#171511]">
-              {pendingMessage[pending.type]} {pending.user.firstName} {pending.user.lastName} ({pending.user.email}) ?
-            </p>
-            <div className="mt-3 flex gap-3">
-              <button type="button" className="brand-button" onClick={() => void confirmPending()}>
-                Confirmer
-              </button>
-              <button type="button" className={actionButton} onClick={() => setPending(null)}>
-                Annuler
-              </button>
-            </div>
-          </div>
+          <ConfirmBar
+            message={`${PENDING_MESSAGES[pending.type]} ${pending.user.firstName} ${pending.user.lastName} (${pending.user.email}) ?`}
+            onConfirm={() => void confirmPending()}
+            onCancel={() => setPending(null)}
+          />
         ) : null}
 
         <Card title={`Comptes (${visibleUsers.length})`}>
@@ -319,130 +271,26 @@ export function AdministrationPage() {
           ) : visibleUsers.length === 0 ? (
             <p className="text-sm text-[#615b51]">Aucun compte.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[#13223a1f] text-[#626a78]">
-                    <th className="py-2 pr-4">Compte</th>
-                    <th className="py-2 pr-4">Niveau d’accès</th>
-                    <th className="py-2 pr-4">Périmètre</th>
-                    <th className="py-2 pr-4">Statut</th>
-                    <th className="py-2 pr-4">Dernière connexion</th>
-                    <th className="py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleUsers.map((user) => {
-                    const isSelf = user.userId !== null && user.userId === currentUser?.id
-                    const canAct = user.provisioned
-                    return (
-                      <tr key={user.email} className="border-b border-[#e4ddd1] align-top">
-                        <td className="py-3 pr-4">
-                          <p className="font-bold text-[#171511]">
-                            {user.firstName} {user.lastName}
-                            {isSelf ? <span className="ml-2 text-xs font-semibold text-[#615b51]">(vous)</span> : null}
-                          </p>
-                          <p className="text-xs text-[#615b51]">{user.email}</p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <p className="font-semibold">{roleLabel(user.role)}</p>
-                          {user.jobTitle ? <p className="text-xs text-[#615b51]">{user.jobTitle}</p> : null}
-                        </td>
-                        <td className="py-3 pr-4">{scopeLabel(user)}</td>
-                        <td className="py-3 pr-4">
-                          <span
-                            className={clsx(
-                              'inline-block px-2 py-1 text-xs font-bold',
-                              !user.provisioned
-                                ? 'bg-[#e8f0f8] text-[#2468a8]'
-                                : user.active
-                                  ? 'bg-[#e7f4ec] text-[#1f6b3e]'
-                                  : 'bg-[#fdeee9] text-[#9b2c15]',
-                            )}
-                          >
-                            {!user.provisioned ? 'En attente' : user.active ? 'Actif' : 'Désactivé'}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-xs text-[#615b51]">{formatDate(user.lastSignInAt)}</td>
-                        <td className="py-3">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className={actionButton}
-                              disabled={!canAct || submitting}
-                              onClick={() => {
-                                setFormMode({ type: 'edit', user })
-                                setCredentials(null)
-                              }}
-                            >
-                              Modifier
-                            </button>
-                            {user.active ? (
-                              <button
-                                type="button"
-                                className={actionButton}
-                                disabled={!canAct || isSelf || submitting}
-                                onClick={() => setPending({ type: 'deactivate', user })}
-                              >
-                                Désactiver
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className={actionButton}
-                                disabled={!canAct || submitting}
-                                onClick={() =>
-                                  void run(() => adminUsersService.setActive(user.userId as string, true), 'Compte réactivé.')
-                                }
-                              >
-                                Réactiver
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className={actionButton}
-                              disabled={!canAct || submitting}
-                              onClick={() => setPending({ type: 'reset', user })}
-                            >
-                              Mot de passe
-                            </button>
-                            <button
-                              type="button"
-                              className={actionButton}
-                              disabled={!canAct || isSelf || submitting}
-                              onClick={() => setPending({ type: 'delete', user })}
-                            >
-                              Supprimer
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <UsersTable
+              users={visibleUsers}
+              currentUserId={currentUser?.id}
+              busy={submitting}
+              scopeLabel={scopeLabel}
+              onEdit={(user) => {
+                setFormMode({ type: 'edit', user })
+                setCredentials(null)
+              }}
+              onDeactivate={(user) => setPending({ type: 'deactivate', user })}
+              onReactivate={(user) =>
+                void run(() => adminUsersService.setActive(user.userId as string, true), 'Compte réactivé.')
+              }
+              onResetPassword={(user) => setPending({ type: 'reset', user })}
+              onDelete={(user) => setPending({ type: 'delete', user })}
+            />
           )}
         </Card>
 
-        <Card title="Journal des modifications" subtitle="Les 50 dernières actions d’administration.">
-          {audit.length === 0 ? (
-            <p className="text-sm text-[#615b51]">Aucune action enregistrée.</p>
-          ) : (
-            <ul className="divide-y divide-[#e4ddd1] text-sm">
-              {audit.map((entry) => (
-                <li key={entry.id} className="flex flex-wrap justify-between gap-2 py-2">
-                  <span>
-                    <strong>{AUDIT_LABELS[entry.action] ?? entry.action}</strong> · {entry.target_email ?? '—'}
-                  </span>
-                  <span className="text-xs text-[#615b51]">
-                    {entry.actor_email ?? 'système'} · {formatDate(entry.created_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <AuditLog entries={audit} />
       </div>
     </PageContainer>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -15,28 +15,17 @@ import { Metric } from '@/components/ui/Metric'
 import { StateMessage } from '@/components/ui/StateMessage'
 import { formatEuroFromCents } from '@/lib/money'
 import { openChargeDocument } from '@/lib/openChargeDocument'
+import {
+  amountCents,
+  buildChartData,
+  buildChartSeries,
+  buildSupplierCatalog,
+  filterSuppliers,
+  selectChargeRows,
+} from '@/features/admin/charts/chartData'
 import { useAdminHall } from '@/features/admin/AdminHallContext'
-import { adminChargeDate, getAdminCharges, type AdminChargeRow } from '@/features/admin/services/adminChargeService'
-
-const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-})
-const MAX_CHART_SUPPLIERS = 8
-const OTHER_SUPPLIERS_KEY = 'other_suppliers'
-
-function normalizeSearch(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('fr-FR')
-    .trim()
-}
-
-function amountCents(row: AdminChargeRow): number {
-  return Math.round(Number(row.amount_incl_tax) * 100)
-}
+import { useLiveAdminCharges } from '@/features/admin/hooks/useLiveAdminCharges'
+import { adminChargeDate } from '@/features/admin/services/adminChargeService'
 
 export function AdminChartsPage() {
   const { selectedHallId } = useAdminHall()
@@ -46,143 +35,16 @@ export function AdminChartsPage() {
 
 function AdminChartsPageContent() {
   const { selectedHallId, loading: loadingHalls } = useAdminHall()
-  const [rows, setRows] = useState<AdminChargeRow[]>([])
+  const { rows, loading: loadingRows, error, setError } = useLiveAdminCharges(selectedHallId)
   const [catalogQuery, setCatalogQuery] = useState('')
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
-  const [loadingRows, setLoadingRows] = useState(false)
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    let requestInFlight = false
-
-    const loadRows = async (initialLoad = false) => {
-      if (!selectedHallId) {
-        setLoadingRows(false)
-        return
-      }
-      if (cancelled || requestInFlight) {
-        return
-      }
-
-      requestInFlight = true
-      if (initialLoad) {
-        setLoadingRows(true)
-      }
-      try {
-        const result = await getAdminCharges(selectedHallId)
-        if (cancelled) {
-          return
-        }
-        if (!result.error) {
-          setRows(result.data ?? [])
-        }
-        setError(result.error)
-      } catch (loadError) {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Chargement des factures impossible.')
-        }
-      } finally {
-        requestInFlight = false
-        if (!cancelled && initialLoad) {
-          setLoadingRows(false)
-        }
-      }
-    }
-
-    void loadRows(true)
-
-    const refreshInterval = window.setInterval(() => {
-      void loadRows()
-    }, 15000)
-
-    const onFocus = () => {
-      void loadRows()
-    }
-
-    window.addEventListener('focus', onFocus)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(refreshInterval)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [selectedHallId])
-  const suppliers = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const row of rows) {
-      if (row.supplier_name) {
-        counts.set(row.supplier_name, (counts.get(row.supplier_name) ?? 0) + 1)
-      }
-    }
-    return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((left, right) => left.name.localeCompare(right.name, 'fr-FR'))
-  }, [rows])
-  const visibleSuppliers = useMemo(() => {
-    const term = normalizeSearch(catalogQuery)
-    if (!term) {
-      return suppliers
-    }
-    return suppliers.filter(({ name }) => normalizeSearch(name).includes(term))
-  }, [catalogQuery, suppliers])
-
-  const matchingRows = useMemo(() => {
-    const filteredRows = selectedSuppliers.length > 0
-      ? rows.filter((row) => row.supplier_name !== null && selectedSuppliers.includes(row.supplier_name))
-      : rows
-
-    return [...filteredRows].sort((left, right) => adminChargeDate(left).localeCompare(adminChargeDate(right)))
-  }, [rows, selectedSuppliers])
-
-  const chartSeries = useMemo(() => {
-    const totalsBySupplier = new Map<string, number>()
-    for (const row of matchingRows) {
-      const supplierName = row.supplier_name ?? 'Créancier inconnu'
-      totalsBySupplier.set(supplierName, (totalsBySupplier.get(supplierName) ?? 0) + Number(row.amount_incl_tax))
-    }
-
-    const suppliersByAmount = [...totalsBySupplier.entries()]
-      .sort(([, leftAmount], [, rightAmount]) => rightAmount - leftAmount)
-    const leadingSuppliers = suppliersByAmount.slice(0, MAX_CHART_SUPPLIERS)
-    const hasOtherSuppliers = suppliersByAmount.length > MAX_CHART_SUPPLIERS
-
-    return [
-      ...leadingSuppliers.map(([name], index) => ({ name, dataKey: `supplier_${index}` })),
-      ...(hasOtherSuppliers ? [{ name: 'Autres créanciers', dataKey: OTHER_SUPPLIERS_KEY }] : []),
-    ]
-  }, [matchingRows])
-
-  const chartData = useMemo(() => {
-    const seriesByName = new Map(chartSeries.map((series) => [series.name, series.dataKey]))
-    const pointsByDate = new Map<string, Record<string, string | number>>()
-
-    for (const row of matchingRows) {
-      const dateKey = adminChargeDate(row)
-      const supplierName = row.supplier_name ?? 'Créancier inconnu'
-      const dataKey = seriesByName.get(supplierName) ?? (
-        chartSeries.some((series) => series.dataKey === OTHER_SUPPLIERS_KEY)
-          ? OTHER_SUPPLIERS_KEY
-          : undefined
-      )
-      if (!dataKey) {
-        continue
-      }
-
-      const point = pointsByDate.get(dateKey) ?? {
-        dateKey,
-        date: DATE_FORMATTER.format(new Date(dateKey)),
-      }
-      point[dataKey] = Number(point[dataKey] ?? 0) + Number(row.amount_incl_tax)
-      pointsByDate.set(dateKey, point)
-    }
-
-    return [...pointsByDate.values()].sort((left, right) => (
-      String(left.dateKey).localeCompare(String(right.dateKey))
-    ))
-  }, [chartSeries, matchingRows])
-
+  const suppliers = useMemo(() => buildSupplierCatalog(rows), [rows])
+  const visibleSuppliers = useMemo(() => filterSuppliers(suppliers, catalogQuery), [catalogQuery, suppliers])
+  const matchingRows = useMemo(() => selectChargeRows(rows, selectedSuppliers), [rows, selectedSuppliers])
+  const chartSeries = useMemo(() => buildChartSeries(matchingRows), [matchingRows])
+  const chartData = useMemo(() => buildChartData(matchingRows, chartSeries), [chartSeries, matchingRows])
   const totalCents = matchingRows.reduce((total, row) => total + amountCents(row), 0)
   const averageCents = matchingRows.length > 0 ? Math.round(totalCents / matchingRows.length) : 0
   const loading = loadingHalls || loadingRows

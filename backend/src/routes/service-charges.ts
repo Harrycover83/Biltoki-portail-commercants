@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
-import { PennylaneClient } from '../integrations/pennylane/client.js'
+import { createPennylaneClient } from '../integrations/pennylane/client.js'
 import { canReadHall, requirePortalUser } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/async-handler.js'
 import { isUuid } from '../services/user-input.js'
@@ -41,7 +41,7 @@ export function createServiceChargesRouter(config: Config, db: SupabaseAdmin, lo
       }
 
       try {
-        const pennylane = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+        const pennylane = createPennylaneClient(config.pennylane, logger)
         const invoice = await pennylane.getSupplierInvoice(Number(charge.pennylane_id))
         if (!invoice.public_file_url) {
           return res.status(404).json({ error: 'No source document is attached to this Pennylane invoice' })

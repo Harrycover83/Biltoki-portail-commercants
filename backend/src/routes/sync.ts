@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Config } from '../config.js'
 import type { SupabaseAdmin } from '../db/supabase.js'
 import type { Logger } from '../utils/logger.js'
-import { PennylaneClient } from '../integrations/pennylane/client.js'
+import { createPennylaneClient } from '../integrations/pennylane/client.js'
 import { asyncHandler } from '../middleware/async-handler.js'
 import { requireStaffForHall } from '../middleware/auth.js'
 import { PennylaneSync, type SyncResult } from '../services/sync.service.js'
@@ -33,7 +33,7 @@ export function createHallSyncRouter(config: Config, db: SupabaseAdmin, logger: 
       }
 
       try {
-        const pennylane = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+        const pennylane = createPennylaneClient(config.pennylane, logger)
         const result = await syncLock.runExclusive(hallId, () => run(new PennylaneSync(db, pennylane, hallId, logger)))
 
         // Raw errors can contain database details: only the super admin / ops token get them.

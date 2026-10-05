@@ -2,17 +2,9 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { AdminHallProvider } from '@/features/admin/AdminHallContext'
-import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage'
-import { AdminRevenuePage } from '@/features/admin/pages/AdminRevenuePage'
-import { AdminServiceChargesPage } from '@/features/admin/pages/AdminServiceChargesPage'
-import { AdministrationPage } from '@/features/admin/pages/AdministrationPage'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { UpdatePasswordPage } from '@/features/auth/pages/UpdatePasswordPage'
 import { NotFoundPage } from '@/features/common/pages/NotFoundPage'
-import { HistoryPage } from '@/features/merchant/pages/HistoryPage'
-import { ProfilePage } from '@/features/merchant/pages/ProfilePage'
-import { RevenuePage } from '@/features/merchant/pages/RevenuePage'
 import { homePathForRole, STAFF_ROLES } from '@/lib/roles'
 import type { UserRole } from '@/types/domain'
 import { ProtectedRoute } from './guards/ProtectedRoute'
@@ -20,8 +12,33 @@ import { RoleRoute } from './guards/RoleRoute'
 
 const SUPER_ADMIN_ONLY: UserRole[] = ['super_admin']
 
+// Pages are split into their own chunks so heavy dependencies (charts) only load where they are used.
+const UpdatePasswordPage = lazy(() =>
+  import('@/features/auth/pages/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })),
+)
+const HistoryPage = lazy(() =>
+  import('@/features/merchant/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })),
+)
+const RevenuePage = lazy(() =>
+  import('@/features/merchant/pages/RevenuePage').then((m) => ({ default: m.RevenuePage })),
+)
+const ProfilePage = lazy(() =>
+  import('@/features/merchant/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+)
+const AdminDashboardPage = lazy(() =>
+  import('@/features/admin/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
+)
+const AdminServiceChargesPage = lazy(() =>
+  import('@/features/admin/pages/AdminServiceChargesPage').then((m) => ({ default: m.AdminServiceChargesPage })),
+)
 const AdminChartsPage = lazy(() =>
-  import('@/features/admin/pages/AdminChartsPage').then((module) => ({ default: module.AdminChartsPage })),
+  import('@/features/admin/pages/AdminChartsPage').then((m) => ({ default: m.AdminChartsPage })),
+)
+const AdminRevenuePage = lazy(() =>
+  import('@/features/admin/pages/AdminRevenuePage').then((m) => ({ default: m.AdminRevenuePage })),
+)
+const AdministrationPage = lazy(() =>
+  import('@/features/admin/pages/AdministrationPage').then((m) => ({ default: m.AdministrationPage })),
 )
 
 /** Legacy URLs kept alive for bookmarks; each one now lands on its replacement. */
@@ -36,12 +53,16 @@ const STAFF_REDIRECTS: Record<string, string> = {
   '/admin/synchronisation': '/admin/frais',
 }
 
+function PageFallback() {
+  return <div className="p-6 text-sm text-[#626a78]">Chargement...</div>
+}
+
 function PrivateLayout({ children }: { children: ReactNode }) {
   return (
     <AdminHallProvider>
       <div className="brand-shell min-h-screen">
         <AppHeader />
-        {children}
+        <Suspense fallback={<PageFallback />}>{children}</Suspense>
       </div>
     </AdminHallProvider>
   )
@@ -76,7 +97,9 @@ export function AppRouter() {
           path="/security/update-password"
           element={
             <Guarded>
-              <UpdatePasswordPage />
+              <Suspense fallback={<PageFallback />}>
+                <UpdatePasswordPage />
+              </Suspense>
             </Guarded>
           }
         />
@@ -116,9 +139,7 @@ export function AppRouter() {
           path="/admin/graphiques"
           element={
             <Page roles={STAFF_ROLES}>
-              <Suspense fallback={<div className="p-6 text-sm text-[#626a78]">Chargement des graphiques...</div>}>
-                <AdminChartsPage />
-              </Suspense>
+              <AdminChartsPage />
             </Page>
           }
         />

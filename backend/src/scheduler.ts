@@ -2,7 +2,7 @@ import cron from 'node-cron'
 import type { Config } from './config.js'
 import type { SupabaseAdmin } from './db/supabase.js'
 import type { Logger } from './utils/logger.js'
-import { PennylaneClient } from './integrations/pennylane/client.js'
+import { createPennylaneClient, type PennylaneClient } from './integrations/pennylane/client.js'
 import { PennylaneSync } from './services/sync.service.js'
 import { syncLock } from './services/sync-lock.js'
 
@@ -33,7 +33,7 @@ export function setupScheduler(config: Config, db: SupabaseAdmin, logger: Logger
 
   const task = cron.schedule(syncCronSchedule, async () => {
     logger.info(`Running scheduled Pennylane sync for ${hallsToSync.length} hall(s)`)
-    const pennylane = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger)
+    const pennylane = createPennylaneClient(config.pennylane, logger)
 
     for (const hallId of hallsToSync) {
       try {

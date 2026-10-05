@@ -16,6 +16,7 @@ describe('getConfig', () => {
     vi.stubEnv('PORT', '')
     vi.stubEnv('SYNC_CRON_SCHEDULE', '')
     vi.stubEnv('TRUST_PROXY_HOPS', '')
+    vi.stubEnv('PENNYLANE_HALL_CATEGORIES', '')
   })
 
   afterEach(() => {
@@ -31,6 +32,19 @@ describe('getConfig', () => {
     expect(config.server.internalApiToken).toBeNull()
     expect(config.server.trustProxyHops).toBe(0)
     expect(config.logging.level).toBe('info')
+    expect(Object.keys(config.pennylane.hallCategories)).toHaveLength(1)
+  })
+
+  it('merges PENNYLANE_HALL_CATEGORIES over the built-in mapping', () => {
+    vi.stubEnv('PENNYLANE_HALL_CATEGORIES', JSON.stringify({ 'hall-9': { categoryId: 7, label: 'X' } }))
+
+    const { hallCategories } = getConfig().pennylane
+
+    expect(Object.keys(hallCategories)).toHaveLength(2)
+    expect(hallCategories['hall-9']).toEqual({ categoryId: 7, label: 'X' })
+
+    vi.stubEnv('PENNYLANE_HALL_CATEGORIES', '{nope')
+    expect(() => getConfig()).toThrow('PENNYLANE_HALL_CATEGORIES')
   })
 
   it('trusts one reverse proxy in production unless told otherwise', () => {
