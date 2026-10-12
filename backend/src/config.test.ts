@@ -17,6 +17,9 @@ describe('getConfig', () => {
     vi.stubEnv('SYNC_CRON_SCHEDULE', '')
     vi.stubEnv('TRUST_PROXY_HOPS', '')
     vi.stubEnv('PENNYLANE_HALL_CATEGORIES', '')
+    vi.stubEnv('POPINA_API_KEY', '')
+    vi.stubEnv('POPINA_LOCATION_ID', '')
+    vi.stubEnv('POPINA_HALL_ID', '')
   })
 
   afterEach(() => {
@@ -33,6 +36,9 @@ describe('getConfig', () => {
     expect(config.server.trustProxyHops).toBe(0)
     expect(config.logging.level).toBe('info')
     expect(Object.keys(config.pennylane.hallCategories)).toHaveLength(1)
+    expect(config.popina).toEqual({
+      apiKey: '', locationId: '', hallId: '29a1b758-07c9-481e-bd54-c72b6a9949c4',
+    })
   })
 
   it('merges PENNYLANE_HALL_CATEGORIES over the built-in mapping', () => {

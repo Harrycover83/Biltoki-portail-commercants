@@ -27,6 +27,7 @@ npm run dev
 | `npm run lint` | ESLint (configuration partagée à la racine) |
 | `npm run typecheck` | Vérification TypeScript |
 | `npm run pennylane:inspect` | Explore le compte Pennylane (société, catégories, factures) |
+| `npm run popina:inspect` | Identifie l'établissement associé à la clé Popina, sans afficher la clé |
 | `npm run prisma:*` | Studio, génération du client, migrations, seed |
 
 ## Structure
@@ -58,6 +59,7 @@ prisma/              Modèle, migrations, seed
 | `GET /api/sync/pennylane/:syncId` | `super_admin` ; jeton interne | Statut d'une synchronisation |
 | `GET /api/halls`, `GET /api/sync/locks` | `super_admin` ; jeton interne | Halles configurées / synchronisations en cours |
 | `GET /api/service-charges/:chargeId/document` | utilisateur ayant accès à la halle | Document source de la facture |
+| `GET /api/popina/:hallId/revenue?since=AAAA-MM-JJ&until=AAAA-MM-JJ` | personnel connecté, sur ses halles ; siège inclus | CA TTC des clôtures et comparatif N-1 |
 | `POST /api/account/password` | utilisateur connecté | Changement de mot de passe (y compris provisoire) |
 | `/api/admin/*` | `super_admin` connecté (jamais le jeton interne) | Gestion des comptes et journal |
 
@@ -79,6 +81,34 @@ halle doit être associée à une catégorie analytique Pennylane : la halle de 
 L'image Docker ([`Dockerfile`](Dockerfile)) applique les migrations Prisma (`prisma migrate deploy`) puis démarre le
 serveur ; `GET /health` sert de sonde. Renseigner les variables d'environnement de `.env.example` sur la plateforme
 (Railway) et pointer `ALLOWED_ORIGINS` vers l'URL du portail.
+
+## Popina : pilote Toulon
+
+En local, le backend lit d'abord `.env.local`, puis `.env` (sans remplacer les variables déjà présentes
+dans l'environnement du processus). Les deux fichiers sont ignorés par Git. Ne jamais utiliser de variable
+`VITE_*` pour la clé Popina.
+
+1. Enregistrer `POPINA_API_KEY` dans `backend/.env.local`.
+2. Depuis `backend`, exécuter `npm run popina:inspect` ; vérifier le nom et la ville de l'établissement.
+   Cette commande n'a pas besoin d'une configuration Supabase.
+3. Enregistrer son identifiant dans `POPINA_LOCATION_ID`. `POPINA_HALL_ID` vaut l'UUID de Toulon par défaut
+   (`29a1b758-07c9-481e-bd54-c72b6a9949c4`).
+4. Pour démarrer le portail complet, renseigner aussi les variables Supabase et `HALLS_TO_SYNC` habituelles,
+   puis démarrer le backend. Le frontend doit pointer `VITE_BACKEND_URL` sur ce backend.
+5. En production, renseigner ces variables serveur dans Railway, puis déployer le backend et le frontend.
+   Les fichiers locaux ne configurent pas le déploiement.
+
+L'API officielle de production est `https://api.pragma-project.dev` (malgré son suffixe `.dev`), avec
+authentification Bearer. Les montants sont en centimes TTC. Lecture seule, sans migration ni import en base.
+Le CA ne représente que l'établissement couvert par la clé, pas tous les commerçants de la halle.
+
+Le dashboard propose une période passée de 1 à 93 jours et compare les mêmes dates calendaires de N-1.
+Les sessions sont affectées au jour de leur ouverture en heure de Paris. Les jours sans rapport ne valent
+pas zéro ; la tendance porte uniquement sur les dates disponibles des deux côtés. Les autres sources et
+le stock restent explicitement non connectés. Détails dans [l'architecture](../docs/architecture.md).
+
+Erreurs explicites : `503` si la halle n'est pas configurée, `403` pour les commerçants ou une halle hors
+périmètre, `400` pour une période invalide, `502` si Popina échoue ou renvoie des données incohérentes.
 
 ## Dépannage
 

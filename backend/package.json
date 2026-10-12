@@ -16,6 +16,7 @@
     "lint": "eslint --config ../eslint.config.js src",
     "typecheck": "tsc --noEmit",
     "pennylane:inspect": "tsx src/scripts/inspect-pennylane.ts",
+    "popina:inspect": "tsx src/scripts/inspect-popina.ts",
     "prisma:studio": "prisma studio",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

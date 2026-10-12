@@ -13,10 +13,13 @@
 
 ## Prochaines étapes
 
-1. Brancher les sources du tableau de bord (Popina/Jalia, Skello, Pennylane, Notion) : la page
-   `AdminDashboardPage` affiche aujourd'hui des données fictives (`features/admin/dashboard/mockDashboardData.ts`),
-   à supprimer lors du branchement.
+1. Étendre le pilote Popina du dashboard (CA TTC des clôtures et comparatif N-1) aux autres halles quand leurs
+   clés seront disponibles, puis connecter Skello, la synthèse Pennylane et Notion. Les données fictives du
+   dashboard ont été supprimées ; les blocs non connectés n'affichent aucun montant inventé.
 2. Remplacer les données de chiffre d'affaires codées en dur dans `RevenuePage` et `AdminRevenuePage`.
 3. Ajouter des tests d'intégration RLS (isolation commerçant / personnel).
 4. Migrer Tailwind 3 → 4 pour éliminer les alertes `npm audit` de la chaîne de build (outil de développement
    uniquement).
+5. Mettre en place le suivi de stock à partir d'un inventaire physique daté, puis déduire les ventes Popina :
+   mapping produits / recettes / unités, imports idempotents, règles d'annulation / retour et gestion des
+   tickets fractionnés (`stockImpactIndicator`). Aucun stock théorique avant cette initialisation réelle.

@@ -8,12 +8,13 @@ Navigateur (React)
 Backend Express ──► Supabase (clé service role)  écriture, administration des comptes
    │
    └──► Pennylane API (clé serveur uniquement)   factures fournisseurs
+   └──► Popina API (clé serveur uniquement)      CA des clôtures, comparatif N-1
 ```
 
 - Le navigateur lit les données directement dans Supabase ; la **RLS** garantit l'isolation par rôle et par halle.
 - Toute action privilégiée (synchronisation Pennylane, gestion des comptes, changement de mot de passe provisoire,
   ouverture d'un document source) passe par le **backend**, qui revérifie le rôle à chaque requête.
-- Les secrets (`SUPABASE_SERVICE_ROLE_KEY`, `PENNYLANE_API_KEY`) ne sont jamais exposés au navigateur.
+- Les secrets (`SUPABASE_SERVICE_ROLE_KEY`, `PENNYLANE_API_KEY`, `POPINA_API_KEY`) ne sont jamais exposés au navigateur.
 
 ## Rôles et accès
 
@@ -73,7 +74,7 @@ redirigent vers la page d'accueil du rôle (`/historique` pour un commerçant, `
 
 Personnel Biltoki (`hall_manager`, `network_manager`, `hq`, `super_admin`) :
 
-- `/admin/dashboard` – tableau de bord (aperçu avec données fictives)
+- `/admin/dashboard` – CA Popina réel et comparatif N-1, autres sources explicitement non connectées
 - `/admin/frais` – charges communes : factures, comparateur de périodes et historique par fournisseur, synchronisation Pennylane
 - `/admin/ca` – chiffre d'affaires
 
@@ -96,3 +97,34 @@ synchronisation échoue explicitement (aucune donnée fictive n'est jamais écri
 - montants en centimes (entiers), quote-part en points de base (bps) ;
 - distribution déterministe de l'écart d'arrondi ;
 - somme allouée = somme à répartir (si le total de mètres linéaires est > 0).
+
+## Intégration Popina (pilote Toulon)
+
+Les chiffres, alertes, tâches et stocks fictifs du dashboard ont été supprimés ; aucun seed ni donnée métier de
+la base n'est supprimé. Les autres pages de CA historiques restent hors du périmètre de ce branchement.
+
+- Documentation officielle : [guides](https://developer.popina.com/docs/guides) et
+  [rapports](https://developer.popina.com/docs/api/reports/get-reports-V1).
+- Lecture via `GET /api/popina/:hallId/revenue?since=AAAA-MM-JJ&until=AAAA-MM-JJ`, authentifiée avec le jeton
+  Supabase. Les commerçants et le jeton machine sont refusés. Le siège et le super admin lisent toutes les
+  halles ; responsables de halle / réseau limités à `admin_hall_permissions`.
+- Une clé Popina couvre un établissement. `POPINA_HALL_ID` désigne la halle du portail (Toulon par défaut) et
+  `POPINA_LOCATION_ID` l'établissement Popina, vérifié sur chaque rapport. Une autre halle ne réutilise jamais
+  la clé Toulon ; elle affiche « non configuré ». Ce CA est celui des caisses de cet établissement, pas la
+  somme des CA de tous les commerçants de la halle.
+- Les rapports sont lus à la demande, sans écriture en base, avec pagination complète et délai plafonné.
+  Une erreur, une réponse partielle, un doublon ou une mauvaise correspondance d'établissement bloque
+  l'affichage des montants au lieu de produire un total trompeur.
+- Montants TTC en centimes, sessions rattachées au jour de leur **ouverture**, fuseau `Europe/Paris`.
+  Période de 1 à 93 jours, jusqu'à hier inclus ; la période par défaut est le mois à date jusqu'à hier
+  (le premier du mois, le mois précédent). Ce n'est pas du temps réel et une caisse non clôturée n'est pas
+  encore comptabilisée.
+- N-1 = mêmes dates calendaires, pas mêmes jours de semaine. Un jour sans rapport est indisponible, pas zéro.
+  Les totaux sont ceux des rapports disponibles, avec couverture en jours affichée ; la tendance utilise
+  seulement les jours présents dans les deux années. Pas de pourcentage si le CA N-1 comparable est nul
+  ou négatif. Le 29 février reste sans comparaison s'il n'existe pas en N-1, sans dupliquer le 28 février.
+- Les données d'une ancienne halle ou période disparaissent immédiatement lors d'un changement de sélection.
+- Stock : aucun calcul ni inventaire fictif. L'étape suivante nécessitera un inventaire physique daté,
+  un mapping produits / recettes / unités, et des mouvements de stock idempotents. Les tickets fractionnés
+  doivent respecter `stockImpactIndicator` ; annulations, retours et transferts nécessitent des règles métier
+  validées ([cas particuliers Popina](https://developer.popina.com/docs/guides/edge-cases)).

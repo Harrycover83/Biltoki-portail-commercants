@@ -6,6 +6,7 @@ import {
 } from './integrations/pennylane/hall-categories.js'
 import { PENNYLANE_API_URL } from './integrations/pennylane/client.js'
 
+dotenv.config({ path: '.env.local' })
 dotenv.config()
 
 const NODE_ENVS = ['development', 'production'] as const
@@ -20,6 +21,11 @@ export type Config = {
     apiKey: string
     apiUrl: string
     hallCategories: HallCategoryMap
+  }
+  popina: {
+    apiKey: string
+    hallId: string
+    locationId: string
   }
   server: {
     port: number
@@ -95,6 +101,11 @@ export function getConfig(): Config {
       apiKey: optionalEnv('PENNYLANE_API_KEY', ''),
       apiUrl: optionalEnv('PENNYLANE_API_URL', PENNYLANE_API_URL),
       hallCategories: { ...DEFAULT_HALL_CATEGORIES, ...parseHallCategories(optionalEnv('PENNYLANE_HALL_CATEGORIES', '')) },
+    },
+    popina: {
+      apiKey: optionalEnv('POPINA_API_KEY', ''),
+      hallId: optionalEnv('POPINA_HALL_ID', '29a1b758-07c9-481e-bd54-c72b6a9949c4'),
+      locationId: optionalEnv('POPINA_LOCATION_ID', ''),
     },
     server: {
       port: parseInt(optionalEnv('PORT', '3000'), 10),
