@@ -120,10 +120,15 @@ la base n'est supprimé. Les autres pages de CA historiques restent hors du pér
   (le premier du mois, le mois précédent). Ce n'est pas du temps réel et une caisse non clôturée n'est pas
   encore comptabilisée.
 - N-1 = mêmes dates calendaires, pas mêmes jours de semaine. Un jour sans rapport est indisponible, pas zéro.
+  Dans le tableau quotidien, un lundi de Toulon sans rapport est libellé « Fermé · lundi » (fermeture
+  hebdomadaire confirmée) ; les autres jours sans rapport sont libellés « Données non remontées ».
+  Cette distinction vaut aussi pour N-1, sans modifier les montants ni les calculs. Un lundi avec un
+  rapport affiche toujours son CA réel ; les autres halles ne sont pas supposées fermées le lundi.
   Les totaux sont ceux des rapports disponibles, avec couverture en jours affichée ; la tendance utilise
   seulement les jours présents dans les deux années. Pas de pourcentage si le CA N-1 comparable est nul
   ou négatif. Le 29 février reste sans comparaison s'il n'existe pas en N-1, sans dupliquer le 28 février.
 - Les données d'une ancienne halle ou période disparaissent immédiatement lors d'un changement de sélection.
+- Le dashboard présente les totaux, la tendance N-1 et le tableau quotidien, sans graphique.
 - Stock : aucun calcul ni inventaire fictif. L'étape suivante nécessitera un inventaire physique daté,
   un mapping produits / recettes / unités, et des mouvements de stock idempotents. Les tickets fractionnés
   doivent respecter `stockImpactIndicator` ; annulations, retours et transferts nécessitent des règles métier

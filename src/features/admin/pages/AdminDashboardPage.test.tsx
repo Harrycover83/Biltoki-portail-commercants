@@ -149,6 +149,8 @@ describe('Dashboard page', () => {
     expect(screen.getByText('CA N‑1')).toBeTruthy()
     expect(screen.getByText('01/10/2025')).toBeTruthy()
     expect(screen.getAllByText('120,00 €')).toHaveLength(2)
+    expect(screen.getByRole('table', { name: 'CA quotidien et dates comparées' })).toBeTruthy()
+    expect(screen.queryByLabelText('Courbes du CA et du CA N‑1')).toBeNull()
   })
 
   it('does not invent zero revenue or a trend for missing data', async () => {
@@ -162,6 +164,39 @@ describe('Dashboard page', () => {
     expect(await screen.findByText('Non calculable')).toBeTruthy()
     expect(screen.getByText('Aucun rapport de clôture disponible pour cette période.')).toBeTruthy()
     expect(screen.queryByText('0,00 €')).toBeNull()
+  })
+
+  it('labels missing Mondays in Toulon as closed for both years without hiding recorded sales', async () => {
+    const hallId = '29a1b758-07c9-481e-bd54-c72b6a9949c4'
+    mockUseAdminHall.mockReturnValue({ halls: [{ id: hallId, name: 'Halle Toulon' }], selectedHallId: hallId, loading: false })
+    mockFetchRevenue.mockResolvedValue({
+      ...comparison, hallId,
+      daily: [
+        { date: '2026-10-05', previousDate: '2025-10-05', currentCents: null, previousCents: 10000 },
+        { date: '2026-10-06', previousDate: '2025-10-06', currentCents: 12000, previousCents: null },
+        { date: '2026-10-07', previousDate: '2025-10-07', currentCents: null, previousCents: null },
+        { date: '2026-10-12', previousDate: '2025-10-12', currentCents: 0, previousCents: 1000 },
+        { date: '2024-02-29', previousDate: null, currentCents: 1000, previousCents: null },
+      ],
+    })
+    render(<AdminDashboardPage />)
+    await screen.findByText('+20 %')
+    expect(screen.getAllByRole('cell', { name: 'Fermé · lundi' })).toHaveLength(2)
+    expect(screen.getAllByRole('cell', { name: 'Données non remontées' })).toHaveLength(2)
+    expect(screen.getByRole('cell', { name: /^0,00\s€$/ })).toBeTruthy()
+    expect(screen.getAllByRole('cell', { name: 'Sans équivalent' })).toHaveLength(2)
+  })
+
+  it('does not assume other halls are closed on Mondays', async () => {
+    setup()
+    mockFetchRevenue.mockResolvedValue({
+      ...comparison,
+      daily: [{ date: '2026-10-05', previousDate: '2025-10-05', currentCents: null, previousCents: 10000 }],
+    })
+    render(<AdminDashboardPage />)
+    await screen.findByText('+20 %')
+    expect(screen.queryByRole('cell', { name: 'Fermé · lundi' })).toBeNull()
+    expect(screen.getByRole('cell', { name: 'Données non remontées' })).toBeTruthy()
   })
 
   it('hides the previous hall revenue immediately when the selection changes', async () => {

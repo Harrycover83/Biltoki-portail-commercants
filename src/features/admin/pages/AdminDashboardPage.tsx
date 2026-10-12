@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Card } from '@/components/ui/Card'
 import { useAdminHall } from '@/features/admin/AdminHallContext'
@@ -9,6 +8,15 @@ import { formatDateTime } from '@/lib/format'
 
 const money = (value: number | null) => value === null ? 'Indisponible' : formatEuroFromCents(value)
 const dateLabel = (value: string) => value.split('-').reverse().join('/')
+
+function dailyRevenueLabel(hallId: string, date: string | null, cents: number | null): string {
+  if (cents !== null) return formatEuroFromCents(cents)
+  if (date === null) return 'Sans équivalent'
+  if (hallId === '29a1b758-07c9-481e-bd54-c72b6a9949c4' && new Date(`${date}T00:00:00Z`).getUTCDay() === 1) {
+    return 'Fermé · lundi'
+  }
+  return 'Données non remontées'
+}
 
 type LoadResult = { key: string; data?: RevenueComparison; error?: string }
 
@@ -34,9 +42,6 @@ function RevenuePanel({ hallId, since, until, refresh }: { hallId: string; since
   if (!data) return null
   const currentDays = data.daily.filter((day) => day.currentCents !== null).length
   const previousDays = data.daily.filter((day) => day.previousCents !== null).length
-  const chartData = data.daily.map((day) => ({
-    day: dateLabel(day.date), current: day.currentCents, previous: day.previousCents,
-  }))
   return (
     <div className="space-y-6">
       <p className="text-sm text-[#615b51]">
@@ -63,33 +68,21 @@ function RevenuePanel({ hallId, since, until, refresh }: { hallId: string; since
         </Card>
       </section>
       <p className="text-sm text-[#615b51]">
-        Un jour sans rapport reste indisponible, pas à zéro. La tendance utilise uniquement les dates présentes
+        À Toulon, un lundi sans rapport est indiqué « Fermé · lundi » ; les autres jours sans rapport sont
+        indiqués « Données non remontées ». Aucun montant à zéro n’est ajouté. La tendance utilise uniquement les dates présentes
         dans les deux années ; elle n’est pas calculée si le CA N‑1 comparable est nul ou négatif.
         Le 29 février n’a pas de date comparable dans une année non bissextile.
       </p>
       {currentDays === 0 && <p role="status">Aucun rapport de clôture disponible pour cette période.</p>}
-      {(currentDays > 0 || previousDays > 0) && <Card title="Évolution quotidienne du CA" subtitle="Mêmes dates de l’année précédente, sans alignement des jours de la semaine.">
-        <div className="h-[300px]" aria-label="Courbes du CA et du CA N‑1">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
-              <CartesianGrid stroke="#e4ddd1" strokeDasharray="3 3" />
-              <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={(value: number) => formatEuroFromCents(value)} width={100} />
-              <Tooltip formatter={(value) => typeof value === 'number' ? formatEuroFromCents(value) : 'Indisponible'} />
-              <Legend />
-              <Line dataKey="current" name="CA période" stroke="#348b57" connectNulls={false} />
-              <Line dataKey="previous" name="CA N‑1" stroke="#2468a8" connectNulls={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4 overflow-x-auto">
+      {(currentDays > 0 || previousDays > 0) && <Card title="Détail quotidien du CA" subtitle="Mêmes dates de l’année précédente, sans alignement des jours de la semaine.">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">CA quotidien et dates comparées</caption>
             <thead><tr><th className="p-2">Date</th><th className="p-2">CA TTC</th><th className="p-2">Date N‑1</th><th className="p-2">CA TTC N‑1</th></tr></thead>
             <tbody>{data.daily.map((day) => <tr key={day.date} className="border-t border-[#e4ddd1]">
-              <td className="p-2">{dateLabel(day.date)}</td><td className="p-2">{money(day.currentCents)}</td>
+              <td className="p-2">{dateLabel(day.date)}</td><td className="p-2">{dailyRevenueLabel(hallId, day.date, day.currentCents)}</td>
               <td className="p-2">{day.previousDate ? dateLabel(day.previousDate) : 'Sans équivalent'}</td>
-              <td className="p-2">{money(day.previousCents)}</td>
+              <td className="p-2">{dailyRevenueLabel(hallId, day.previousDate, day.previousCents)}</td>
             </tr>)}</tbody>
           </table>
         </div>
