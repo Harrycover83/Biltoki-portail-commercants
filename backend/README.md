@@ -60,6 +60,7 @@ prisma/              Modèle, migrations, seed
 | `GET /api/halls`, `GET /api/sync/locks` | `super_admin` ; jeton interne | Halles configurées / synchronisations en cours |
 | `GET /api/service-charges/:chargeId/document` | utilisateur ayant accès à la halle | Document source de la facture |
 | `GET /api/popina/:hallId/revenue?since=AAAA-MM-JJ&until=AAAA-MM-JJ` | personnel connecté, sur ses halles ; siège inclus | CA TTC des clôtures et comparatif N-1 |
+| `GET /api/pennylane/:hallId/treasury[?refresh=1]` | personnel connecté, sur ses halles ; halle déclarée dans le mapping Pennylane | Solde du « Compte Pro » et nombre de factures à approuver (cache 2 min) |
 | `POST /api/account/password` | utilisateur connecté | Changement de mot de passe (y compris provisoire) |
 | `/api/admin/*` | `super_admin` connecté (jamais le jeton interne) | Gestion des comptes et journal |
 

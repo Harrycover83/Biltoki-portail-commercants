@@ -26,6 +26,7 @@ tables `auth.*` sont déclarées comme externes dans [`backend/prisma.config.ts`
 5. `20261004090100_role_based_access` : périmètres par rôle, administration des comptes, journal
 6. `20261005090000_audit_followups` : mot de passe provisoire verrouillé côté base, verrou « dernier administrateur »,
    révocation de sessions
+7. `20261014120000_add_merchant_revenue_declarations` : CA mensuel déclaré par les commerçants (voir ci-dessous)
 
 Elles s'appliquent automatiquement au démarrage du backend (`npm start` lance `prisma migrate deploy`) ou à la main
 avec `npm run prisma:deploy` dans `backend/` (variable `DATABASE_URL`). L'ancien rôle `admin` n'existe plus : ces
@@ -64,6 +65,19 @@ Variables : `SUPABASE_DB_URL` (URL du pooler) pour les scripts racine, `DATABASE
 `pennylane_syncs`, ainsi que `portal_access` (allowlist des comptes, créée par la migration Supabase de base) et le
 journal d'audit des comptes (`admin_audit_log`). `dashboard_preferences` stocke la disposition personnelle du dashboard
 (widgets affichés et leur ordre) : une ligne par compte, lisible et modifiable uniquement par son propriétaire.
+`merchant_revenue_declarations` contient le CA mensuel **déclaré** par chaque commerçant (une ligne par commerçant et
+par mois, montant en centimes) : le commerçant lit, crée, corrige et supprime uniquement ses mois (jamais un mois futur) ;
+le personnel lit celles des commerçants de ses halles, en lecture seule. L'auteur et la date de mise à jour sont posés
+par un déclencheur, jamais par le client.
+
+## Tests d'isolation (RLS)
+
+`backend/src/db/rls.test.ts` rejoue les vraies migrations (schéma Supabase de base puis migrations Prisma) dans
+PostgreSQL en mémoire (PGlite, aucun service à lancer) et vérifie avec les rôles `anon` / `authenticated` :
+isolation des commerçants, périmètres des responsables de halle, écriture réservée au super admin, verrou « changement
+de mot de passe », blocage de l'auto-promotion, déclarations de CA et préférences du dashboard. Seuls les rôles API et
+`auth.uid()` / `auth.jwt()` de Supabase sont simulés (`backend/src/db/test-db.ts`). Toute nouvelle table ou policy doit
+y gagner un test ; `npm test` dans `backend/` les exécute, CI comprise.
 
 - Multi-halles natif, clés étrangères et index métier.
 - `allocations` conserve des instantanés des valeurs historiques.

@@ -13,11 +13,13 @@
 
 ## Prochaines étapes
 
-1. Étendre le pilote Popina du dashboard (CA TTC des clôtures et comparatif N-1) aux autres halles quand leurs
-   clés seront disponibles, puis connecter Skello, la synthèse Pennylane et Notion. Les données fictives du
-   dashboard ont été supprimées ; les blocs non connectés n'affichent aucun montant inventé.
-2. Remplacer les données de chiffre d'affaires codées en dur dans `RevenuePage` et `AdminRevenuePage`.
-3. Ajouter des tests d'intégration RLS (isolation commerçant / personnel).
+1. Valider le pilote Toulon (Popina, Pennylane compte pro / factures à approuver) puis l'étendre aux autres halles
+   quand leurs clés seront disponibles. Connecter Skello dès que l'accès API est ouvert (le widget RH attend
+   cet accès) et Notion. Les blocs non connectés n'affichent aucun montant inventé.
+2. ~~Remplacer les données de chiffre d'affaires codées en dur~~ : fait. `/ca` (commerçants uniquement) stocke la
+   déclaration mensuelle (`merchant_revenue_declarations`) et trace sa courbe ; `/admin/ca` liste les stands de la
+   halle avec leur dernier CA saisi, puis un graphique par stand.
+3. ~~Ajouter des tests d'intégration RLS~~ : fait (`backend/src/db/rls.test.ts`, PGlite). Compléter à chaque nouvelle table.
 4. Migrer Tailwind 3 → 4 pour éliminer les alertes `npm audit` de la chaîne de build (outil de développement
    uniquement).
 5. Mettre en place le suivi de stock à partir d'un inventaire physique daté, puis déduire les ventes Popina :

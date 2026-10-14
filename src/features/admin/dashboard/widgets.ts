@@ -23,8 +23,8 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
     roles: STAFF_ROLES,
     size: 'half',
   },
-  { id: 'hr', title: 'RH', description: 'Indicateurs Skello (non connecté).', roles: STAFF_ROLES, size: 'half' },
-  { id: 'finance', title: 'Finances', description: 'Synthèse financière (non connectée).', roles: STAFF_ROLES, size: 'half' },
+  { id: 'hr', title: 'RH', description: 'Indicateurs Skello (en attente de l’accès API).', roles: STAFF_ROLES, size: 'half' },
+  { id: 'finance', title: 'Finances', description: 'Solde du compte pro et factures à approuver (Pennylane).', roles: STAFF_ROLES, size: 'half' },
   { id: 'stock', title: 'Stock', description: 'Suivi du stock (non activé).', roles: STAFF_ROLES, size: 'half' },
   { id: 'organisation', title: 'Organisation', description: 'Tâches Notion (non connecté).', roles: STAFF_ROLES, size: 'half' },
 ]

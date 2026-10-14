@@ -4,6 +4,7 @@ import { useAdminHall } from '@/features/admin/AdminHallContext'
 import { DashboardSettings } from '@/features/admin/dashboard/DashboardSettings'
 import { DashboardWidgetFrame } from '@/features/admin/dashboard/DashboardWidgetFrame'
 import { RevenueCard } from '@/features/admin/dashboard/RevenueCard'
+import { TreasuryCard } from '@/features/admin/dashboard/TreasuryCard'
 import { useDashboardLayout } from '@/features/admin/dashboard/useDashboardLayout'
 import {
   availableWidgets, hideWidget, moveVisibleWidget, moveWidgetTo, type DashboardWidgetId,
@@ -11,8 +12,8 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider'
 
 const PLACEHOLDERS: Partial<Record<DashboardWidgetId, { subtitle: string; text: string }>> = {
-  hr: { subtitle: 'Skello non connecté', text: 'Indicateurs indisponibles.' },
-  finance: { subtitle: 'Synthèse non connectée', text: 'Les factures restent accessibles dans Charges communes.' },
+  hr: { subtitle: 'Skello : en attente de l’accès API', text: 'Aucun indicateur tant que Skello n’a pas ouvert l’accès. Rien n’est affiché de fictif.' },
+  finance: { subtitle: 'Compte pro Pennylane', text: '' },
   stock: {
     subtitle: 'Suivi non activé',
     text: 'Un inventaire physique initial et la correspondance produits / recettes seront nécessaires avant de déduire les ventes Popina.',
@@ -59,7 +60,9 @@ export function AdminDashboardPage() {
                 >
                   {id === 'revenue'
                     ? <RevenueCard hall={hall} loading={loading} />
-                    : <p className="text-sm">{placeholder?.text}</p>}
+                    : id === 'finance'
+                      ? <TreasuryCard hall={hall} loading={loading} />
+                      : <p className="text-sm">{placeholder?.text}</p>}
                 </DashboardWidgetFrame>
               </div>
             )

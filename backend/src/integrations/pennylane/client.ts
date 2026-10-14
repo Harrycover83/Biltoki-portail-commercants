@@ -1,6 +1,7 @@
 import type { Config } from '../../config.js'
 import type { Logger } from '../../utils/logger.js'
 import type {
+  PennylaneBankAccount,
   PennylaneCategory,
   PennylaneCategoryGroup,
   PennylaneFilter,
@@ -43,6 +44,15 @@ export class PennylaneClient {
     this.hallCategories = hallCategories
   }
 
+  /** Pennylane rate-limits bursts; one patient retry keeps full-list walks from failing halfway. */
+  private async fetchWithRetry(url: URL, init: RequestInit): Promise<Response> {
+    const response = await fetch(url, init)
+    if (response.status !== 429) return response
+    const waitSeconds = Math.min(Number(response.headers.get('retry-after')) || 5, 10)
+    await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000))
+    return fetch(url, init)
+  }
+
   private async request<T>(path: string, query: Record<string, string | undefined> = {}): Promise<T> {
     if (!this.apiKey) {
       throw new Error('Pennylane API key is not configured')
@@ -55,7 +65,7 @@ export class PennylaneClient {
       }
     }
 
-    const response = await fetch(url, {
+    const response = await this.fetchWithRetry(url, {
       signal: AbortSignal.timeout(30_000),
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -105,6 +115,32 @@ export class PennylaneClient {
 
   async listCategories(): Promise<PennylaneCategory[]> {
     return this.requestAll<PennylaneCategory>('/categories')
+  }
+
+  async listBankAccounts(): Promise<PennylaneBankAccount[]> {
+    return this.requestAll<PennylaneBankAccount>('/bank_accounts', {}, 100)
+  }
+
+  /** Supplier invoices of the company dated from `from` on, newest first; `truncated` flags a list cut at `maxItems`. */
+  async listAllSupplierInvoices(
+    from: string,
+    maxItems = 3000,
+  ): Promise<{ invoices: PennylaneSupplierInvoice[]; truncated: boolean }> {
+    const invoices: PennylaneSupplierInvoice[] = []
+    const filter = JSON.stringify([{ field: 'date', operator: 'gteq', value: from }] satisfies PennylaneFilter[])
+    let cursor: string | undefined
+    do {
+      const page = await this.request<PennylaneList<PennylaneSupplierInvoice>>('/supplier_invoices', {
+        limit: String(MAX_PAGE_SIZE),
+        sort: '-date',
+        filter,
+        cursor,
+      })
+      invoices.push(...page.items)
+      cursor = page.has_more && page.next_cursor ? page.next_cursor : undefined
+    } while (cursor && invoices.length < maxItems)
+    // A cursor still set here means the walk stopped at `maxItems` with pages left.
+    return { invoices, truncated: cursor !== undefined }
   }
 
   async listSuppliers(maxItems = 500): Promise<PennylaneSupplier[]> {

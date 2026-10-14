@@ -20,6 +20,8 @@ export type Config = {
   pennylane: {
     apiKey: string
     apiUrl: string
+    /** Pennylane bank account id of the "Compte Pro"; when null the account is found by its name. */
+    proAccountId: number | null
     hallCategories: HallCategoryMap
   }
   popina: {
@@ -100,6 +102,7 @@ export function getConfig(): Config {
     pennylane: {
       apiKey: optionalEnv('PENNYLANE_API_KEY', ''),
       apiUrl: optionalEnv('PENNYLANE_API_URL', PENNYLANE_API_URL),
+      proAccountId: intEnv('PENNYLANE_PRO_ACCOUNT_ID', 0) || null,
       hallCategories: { ...DEFAULT_HALL_CATEGORIES, ...parseHallCategories(optionalEnv('PENNYLANE_HALL_CATEGORIES', '')) },
     },
     popina: {

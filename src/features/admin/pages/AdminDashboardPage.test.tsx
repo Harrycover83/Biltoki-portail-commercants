@@ -7,12 +7,13 @@ import { AdminDashboardPage } from './AdminDashboardPage'
 import { parisYesterday } from '@/features/admin/dashboard/revenue'
 import { addDays, isoWeek, lastCompleteWeekDate, sameWeekLastYear, weekStart, weekdayIndex } from '@/features/admin/dashboard/weeks'
 
-const { mockUseAuth, mockUseAdminHall, mockFetchDaily } = vi.hoisted(() => ({
-  mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn(), mockFetchDaily: vi.fn(),
+const { mockUseAuth, mockUseAdminHall, mockFetchDaily, mockFetchTreasury } = vi.hoisted(() => ({
+  mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn(), mockFetchDaily: vi.fn(), mockFetchTreasury: vi.fn(),
 }))
 
 vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
 vi.mock('@/features/admin/AdminHallContext', () => ({ useAdminHall: mockUseAdminHall }))
+vi.mock('@/features/admin/dashboard/treasury', () => ({ fetchTreasury: mockFetchTreasury }))
 vi.mock('@/features/admin/dashboard/revenue', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/features/admin/dashboard/revenue')>(),
   fetchDailyRevenue: mockFetchDaily,
@@ -136,7 +137,33 @@ describe('Dashboard page', () => {
   function setup() {
     mockUseAuth.mockReturnValue({ profile: { id: 'u1', role: 'hall_manager' } })
     mockUseAdminHall.mockReturnValue({ halls: HALLS, selectedHallId: 'h1', loading: false })
+    mockFetchTreasury.mockResolvedValue({
+      hallId: 'h1', source: 'Pennylane', fetchedAt: '2026-10-14T09:00:00Z',
+      proAccount: { name: 'Compte Pro Pennylane', currency: 'EUR', balanceCents: 90_637, updatedAt: '2026-10-14T03:41:00Z' },
+      invoicesToApprove: { count: 3, totalCents: 150_000, truncated: false },
+    })
   }
+
+  it('shows the pro account balance and the invoices to approve from Pennylane', async () => {
+    setup()
+    mockFetchDaily.mockResolvedValue({ hallId: 'h1', source: 'Popina', fetchedAt: '2026-10-12T09:00:00Z', since: '', until: '', days: [] })
+    render(<AdminDashboardPage />)
+
+    expect(await screen.findByText('Solde du compte pro')).toBeTruthy()
+    expect(screen.getByText(/906,37/)).toBeTruthy()
+    expect(screen.getByText('Factures à approuver')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
+    expect(mockFetchTreasury).toHaveBeenCalledWith('h1', expect.any(AbortSignal), false)
+  })
+
+  it('never invents a balance when Pennylane is unavailable', async () => {
+    setup()
+    mockFetchTreasury.mockRejectedValue(new Error('Pennylane n’est pas encore configuré pour cette halle.'))
+    render(<AdminDashboardPage />)
+
+    expect(await screen.findByText(/Pennylane n’est pas encore configuré/)).toBeTruthy()
+    expect(screen.queryByText('Solde du compte pro')).toBeNull()
+  })
 
   const lastDate = parisYesterday()
 
@@ -257,7 +284,7 @@ describe('Dashboard page', () => {
     mockUseAdminHall.mockReturnValue({ halls: HALLS, selectedHallId: 'h2', loading: false })
     rerender(<AdminDashboardPage />)
     expect(screen.queryByText('120,00 €')).toBeNull()
-    expect(screen.getByRole('status')).toHaveTextContent('Chargement du CA')
+    expect(screen.getByText('Chargement du CA Popina…')).toBeTruthy()
   })
 
   it('removes a widget with its cross', () => {

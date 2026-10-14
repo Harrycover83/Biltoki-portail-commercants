@@ -10,6 +10,7 @@ import { createAdminUsersRouter } from './routes/admin-users.js'
 import { createHealthRouter } from './routes/health.js'
 import { createServiceChargesRouter } from './routes/service-charges.js'
 import { createPopinaRouter } from './routes/popina.js'
+import { createPennylaneRouter } from './routes/pennylane.js'
 import { createHallSyncRouter, createSyncOperationsRouter } from './routes/sync.js'
 
 export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) {
@@ -26,6 +27,7 @@ export function createServer(config: Config, db: SupabaseAdmin, logger: Logger) 
   app.use('/api', apiRateLimit())
   app.use('/api/service-charges', createServiceChargesRouter(config, db, logger))
   app.use('/api/popina', createPopinaRouter(config, db, logger))
+  app.use('/api/pennylane', createPennylaneRouter(config, db, logger))
 
   // Account self-service (password rotation)
   app.use('/api/account', createAccountRouter(db, logger))

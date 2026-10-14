@@ -112,6 +112,7 @@ model Merchant {
   allocations   Allocation[]
   profiles      Profile[]
   invoices      Invoice[]
+  revenueDeclarations MerchantRevenueDeclaration[]
 
   @@unique([hallId, legalName])
   @@unique([hallId, pennylaneid])
@@ -133,8 +134,27 @@ model Profile {
   adminHallPermissions     AdminHallPermission[]
   merchantHallPermissions  MerchantHallPermission[]
   dashboardPreference      DashboardPreference?
+  revenueDeclarations      MerchantRevenueDeclaration[]
 
   @@map("profiles")
+  @@schema("public")
+}
+
+/// Monthly revenue declared by a merchant, in cents. RLS: own rows for merchants, hall scope for staff (read only).
+model MerchantRevenueDeclaration {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  merchantId  String    @map("merchant_id") @db.Uuid
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  month       DateTime  @db.Date
+  amountCents BigInt    @map("amount_cents")
+  declaredBy  String?   @map("declared_by") @db.Uuid
+  declarer    Profile?  @relation(fields: [declaredBy], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([merchantId, month], map: "merchant_revenue_declarations_unique_month")
+  @@index([month], map: "merchant_revenue_declarations_month_idx")
+  @@map("merchant_revenue_declarations")
   @@schema("public")
 }
 

@@ -69,14 +69,14 @@ La logique des rôles est dupliquée côté frontend ([`src/lib/roles.ts`](../sr
 
 Publiques : `/login`.
 
-Authentifiées : `/historique`, `/ca`, `/profil`, `/security/update-password`. La racine `/` et `/dashboard`
+Authentifiées : `/historique`, `/ca` (commerçants uniquement : déclaration du CA mensuel, historique et courbe), `/profil`, `/security/update-password`. La racine `/` et `/dashboard`
 redirigent vers la page d'accueil du rôle (`/historique` pour un commerçant, `/admin/dashboard` pour le personnel).
 
 Personnel Biltoki (`hall_manager`, `network_manager`, `hq`, `super_admin`) :
 
-- `/admin/dashboard` – CA Popina réel et comparatif N-1, autres sources explicitement non connectées
+- `/admin/dashboard` – CA Popina réel et comparatif N-1, solde du compte pro et factures à approuver (Pennylane), autres sources explicitement non connectées
 - `/admin/frais` – charges communes : factures, comparateur de périodes et historique par fournisseur, synchronisation Pennylane
-- `/admin/ca` – chiffre d'affaires
+- `/admin/ca` – stands de la halle avec leur dernier CA déclaré par le commerçant, et graphique d'évolution
 
 `super_admin` uniquement : `/admin/administration`.
 
@@ -90,6 +90,19 @@ via la synchronisation planifiée et le bouton de l'onglet Charges communes. Le 
 société ; la correspondance halle → catégorie analytique Pennylane est déclarée dans le client. Sans clé API, toute
 synchronisation échoue explicitement (aucune donnée fictive n'est jamais écrite en base).
 
+### Tableau de bord : compte pro et factures à approuver
+
+`GET /api/pennylane/:hallId/treasury` (personnel uniquement, halles du mapping Pennylane, lecture à la demande sans
+écriture en base, cache serveur de 2 min) alimente le widget « Finances » :
+
+- **Solde du compte pro** : le compte bancaire Pennylane dont le nom contient « compte pro », ou celui désigné par
+  `PENNYLANE_PRO_ACCOUNT_ID`. S'il n'y en a aucun ou plusieurs, aucun solde n'est affiché (jamais de devinette).
+- **Factures à approuver** : le filtre Pennylane « Achats > Plus > À approuver », c'est-à-dire les factures reçues
+  par la Plateforme Agréée dont le statut de facturation électronique est `waiting_for_validation` (hors archivées).
+  Les factures « En litige » (`disputed`) ne sont pas comptées. L'API n'offre pas de filtre sur ce statut : les
+  factures des 12 derniers mois sont lues (jusqu'à 3 000, environ 4 s) puis comptées côté serveur ; une liste
+  tronquée est signalée (« 12+ »). Le décompte porte sur toute la société Pennylane, pas sur la seule halle.
+
 ## Calcul des répartitions
 
 [`src/domain/allocation/calculateAllocations.ts`](../src/domain/allocation/calculateAllocations.ts) :
@@ -101,7 +114,7 @@ synchronisation échoue explicitement (aucune donnée fictive n'est jamais écri
 ## Intégration Popina (pilote Toulon)
 
 Les chiffres, alertes, tâches et stocks fictifs du dashboard ont été supprimés ; aucun seed ni donnée métier de
-la base n'est supprimé. Les autres pages de CA historiques restent hors du périmètre de ce branchement.
+la base n'est supprimé. Les pages `/admin/ca` et `/ca` ne contiennent plus de montants codés en dur.
 
 - Documentation officielle : [guides](https://developer.popina.com/docs/guides) et
   [rapports](https://developer.popina.com/docs/api/reports/get-reports-V1).
@@ -137,6 +150,9 @@ la base n'est supprimé. Les autres pages de CA historiques restent hors du pér
   ou négatif. Le 29 février reste sans comparaison s'il n'existe pas en N-1, sans dupliquer le 28 février.
 - Les données d'une ancienne halle ou période disparaissent immédiatement lors d'un changement de sélection.
 - Le dashboard présente les totaux, la tendance N-1 et le tableau quotidien, sans graphique.
+- La page `/admin/ca` liste les stands de la halle avec le dernier CA mensuel déclaré par chaque commerçant, puis un
+  graphique d'évolution par stand. Popina ne fournit pas le CA par commerçant : la source est la déclaration mensuelle
+  saisie sur `/ca` (table `merchant_revenue_declarations`, voir [database.md](database.md)).
 - Stock : aucun calcul ni inventaire fictif. L'étape suivante nécessitera un inventaire physique daté,
   un mapping produits / recettes / unités, et des mouvements de stock idempotents. Les tickets fractionnés
   doivent respecter `stockImpactIndicator` ; annulations, retours et transferts nécessitent des règles métier

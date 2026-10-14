@@ -119,7 +119,7 @@ export function AppRouter() {
         ))}
 
         <Route path="/historique" element={<Page><HistoryPage /></Page>} />
-        <Route path="/ca" element={<Page><RevenuePage /></Page>} />
+        <Route path="/ca" element={<Page roles={['merchant']}><RevenuePage /></Page>} />
         <Route path="/profil" element={<Page><ProfilePage /></Page>} />
 
         {Object.entries(STAFF_REDIRECTS).map(([from, to]) => (

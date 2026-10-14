@@ -5,12 +5,16 @@ import type { SupabaseAdmin } from './db/supabase.js'
 import type { Logger } from './utils/logger.js'
 import { createServer } from './server.js'
 import { PopinaClient } from './integrations/popina/client.js'
+import { PennylaneClient } from './integrations/pennylane/client.js'
 
 const INTERNAL_TOKEN = 'x'.repeat(40)
 
 const config = {
   supabase: { url: 'https://project.supabase.co', serviceRoleKey: 'key' },
-  pennylane: { apiKey: '', apiUrl: '' },
+  pennylane: {
+    apiKey: 'pl-test', apiUrl: '', proAccountId: null,
+    hallCategories: { '29a1b758-07c9-481e-bd54-c72b6a9949c4': { categoryId: 1, label: '4105' } },
+  },
   popina: { apiKey: 'test-key', hallId: '29a1b758-07c9-481e-bd54-c72b6a9949c4', locationId: 'toulon' },
   server: { port: 0, nodeEnv: 'development', internalApiToken: INTERNAL_TOKEN, allowedOrigins: ['https://portal.test'], trustProxyHops: 0 },
   biltoki: { hallsToSync: ['hall-1'], syncCronSchedule: '0 2 * * *' },
@@ -116,6 +120,72 @@ describe('Popina staff-only revenue', () => {
     expect((await fetch(`${base}${path.replace('2025-10-01', '2025-02-30')}`, { headers })).status).toBe(400)
     expect(upstream).not.toHaveBeenCalled()
     expect((await fetch(`${base}${path}`, { headers })).status).toBe(502)
+  })
+})
+
+describe('Pennylane staff-only treasury', () => {
+  const hall = '29a1b758-07c9-481e-bd54-c72b6a9949c4'
+  const path = `/api/pennylane/${hall}/treasury`
+  const headers = { authorization: 'Bearer test-token' }
+  const account = {
+    id: 2, name: 'Compte Pro Pennylane', currency: 'EUR', balance: '906.37',
+    created_at: '2024-01-01T00:00:00Z', updated_at: '2026-10-14T03:41:09Z',
+  }
+  const pending = { accounting_status: 'complete', paid: false, payment_status: 'to_be_processed', amount: '50.00', e_invoicing: { status: 'waiting_for_validation' } }
+
+  function mockPennylane() {
+    return {
+      accounts: vi.spyOn(PennylaneClient.prototype, 'listBankAccounts').mockResolvedValue([account]),
+      invoices: vi.spyOn(PennylaneClient.prototype, 'listAllSupplierInvoices')
+        .mockResolvedValue({ invoices: [pending] as never, truncated: false }),
+    }
+  }
+
+  it('requires a portal session', async () => {
+    const upstream = mockPennylane()
+    const base = await start(brokenDb())
+    expect((await fetch(`${base}${path}`)).status).toBe(401)
+    expect(upstream.accounts).not.toHaveBeenCalled()
+  })
+
+  it.each(['merchant', 'hall_manager'])('denies %s outside its staff scope', async (role) => {
+    const upstream = mockPennylane()
+    const base = await start(superAdminDb(role, false))
+    expect((await fetch(`${base}${path}`, { headers })).status).toBe(403)
+    expect(upstream.accounts).not.toHaveBeenCalled()
+  })
+
+  it('returns the pro account balance and the invoices to approve', async () => {
+    const upstream = mockPennylane()
+    const base = await start(superAdminDb('hall_manager'))
+    const response = await fetch(`${base}${path}`, { headers })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    expect(await response.json()).toMatchObject({
+      hallId: hall,
+      source: 'Pennylane',
+      proAccount: { name: 'Compte Pro Pennylane', balanceCents: 90_637 },
+      invoicesToApprove: { count: 1, totalCents: 5000, truncated: false },
+    })
+    await fetch(`${base}${path}`, { headers })
+    expect(upstream.accounts).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses halls that are not mapped to the Pennylane company', async () => {
+    const upstream = mockPennylane()
+    const base = await start(superAdminDb('hq'))
+    const other = '11111111-1111-1111-1111-111111111111'
+    expect((await fetch(`${base}/api/pennylane/${other}/treasury`, { headers })).status).toBe(503)
+    expect((await fetch(`${base}/api/pennylane/not-a-uuid/treasury`, { headers })).status).toBe(400)
+    expect(upstream.accounts).not.toHaveBeenCalled()
+  })
+
+  it('surfaces upstream failures without caching them', async () => {
+    const upstream = mockPennylane()
+    upstream.accounts.mockRejectedValueOnce(new Error('Pennylane 500'))
+    const base = await start(superAdminDb('hq'))
+    expect((await fetch(`${base}${path}`, { headers })).status).toBe(502)
+    expect((await fetch(`${base}${path}`, { headers })).status).toBe(200)
   })
 })
 
