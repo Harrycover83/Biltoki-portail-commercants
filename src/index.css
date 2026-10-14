@@ -195,6 +195,18 @@ main button:not(.brand-button):hover {
   background: var(--sun) !important;
 }
 
+/* Icon-only controls of the dashboard cards: no pill, just the glyph. */
+main button.widget-control:not(.brand-button),
+main button.widget-control:not(.brand-button):hover {
+  border: 0 !important;
+  background: transparent !important;
+  color: #615b51 !important;
+}
+
+main button.widget-control:not(.brand-button):hover {
+  color: #d84d2c !important;
+}
+
 .brand-card .rounded-xl,
 .brand-card .rounded-full {
   border-radius: 8px !important;

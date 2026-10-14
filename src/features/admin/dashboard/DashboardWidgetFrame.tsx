@@ -40,7 +40,7 @@ export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMo
       }}
       className={`brand-card h-full ${dragOver ? 'outline outline-2 outline-[#d84d2c]' : ''}`}
     >
-      <header className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="brand-title text-base font-semibold">{title}</h3>
           {subtitle ? <p className="mt-1 text-sm text-[#615b51]">{subtitle}</p> : null}
@@ -69,12 +69,14 @@ export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMo
             aria-label={`Retirer ${title}`}
             title="Retirer du dashboard"
             onClick={onRemove}
-            className="px-1 text-lg leading-none hover:text-[#d84d2c]"
+            className="widget-control px-1 leading-none text-[#615b51] hover:text-[#d84d2c]"
           >
-            <span aria-hidden="true">✕</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         </div>
-      </header>
+      </div>
       <div className="mt-4">{children}</div>
     </section>
   )
