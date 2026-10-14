@@ -8,9 +8,7 @@ import { asyncHandler } from '../middleware/async-handler.js'
 import { isUuid } from '../services/user-input.js'
 import { PennylaneClient } from '../integrations/pennylane/client.js'
 import {
-  countInvoicesToApprove,
   selectProAccount,
-  type InvoicesToApprove,
   type ProAccountBalance,
 } from '../integrations/pennylane/treasury.js'
 
@@ -18,14 +16,10 @@ type Treasury = {
   source: 'Pennylane'
   fetchedAt: string
   proAccount: ProAccountBalance | null
-  invoicesToApprove: InvoicesToApprove
 }
 
-/** Walking every supplier invoice is slow and rate-limited, so one result is shared for a short while. */
+/** One result is shared for a short while so refreshes cannot hammer the rate-limited Pennylane API. */
 const CACHE_TTL_MS = 2 * 60_000
-
-/** Only recent invoices can still be waiting for approval; older ones would make every refresh much slower. */
-const INVOICE_WINDOW_DAYS = 365
 
 export function createPennylaneRouter(config: Config, db: SupabaseAdmin, logger: Logger) {
   const router = Router()
@@ -38,13 +32,11 @@ export function createPennylaneRouter(config: Config, db: SupabaseAdmin, logger:
     const maxAge = refresh ? 15_000 : CACHE_TTL_MS
     if (cached && Date.now() - cached.at < maxAge) return cached.value
     const client = new PennylaneClient(config.pennylane.apiKey, config.pennylane.apiUrl, logger, config.pennylane.hallCategories)
-    const from = new Date(Date.now() - INVOICE_WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10)
-    const value = Promise.all([client.listBankAccounts(), client.listAllSupplierInvoices(from)]).then(
-      ([accounts, { invoices, truncated }]): Treasury => ({
+    const value = client.listBankAccounts().then(
+      (accounts): Treasury => ({
         source: 'Pennylane',
         fetchedAt: new Date().toISOString(),
         proAccount: selectProAccount(accounts, config.pennylane.proAccountId ?? undefined),
-        invoicesToApprove: countInvoicesToApprove(invoices, truncated),
       }),
     )
     cached = { at: Date.now(), value }

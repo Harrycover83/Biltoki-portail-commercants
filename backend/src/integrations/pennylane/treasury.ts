@@ -1,4 +1,4 @@
-import type { PennylaneBankAccount, PennylaneSupplierInvoice } from './types.js'
+import type { PennylaneBankAccount } from './types.js'
 
 export type ProAccountBalance = {
   name: string
@@ -6,14 +6,6 @@ export type ProAccountBalance = {
   balanceCents: number
   /** When Pennylane last refreshed this balance. */
   updatedAt: string
-}
-
-export type InvoicesToApprove = {
-  count: number
-  /** Total including tax, in cents. */
-  totalCents: number
-  /** True when the invoice list was cut off, so the figures are a lower bound. */
-  truncated: boolean
 }
 
 /** Converts a Pennylane decimal string ("1234.56") to integer cents; null when it is not a plain decimal. */
@@ -39,20 +31,4 @@ export function selectProAccount(accounts: PennylaneBankAccount[], configuredId?
   const balanceCents = decimalToCents(account.balance)
   if (balanceCents === null) return null
   return { name: account.name, currency: account.currency, balanceCents, updatedAt: account.updated_at }
-}
-
-/**
- * Invoices of the Pennylane "Achats > Plus > À approuver" filter: received through the PA and waiting for the
- * company's approval (`e_invoicing.status = waiting_for_validation`). Archived invoices are no longer actionable.
- * "En litige" (`disputed`) is a separate status and is deliberately not counted.
- */
-export function countInvoicesToApprove(invoices: PennylaneSupplierInvoice[], truncated: boolean): InvoicesToApprove {
-  let count = 0
-  let totalCents = 0
-  for (const invoice of invoices) {
-    if (invoice.e_invoicing?.status !== 'waiting_for_validation' || invoice.accounting_status === 'archived') continue
-    count += 1
-    totalCents += decimalToCents(invoice.amount) ?? 0
-  }
-  return { count, totalCents, truncated }
 }

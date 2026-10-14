@@ -64,8 +64,6 @@ export type PennylaneSupplierInvoice = {
   date: string | null
   deadline: string | null
   accounting_status: 'draft' | 'archived' | 'entry' | 'validation_needed' | 'complete'
-  /** Electronic invoicing lifecycle, only present for invoices received through the PA; `status: null` means implicitly approved. */
-  e_invoicing?: { status: 'waiting_for_validation' | 'approved' | 'rejected' | 'disputed' | 'refused' | 'collected' | 'partially_collected' | null } | null
   paid: boolean
   payment_status: string
   supplier: { id: number; url: string } | null

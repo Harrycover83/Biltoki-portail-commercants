@@ -45,29 +45,17 @@ export function TreasuryCard({ hall, loading }: { hall: { id: string } | undefin
     return <p role="alert" className="border border-[#d84d2c] bg-[#fdeee9] p-3">{loaded.error}</p>
   }
 
-  const { proAccount, invoicesToApprove } = loaded.treasury
-  const count = invoicesToApprove.count
-  const approvalLabel = `${count}${invoicesToApprove.truncated ? '+' : ''}`
+  const { proAccount } = loaded.treasury
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mx-auto max-w-sm">
         <Tile
           label="Solde du compte pro"
           value={proAccount ? formatEuroFromCents(proAccount.balanceCents) : 'Indisponible'}
           hint={proAccount ? `Mis à jour le ${formatDateTime(proAccount.updatedAt)}` : 'Compte pro introuvable dans Pennylane'}
         />
-        <Tile
-          label="Factures à approuver"
-          value={approvalLabel}
-          hint={count > 0 && invoicesToApprove.totalCents > 0
-            ? `${formatEuroFromCents(invoicesToApprove.totalCents)} TTC`
-            : 'Rien en attente'}
-        />
       </div>
-      {invoicesToApprove.truncated && (
-        <p className="text-xs text-[#615b51]">Liste Pennylane tronquée : le nombre réel peut être plus élevé.</p>
-      )}
       <div className="flex items-center justify-between gap-2 text-xs text-[#615b51]">
         <span>Source Pennylane · lu le {formatDateTime(loaded.treasury.fetchedAt)}.</span>
         <button type="button" onClick={() => setRefresh((version) => version + 1)} className="text-sm font-bold underline">Actualiser</button>

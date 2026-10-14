@@ -140,19 +140,17 @@ describe('Dashboard page', () => {
     mockFetchTreasury.mockResolvedValue({
       hallId: 'h1', source: 'Pennylane', fetchedAt: '2026-10-14T09:00:00Z',
       proAccount: { name: 'Compte Pro Pennylane', currency: 'EUR', balanceCents: 90_637, updatedAt: '2026-10-14T03:41:00Z' },
-      invoicesToApprove: { count: 3, totalCents: 150_000, truncated: false },
     })
   }
 
-  it('shows the pro account balance and the invoices to approve from Pennylane', async () => {
+  it('shows the pro account balance from Pennylane', async () => {
     setup()
     mockFetchDaily.mockResolvedValue({ hallId: 'h1', source: 'Popina', fetchedAt: '2026-10-12T09:00:00Z', since: '', until: '', days: [] })
     render(<AdminDashboardPage />)
 
     expect(await screen.findByText('Solde du compte pro')).toBeTruthy()
     expect(screen.getByText(/906,37/)).toBeTruthy()
-    expect(screen.getByText('Factures à approuver')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()
+    expect(screen.queryByText('Factures à approuver')).toBeNull()
     expect(mockFetchTreasury).toHaveBeenCalledWith('h1', expect.any(AbortSignal), false)
   })
 

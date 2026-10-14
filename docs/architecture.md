@@ -74,7 +74,7 @@ redirigent vers la page d'accueil du rôle (`/historique` pour un commerçant, `
 
 Personnel Biltoki (`hall_manager`, `network_manager`, `hq`, `super_admin`) :
 
-- `/admin/dashboard` – CA Popina réel et comparatif N-1, solde du compte pro et factures à approuver (Pennylane), autres sources explicitement non connectées
+- `/admin/dashboard` – CA Popina réel et comparatif N-1, solde du compte pro (Pennylane), autres sources explicitement non connectées
 - `/admin/frais` – charges communes : factures, comparateur de périodes et historique par fournisseur, synchronisation Pennylane
 - `/admin/ca` – stands de la halle avec leur dernier CA déclaré par le commerçant, et graphique d'évolution
 
@@ -90,18 +90,15 @@ via la synchronisation planifiée et le bouton de l'onglet Charges communes. Le 
 société ; la correspondance halle → catégorie analytique Pennylane est déclarée dans le client. Sans clé API, toute
 synchronisation échoue explicitement (aucune donnée fictive n'est jamais écrite en base).
 
-### Tableau de bord : compte pro et factures à approuver
+### Tableau de bord : compte pro
 
 `GET /api/pennylane/:hallId/treasury` (personnel uniquement, halles du mapping Pennylane, lecture à la demande sans
 écriture en base, cache serveur de 2 min) alimente le widget « Finances » :
 
 - **Solde du compte pro** : le compte bancaire Pennylane dont le nom contient « compte pro », ou celui désigné par
   `PENNYLANE_PRO_ACCOUNT_ID`. S'il n'y en a aucun ou plusieurs, aucun solde n'est affiché (jamais de devinette).
-- **Factures à approuver** : le filtre Pennylane « Achats > Plus > À approuver », c'est-à-dire les factures reçues
-  par la Plateforme Agréée dont le statut de facturation électronique est `waiting_for_validation` (hors archivées).
-  Les factures « En litige » (`disputed`) ne sont pas comptées. L'API n'offre pas de filtre sur ce statut : les
-  factures des 12 derniers mois sont lues (jusqu'à 3 000, environ 4 s) puis comptées côté serveur ; une liste
-  tronquée est signalée (« 12+ »). Le décompte porte sur toute la société Pennylane, pas sur la seule halle.
+- Les filtres « À approuver » et « En litige » de l'onglet Achats n'ont pas d'équivalent dans l'API Pennylane
+  (vérifié sur toutes les factures : aucun statut correspondant) ; ils ne sont donc pas affichés.
 
 ## Calcul des répartitions
 

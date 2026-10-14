@@ -121,28 +121,6 @@ export class PennylaneClient {
     return this.requestAll<PennylaneBankAccount>('/bank_accounts', {}, 100)
   }
 
-  /** Supplier invoices of the company dated from `from` on, newest first; `truncated` flags a list cut at `maxItems`. */
-  async listAllSupplierInvoices(
-    from: string,
-    maxItems = 3000,
-  ): Promise<{ invoices: PennylaneSupplierInvoice[]; truncated: boolean }> {
-    const invoices: PennylaneSupplierInvoice[] = []
-    const filter = JSON.stringify([{ field: 'date', operator: 'gteq', value: from }] satisfies PennylaneFilter[])
-    let cursor: string | undefined
-    do {
-      const page = await this.request<PennylaneList<PennylaneSupplierInvoice>>('/supplier_invoices', {
-        limit: String(MAX_PAGE_SIZE),
-        sort: '-date',
-        filter,
-        cursor,
-      })
-      invoices.push(...page.items)
-      cursor = page.has_more && page.next_cursor ? page.next_cursor : undefined
-    } while (cursor && invoices.length < maxItems)
-    // A cursor still set here means the walk stopped at `maxItems` with pages left.
-    return { invoices, truncated: cursor !== undefined }
-  }
-
   async listSuppliers(maxItems = 500): Promise<PennylaneSupplier[]> {
     return this.requestAll<PennylaneSupplier>('/suppliers', {}, maxItems)
   }

@@ -6,7 +6,6 @@ export type Treasury = {
   source: 'Pennylane'
   fetchedAt: string
   proAccount: { name: string; currency: string; balanceCents: number; updatedAt: string } | null
-  invoicesToApprove: { count: number; totalCents: number; truncated: boolean }
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -16,11 +15,8 @@ function record(value: unknown): value is Record<string, unknown> {
 function isTreasury(value: unknown): value is Treasury {
   if (!record(value) || value.source !== 'Pennylane' || typeof value.hallId !== 'string' || typeof value.fetchedAt !== 'string') return false
   const account = value.proAccount
-  const invoices = value.invoicesToApprove
-  return (account === null || (record(account) && typeof account.name === 'string' && typeof account.updatedAt === 'string' &&
-      typeof account.currency === 'string' && Number.isSafeInteger(account.balanceCents))) &&
-    record(invoices) && Number.isSafeInteger(invoices.count) && Number.isSafeInteger(invoices.totalCents) &&
-    typeof invoices.truncated === 'boolean'
+  return account === null || (record(account) && typeof account.name === 'string' && typeof account.updatedAt === 'string' &&
+    typeof account.currency === 'string' && Number.isSafeInteger(account.balanceCents))
 }
 
 export async function fetchTreasury(hallId: string, signal: AbortSignal, refresh = false): Promise<Treasury> {

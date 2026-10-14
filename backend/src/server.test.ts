@@ -131,13 +131,9 @@ describe('Pennylane staff-only treasury', () => {
     id: 2, name: 'Compte Pro Pennylane', currency: 'EUR', balance: '906.37',
     created_at: '2024-01-01T00:00:00Z', updated_at: '2026-10-14T03:41:09Z',
   }
-  const pending = { accounting_status: 'complete', paid: false, payment_status: 'to_be_processed', amount: '50.00', e_invoicing: { status: 'waiting_for_validation' } }
-
   function mockPennylane() {
     return {
       accounts: vi.spyOn(PennylaneClient.prototype, 'listBankAccounts').mockResolvedValue([account]),
-      invoices: vi.spyOn(PennylaneClient.prototype, 'listAllSupplierInvoices')
-        .mockResolvedValue({ invoices: [pending] as never, truncated: false }),
     }
   }
 
@@ -155,7 +151,7 @@ describe('Pennylane staff-only treasury', () => {
     expect(upstream.accounts).not.toHaveBeenCalled()
   })
 
-  it('returns the pro account balance and the invoices to approve', async () => {
+  it('returns the pro account balance', async () => {
     const upstream = mockPennylane()
     const base = await start(superAdminDb('hall_manager'))
     const response = await fetch(`${base}${path}`, { headers })
@@ -165,7 +161,6 @@ describe('Pennylane staff-only treasury', () => {
       hallId: hall,
       source: 'Pennylane',
       proAccount: { name: 'Compte Pro Pennylane', balanceCents: 90_637 },
-      invoicesToApprove: { count: 1, totalCents: 5000, truncated: false },
     })
     await fetch(`${base}${path}`, { headers })
     expect(upstream.accounts).toHaveBeenCalledTimes(1)

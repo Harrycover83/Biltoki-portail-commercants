@@ -13,7 +13,7 @@
 
 ## Prochaines étapes
 
-1. Valider le pilote Toulon (Popina, Pennylane compte pro / factures à approuver) puis l'étendre aux autres halles
+1. Valider le pilote Toulon (Popina, Pennylane compte pro) puis l'étendre aux autres halles
    quand leurs clés seront disponibles. Connecter Skello dès que l'accès API est ouvert (le widget RH attend
    cet accès) et Notion. Les blocs non connectés n'affichent aucun montant inventé.
 2. ~~Remplacer les données de chiffre d'affaires codées en dur~~ : fait. `/ca` (commerçants uniquement) stocke la
