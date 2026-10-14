@@ -62,7 +62,8 @@ Variables : `SUPABASE_DB_URL` (URL du pooler) pour les scripts racine, `DATABASE
 `organizations`, `halls`, `profiles`, `admin_hall_permissions`, `merchant_hall_permissions`, `merchants`, `stands`,
 `service_charge_periods`, `allocation_rules`, `service_charges`, `allocations`, `invoices`, `payments`,
 `pennylane_syncs`, ainsi que `portal_access` (allowlist des comptes, créée par la migration Supabase de base) et le
-journal d'audit des comptes (`admin_audit_log`).
+journal d'audit des comptes (`admin_audit_log`). `dashboard_preferences` stocke la disposition personnelle du dashboard
+(widgets affichés et leur ordre) : une ligne par compte, lisible et modifiable uniquement par son propriétaire.
 
 - Multi-halles natif, clés étrangères et index métier.
 - `allocations` conserve des instantanés des valeurs historiques.

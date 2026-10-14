@@ -1,7 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Card } from '@/components/ui/Card'
 import { useAdminHall } from '@/features/admin/AdminHallContext'
+import { DashboardSettings } from '@/features/admin/dashboard/DashboardSettings'
+import { useDashboardLayout } from '@/features/admin/dashboard/useDashboardLayout'
+import { availableWidgets, type DashboardWidgetId } from '@/features/admin/dashboard/widgets'
+import { useAuth } from '@/features/auth/AuthProvider'
 import { defaultRevenuePeriod, fetchRevenue, parisToday, type RevenueComparison } from '@/features/admin/dashboard/revenue'
 import { formatEuroFromCents } from '@/lib/money'
 import { formatDateTime } from '@/lib/format'
@@ -91,13 +95,11 @@ function RevenuePanel({ hallId, since, until, refresh }: { hallId: string; since
   )
 }
 
-export function AdminDashboardPage() {
-  const { selectedHallId, halls, loading } = useAdminHall()
+function RevenueWidget({ hall, loading }: { hall: { id: string } | undefined; loading: boolean }) {
   const [period, setPeriod] = useState(defaultRevenuePeriod)
   const [draft, setDraft] = useState(period)
   const [refresh, setRefresh] = useState(0)
   const [periodError, setPeriodError] = useState<string | null>(null)
-  const hall = halls.find((option) => option.id === selectedHallId)
 
   function applyPeriod(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -112,33 +114,61 @@ export function AdminDashboardPage() {
   }
 
   return (
+    <div className="space-y-6">
+      <Card title="Chiffre d’affaires et comparatif N‑1">
+        <form onSubmit={applyPeriod} className="flex flex-wrap items-end gap-4">
+          <label className="text-sm">Du
+            <input type="date" aria-label="Début de période" required value={draft.since} max={draft.until}
+              onChange={(event) => setDraft({ ...draft, since: event.target.value })} className="ml-2 border p-2" />
+          </label>
+          <label className="text-sm">Au
+            <input type="date" aria-label="Fin de période" required value={draft.until} min={draft.since}
+              max={new Date(Date.parse(parisToday()) - 86_400_000).toISOString().slice(0, 10)}
+              onChange={(event) => setDraft({ ...draft, until: event.target.value })} className="ml-2 border p-2" />
+          </label>
+          <button type="submit" className="border border-[#171511] px-4 py-2 text-sm font-bold">Afficher / actualiser</button>
+        </form>
+        {periodError && <p role="alert" className="mt-3 text-[#d84d2c]">{periodError}</p>}
+      </Card>
+      {loading ? <p role="status">Chargement des halles…</p> : hall ?
+        <RevenuePanel hallId={hall.id} since={period.since} until={period.until} refresh={refresh} /> :
+        <p role="alert">Aucune halle accessible sélectionnée.</p>}
+    </div>
+  )
+}
+
+const STATIC_WIDGETS: Partial<Record<DashboardWidgetId, ReactNode>> = {
+  hr: <Card title="RH" subtitle="Skello non connecté"><p className="text-sm">Indicateurs indisponibles.</p></Card>,
+  finance: <Card title="Finances" subtitle="Synthèse non connectée"><p className="text-sm">Les factures restent accessibles dans Charges communes.</p></Card>,
+  stock: <Card title="Stock" subtitle="Suivi non activé"><p className="text-sm">Un inventaire physique initial et la correspondance produits / recettes seront nécessaires avant de déduire les ventes Popina.</p></Card>,
+  organisation: <Card title="Organisation" subtitle="Notion non connecté"><p className="text-sm">Aucune tâche ni alerte fictive.</p></Card>,
+}
+
+export function AdminDashboardPage() {
+  const { selectedHallId, halls, loading } = useAdminHall()
+  const { profile } = useAuth()
+  const { layout, save, reset } = useDashboardLayout(profile?.id ?? null, profile?.role)
+  const hall = halls.find((option) => option.id === selectedHallId)
+  const definitions = new Map(availableWidgets(profile?.role).map((widget) => [widget.id, widget]))
+  const shown = layout.filter((entry) => entry.visible && definitions.has(entry.id))
+
+  return (
     <PageContainer>
       <div className="space-y-6">
-        <h1 className="brand-title text-2xl">Dashboard{hall ? ` · ${hall.name}` : ''}</h1>
-        <p className="text-sm text-[#615b51]">Pilote Popina : Toulon uniquement. Aucune donnée fictive n’est affichée.</p>
-        <Card title="Chiffre d’affaires et comparatif N‑1">
-          <form onSubmit={applyPeriod} className="flex flex-wrap items-end gap-4">
-            <label className="text-sm">Du
-              <input type="date" aria-label="Début de période" required value={draft.since} max={draft.until}
-                onChange={(event) => setDraft({ ...draft, since: event.target.value })} className="ml-2 border p-2" />
-            </label>
-            <label className="text-sm">Au
-              <input type="date" aria-label="Fin de période" required value={draft.until} min={draft.since}
-                max={new Date(Date.parse(parisToday()) - 86_400_000).toISOString().slice(0, 10)}
-                onChange={(event) => setDraft({ ...draft, until: event.target.value })} className="ml-2 border p-2" />
-            </label>
-            <button type="submit" className="border border-[#171511] px-4 py-2 text-sm font-bold">Afficher / actualiser</button>
-          </form>
-          {periodError && <p role="alert" className="mt-3 text-[#d84d2c]">{periodError}</p>}
-        </Card>
-        {loading ? <p role="status">Chargement des halles…</p> : hall ?
-          <RevenuePanel hallId={hall.id} since={period.since} until={period.until} refresh={refresh} /> :
-          <p role="alert">Aucune halle accessible sélectionnée.</p>}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card title="RH" subtitle="Skello non connecté"><p className="text-sm">Indicateurs indisponibles.</p></Card>
-          <Card title="Finances" subtitle="Synthèse non connectée"><p className="text-sm">Les factures restent accessibles dans Charges communes.</p></Card>
-          <Card title="Stock" subtitle="Suivi non activé"><p className="text-sm">Un inventaire physique initial et la correspondance produits / recettes seront nécessaires avant de déduire les ventes Popina.</p></Card>
-          <Card title="Organisation" subtitle="Notion non connecté"><p className="text-sm">Aucune tâche ni alerte fictive.</p></Card>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="brand-title text-2xl">Dashboard{hall ? ` · ${hall.name}` : ''}</h1>
+            <p className="text-sm text-[#615b51]">Pilote Popina : Toulon uniquement. Aucune donnée fictive n’est affichée.</p>
+          </div>
+          <DashboardSettings role={profile?.role} layout={layout} onChange={save} onReset={reset} />
+        </div>
+        {shown.length === 0 && <p role="status">Aucun élément affiché. Utilisez la roue crantée pour en ajouter.</p>}
+        <div className="grid gap-6 md:grid-cols-2">
+          {shown.map((entry) => (
+            <div key={entry.id} className={definitions.get(entry.id)?.size === 'full' ? 'md:col-span-2' : undefined}>
+              {entry.id === 'revenue' ? <RevenueWidget hall={hall} loading={loading} /> : STATIC_WIDGETS[entry.id]}
+            </div>
+          ))}
         </div>
       </div>
     </PageContainer>

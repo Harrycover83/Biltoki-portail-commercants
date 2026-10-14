@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useAdminHall } from '@/features/admin/AdminHallContext'
+import { hallBarLabel } from '@/features/admin/hallScope'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { homePathForRole, isStaffRole, isSuperAdminRole, roleLabel } from '@/lib/roles'
 
@@ -12,6 +13,7 @@ export function AppHeader() {
   const { halls, selectedHallId, setSelectedHallId, loading } = useAdminHall()
   const showHallBar = isAdmin && location.pathname.startsWith('/admin') && location.pathname !== '/admin/administration'
   const badgeLabel = [roleLabel(profile?.role), profile?.job_title].filter(Boolean).join(' · ')
+  const hallLabel = hallBarLabel(profile?.role, halls.length)
 
   const navClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
@@ -76,12 +78,12 @@ export function AppHeader() {
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
             {halls.length === 1 ? (
               <p className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
-                <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle</span>
+                <span className="text-xs font-bold uppercase tracking-[0.08em]">{hallLabel}</span>
                 <span>{halls[0].name}</span>
               </p>
             ) : (
               <label className="flex shrink-0 items-center gap-3 text-sm font-semibold text-[#171511]">
-                <span className="text-xs font-bold uppercase tracking-[0.08em]">Halle observee</span>
+                <span className="text-xs font-bold uppercase tracking-[0.08em]">{hallLabel}</span>
                 <select
                   value={selectedHallId}
                   disabled={loading || halls.length === 0}

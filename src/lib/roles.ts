@@ -30,6 +30,11 @@ export function isStaffRole(role: UserRole | null | undefined): boolean {
   return role ? STAFF_ROLES.includes(role) : false
 }
 
+/** Roles bound to a list of halls stored in admin_hall_permissions. */
+export function isHallScopedRole(role: UserRole | null | undefined): boolean {
+  return role === 'hall_manager' || role === 'network_manager'
+}
+
 export function isSuperAdminRole(role: UserRole | null | undefined): boolean {
   return role === 'super_admin'
 }

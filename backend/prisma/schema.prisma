@@ -132,8 +132,19 @@ model Profile {
 
   adminHallPermissions     AdminHallPermission[]
   merchantHallPermissions  MerchantHallPermission[]
+  dashboardPreference      DashboardPreference?
 
   @@map("profiles")
+  @@schema("public")
+}
+
+model DashboardPreference {
+  profileId String   @id @map("profile_id") @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  widgets   Json     @default("[]")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("dashboard_preferences")
   @@schema("public")
 }
 

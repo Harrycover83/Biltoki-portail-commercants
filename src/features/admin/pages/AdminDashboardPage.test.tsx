@@ -106,6 +106,19 @@ describe('Navigation per role', () => {
     expect(options).toEqual(['Halle Toulon', 'Halle Nice'])
   })
 
+  it('words the hall bar after the profile', () => {
+    renderHeader('hall_manager', '/admin/dashboard', [HALLS[0]])
+    expect(screen.getByText('Ma halle')).toBeTruthy()
+    cleanup()
+
+    renderHeader('network_manager')
+    expect(screen.getByText('Mes halles')).toBeTruthy()
+    cleanup()
+
+    renderHeader('hq')
+    expect(screen.getByText('Halle observée')).toBeTruthy()
+  })
+
   it('never shows the Pennylane sync in the header', () => {
     renderHeader('super_admin', '/admin/frais')
     expect(screen.queryByText('Synchroniser Pennylane')).toBeNull()
@@ -119,6 +132,7 @@ describe('Dashboard page', () => {
   })
 
   function setup() {
+    mockUseAuth.mockReturnValue({ profile: { id: 'u1', role: 'hall_manager' } })
     mockUseAdminHall.mockReturnValue({ halls: HALLS, selectedHallId: 'h1', loading: false })
   }
 
@@ -168,6 +182,7 @@ describe('Dashboard page', () => {
 
   it('labels missing Mondays in Toulon as closed for both years without hiding recorded sales', async () => {
     const hallId = '29a1b758-07c9-481e-bd54-c72b6a9949c4'
+    mockUseAuth.mockReturnValue({ profile: { id: 'u1', role: 'hall_manager' } })
     mockUseAdminHall.mockReturnValue({ halls: [{ id: hallId, name: 'Halle Toulon' }], selectedHallId: hallId, loading: false })
     mockFetchRevenue.mockResolvedValue({
       ...comparison, hallId,
@@ -222,5 +237,22 @@ describe('Dashboard page', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Afficher / actualiser' }).closest('form')!)
     expect(screen.getByText('Choisissez une période passée de 1 à 93 jours.')).toBeTruthy()
     expect(mockFetchRevenue).toHaveBeenCalledTimes(calls)
+  })
+
+  it('lets the user choose and reorder the widgets from the settings gear', () => {
+    window.localStorage.clear()
+    setup()
+    mockFetchRevenue.mockReturnValue(new Promise(() => {}))
+    render(<AdminDashboardPage />)
+    expect(screen.getByText('Suivi non activé')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Personnaliser le dashboard' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Stock/ }))
+    expect(screen.queryByText('Suivi non activé')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descendre RH' }))
+    const titles = screen.getAllByRole('checkbox').map((box) => box.id)
+    expect(titles.indexOf('widget-finance')).toBeLessThan(titles.indexOf('widget-hr'))
+    window.localStorage.clear()
   })
 })
