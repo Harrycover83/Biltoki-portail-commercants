@@ -104,7 +104,7 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
         aria-expanded={open}
         aria-controls="revenue-chooser"
         onClick={() => setOpen((value) => !value)}
-        className="revenue-headline mx-auto block w-full max-w-sm px-4 py-2 text-center"
+        className="revenue-headline mx-auto flex w-full max-w-sm flex-col items-center justify-center gap-1 px-6 py-4 text-center"
       >
         <span className="block text-sm font-semibold">{title}</span>
         <span className="brand-display block text-3xl leading-tight">{headline}</span>
