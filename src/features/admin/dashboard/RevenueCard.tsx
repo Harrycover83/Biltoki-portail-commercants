@@ -104,16 +104,16 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
         aria-expanded={open}
         aria-controls="revenue-chooser"
         onClick={() => setOpen((value) => !value)}
-        className="block w-full border border-[#d6cebf] p-3 text-left hover:bg-[#f7e7b8]"
+        className="revenue-headline mx-auto block w-full max-w-sm px-4 py-2 text-center"
       >
         <span className="block text-sm font-semibold">{title}</span>
-        <span className="brand-display block text-3xl">{headline}</span>
+        <span className="brand-display block text-3xl leading-tight">{headline}</span>
         <span className="block text-xs text-[#615b51]">{open ? 'Masquer le choix' : 'Cliquer pour choisir un jour ou une semaine'}</span>
       </button>
 
       {open && (
-        <div id="revenue-chooser" className="space-y-3 border border-[#e4ddd1] p-3">
-          <div role="group" aria-label="Type de période" className="flex gap-2">
+        <div id="revenue-chooser" className="mx-auto w-full max-w-sm space-y-3 rounded-lg border border-[#e4ddd1] p-3">
+          <div role="group" aria-label="Type de période" className="flex justify-center gap-2">
             {(['day', 'week'] as const).map((value) => (
               <button
                 key={value}
@@ -126,7 +126,7 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button type="button" aria-label={`${unit} précédent${feminine}`} onClick={() => move(-1)} className="border px-3 py-1 font-bold">‹</button>
             <input
               type="date"
@@ -140,10 +140,10 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
               className="border p-1 text-sm"
             />
             <button type="button" aria-label={`${unit} suivant${feminine}`} disabled={!canGoNext} onClick={() => move(1)} className="border px-3 py-1 font-bold disabled:opacity-30">›</button>
-            <button type="button" onClick={() => setRefresh((version) => version + 1)} className="ml-auto text-sm font-bold underline">Actualiser</button>
+            <button type="button" onClick={() => setRefresh((version) => version + 1)} className="text-sm font-bold underline">Actualiser</button>
           </div>
           {mode === 'week' && (
-            <p className="text-xs text-[#615b51]">Semaines calendaires complètes, du lundi au dimanche : choisissez n’importe quelle date de la semaine.</p>
+            <p className="text-center text-xs text-[#615b51]">Semaines calendaires complètes, du lundi au dimanche : choisissez n’importe quelle date de la semaine.</p>
           )}
         </div>
       )}

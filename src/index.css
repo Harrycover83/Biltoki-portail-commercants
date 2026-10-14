@@ -203,6 +203,11 @@ main button.segment-active:not(.brand-button):hover {
   color: #fff !important;
 }
 
+/* Revenue headline: a compact rounded tile instead of a full-width pill. */
+main button.revenue-headline:not(.brand-button) {
+  border-radius: 14px !important;
+}
+
 /* Icon-only controls of the dashboard cards: no pill, just the glyph. */
 main button.widget-control:not(.brand-button),
 main button.widget-control:not(.brand-button):hover {
