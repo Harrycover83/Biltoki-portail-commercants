@@ -58,9 +58,11 @@ export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMo
               event.dataTransfer?.setData('text/plain', title)
               if (frame.current) event.dataTransfer?.setDragImage?.(frame.current, 16, 16)
             }}
-            className="cursor-grab select-none px-1 text-lg leading-none hover:text-[#171511]"
+            className="cursor-grab select-none px-1 leading-none hover:text-[#171511]"
           >
-            <span aria-hidden="true">⠿</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+            </svg>
           </span>
           <button
             type="button"
