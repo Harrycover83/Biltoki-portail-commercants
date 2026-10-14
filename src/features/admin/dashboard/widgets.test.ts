@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { availableWidgets, defaultLayout, moveWidget, normalizeLayout, toggleWidget } from './widgets'
+import {
+  availableWidgets, defaultLayout, hideWidget, moveVisibleWidget, moveWidget, moveWidgetTo, normalizeLayout, toggleWidget,
+} from './widgets'
 
 describe('dashboard widgets', () => {
   it('offers the widgets to staff only', () => {
@@ -35,5 +37,22 @@ describe('dashboard widgets', () => {
     expect(layout[0].id).toBe('revenue')
     expect(moveWidget(layout, 'revenue', -1)).toBe(layout)
     expect(toggleWidget(layout, 'hr').find((entry) => entry.id === 'hr')?.visible).toBe(false)
+  })
+
+  it('hides a widget and moves among the displayed ones only', () => {
+    const layout = hideWidget(defaultLayout('hq'), 'hr')
+    expect(layout.find((entry) => entry.id === 'hr')?.visible).toBe(false)
+    // 'finance' skips the hidden 'hr' and swaps with 'revenue'
+    expect(moveVisibleWidget(layout, 'finance', -1).map((entry) => entry.id).slice(0, 3)).toEqual(['finance', 'hr', 'revenue'])
+    expect(moveVisibleWidget(layout, 'revenue', -1)).toBe(layout)
+    expect(moveVisibleWidget(layout, 'organisation', 1)).toBe(layout)
+  })
+
+  it('moves a dragged widget onto the place of another', () => {
+    const layout = defaultLayout('hq')
+    expect(moveWidgetTo(layout, 'organisation', 'revenue').map((entry) => entry.id)).toEqual([
+      'organisation', 'revenue', 'hr', 'finance', 'stock',
+    ])
+    expect(moveWidgetTo(layout, 'revenue', 'revenue')).toBe(layout)
   })
 })

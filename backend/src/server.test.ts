@@ -84,6 +84,25 @@ describe('Popina staff-only revenue', () => {
     expect(upstream.mock.calls[1]).toEqual(['2024-09-30', '2024-10-03', 'toulon'])
   })
 
+  it('serves the daily series with the same access rules', async () => {
+    const upstream = vi.spyOn(PopinaClient.prototype, 'getReports').mockResolvedValue([])
+    const daily = path.replace('/revenue?', '/revenue/daily?')
+    expect((await fetch(`${await start(brokenDb())}${daily}`)).status).toBe(401)
+    close?.()
+    const denied = await start(superAdminDb('hall_manager', false))
+    expect((await fetch(`${denied}${daily}`, { headers })).status).toBe(403)
+    expect(upstream).not.toHaveBeenCalled()
+    close?.()
+    const base = await start(superAdminDb('hall_manager'))
+    const response = await fetch(`${base}${daily}`, { headers })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      days: [{ date: '2025-10-01', cents: null }, { date: '2025-10-02', cents: null }],
+    })
+    expect(upstream).toHaveBeenCalledTimes(1)
+    expect((await fetch(`${base}${daily.replace('2025-10-01', '2025-02-30')}`, { headers })).status).toBe(400)
+  })
+
   it('does not use the Toulon key for another hall', async () => {
     const upstream = vi.spyOn(PopinaClient.prototype, 'getReports').mockResolvedValue([])
     const base = await start(superAdminDb('hq'))

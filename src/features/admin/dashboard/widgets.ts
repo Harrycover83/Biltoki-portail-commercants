@@ -18,10 +18,10 @@ export type WidgetPreference = { id: DashboardWidgetId; visible: boolean }
 export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
   {
     id: 'revenue',
-    title: 'Chiffre d’affaires et comparatif N‑1',
-    description: 'CA Popina de la période, tendance et détail quotidien.',
+    title: 'Chiffre d’affaires',
+    description: 'CA Popina de la veille, d’un jour ou d’une semaine, comparé à N‑1 et à la semaine précédente.',
     roles: STAFF_ROLES,
-    size: 'full',
+    size: 'half',
   },
   { id: 'hr', title: 'RH', description: 'Indicateurs Skello (non connecté).', roles: STAFF_ROLES, size: 'half' },
   { id: 'finance', title: 'Finances', description: 'Synthèse financière (non connectée).', roles: STAFF_ROLES, size: 'half' },
@@ -73,4 +73,31 @@ export function moveWidget(layout: WidgetPreference[], id: DashboardWidgetId, di
 
 export function toggleWidget(layout: WidgetPreference[], id: DashboardWidgetId): WidgetPreference[] {
   return layout.map((entry) => (entry.id === id ? { ...entry, visible: !entry.visible } : entry))
+}
+
+export function hideWidget(layout: WidgetPreference[], id: DashboardWidgetId): WidgetPreference[] {
+  return layout.map((entry) => (entry.id === id ? { ...entry, visible: false } : entry))
+}
+
+/** Swaps a displayed widget with its displayed neighbour, skipping the hidden ones. */
+export function moveVisibleWidget(layout: WidgetPreference[], id: DashboardWidgetId, direction: -1 | 1): WidgetPreference[] {
+  const from = layout.findIndex((entry) => entry.id === id)
+  if (from < 0) return layout
+  let to = from + direction
+  while (to >= 0 && to < layout.length && !layout[to].visible) to += direction
+  if (to < 0 || to >= layout.length) return layout
+  const next = [...layout]
+  ;[next[from], next[to]] = [next[to], next[from]]
+  return next
+}
+
+/** Drag and drop: the dragged widget takes the place of the one it is dropped on. */
+export function moveWidgetTo(layout: WidgetPreference[], id: DashboardWidgetId, targetId: DashboardWidgetId): WidgetPreference[] {
+  const from = layout.findIndex((entry) => entry.id === id)
+  const to = layout.findIndex((entry) => entry.id === targetId)
+  if (from < 0 || to < 0 || from === to) return layout
+  const next = [...layout]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
 }

@@ -105,9 +105,16 @@ la base n'est supprimé. Les autres pages de CA historiques restent hors du pér
 
 - Documentation officielle : [guides](https://developer.popina.com/docs/guides) et
   [rapports](https://developer.popina.com/docs/api/reports/get-reports-V1).
-- Lecture via `GET /api/popina/:hallId/revenue?since=AAAA-MM-JJ&until=AAAA-MM-JJ`, authentifiée avec le jeton
+- Lecture via `GET /api/popina/:hallId/revenue/daily?since=AAAA-MM-JJ&until=AAAA-MM-JJ` (CA TTC par jour, `null`
+  quand aucun rapport n'existe) et `GET /api/popina/:hallId/revenue` (comparatif N‑1 à dates identiques),
+  authentifiées avec le jeton
   Supabase. Les commerçants et le jeton machine sont refusés. Le siège et le super admin lisent toutes les
   halles ; responsables de halle / réseau limités à `admin_hall_permissions`.
+- Le dashboard affiche une carte « CA de la veille » ; un clic permet de choisir un jour ou une semaine. Les
+  tendances sont calculées sur les **semaines calendaires ISO** (lundi → dimanche) : semaine choisie contre la même
+  semaine de N‑1 (même numéro, repli sur la semaine 52 si la 53 n'existe pas) et contre la semaine précédente,
+  jour par jour (par jour de semaine). Une semaine en cours n'est comparée que sur ses jours clôturés, et un jour
+  sans rapport n'est jamais compté comme zéro.
 - Une clé Popina couvre un établissement. `POPINA_HALL_ID` désigne la halle du portail (Toulon par défaut) et
   `POPINA_LOCATION_ID` l'établissement Popina, vérifié sur chaque rapport. Une autre halle ne réutilise jamais
   la clé Toulon ; elle affiche « non configuré ». Ce CA est celui des caisses de cet établissement, pas la

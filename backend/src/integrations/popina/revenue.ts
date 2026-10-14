@@ -47,6 +47,15 @@ function sum(values: number[]): number | null {
   return total
 }
 
+export function dailyRevenue(since: string, until: string, reports: PopinaReport[]) {
+  const totals = dailyTotals(reports)
+  const days: { date: string; cents: number | null }[] = []
+  for (let date = since; date <= until; date = addDays(date, 1)) {
+    days.push({ date, cents: totals.get(date) ?? null })
+  }
+  return { since, until, days }
+}
+
 export function compareRevenue(since: string, until: string, current: PopinaReport[], previous: PopinaReport[]) {
   const currentTotals = dailyTotals(current)
   const previousTotals = dailyTotals(previous)

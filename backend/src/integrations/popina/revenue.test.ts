@@ -1,10 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import type { PopinaReport } from './client.js'
-import { compareRevenue, previousYear, validPeriod } from './revenue.js'
+import { compareRevenue, dailyRevenue, previousYear, validPeriod } from './revenue.js'
 
 function report(id: string, startedAt: string, totalSales: number): PopinaReport {
   return { id, locationId: 'toulon', startedAt, finalizedAt: startedAt, totalSales }
 }
+
+describe('Popina daily revenue', () => {
+  it('returns one entry per day, null (not zero) when no report exists, and ignores padding days', () => {
+    const result = dailyRevenue('2026-10-05', '2026-10-07', [
+      report('pad', '2026-10-04T10:00:00Z', 7000),
+      report('a', '2026-10-05T08:00:00Z', 1000),
+      report('b', '2026-10-05T12:00:00Z', 500),
+      report('c', '2026-10-07T10:00:00Z', 0),
+      report('pad2', '2026-10-08T10:00:00Z', 7000),
+    ])
+    expect(result.days).toEqual([
+      { date: '2026-10-05', cents: 1500 },
+      { date: '2026-10-06', cents: null },
+      { date: '2026-10-07', cents: 0 },
+    ])
+  })
+})
 
 describe('Popina N-1 revenue', () => {
   it('sums multiple tills and attributes UTC dates to the opening day in Paris', () => {

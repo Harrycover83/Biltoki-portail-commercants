@@ -4,16 +4,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppHeader } from '@/components/layout/AppHeader'
 import type { UserRole } from '@/types/domain'
 import { AdminDashboardPage } from './AdminDashboardPage'
+import { parisYesterday } from '@/features/admin/dashboard/revenue'
+import { addDays, sameWeekLastYear, weekStart, weekdayIndex } from '@/features/admin/dashboard/weeks'
 
-const { mockUseAuth, mockUseAdminHall, mockFetchRevenue } = vi.hoisted(() => ({
-  mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn(), mockFetchRevenue: vi.fn(),
+const { mockUseAuth, mockUseAdminHall, mockFetchDaily } = vi.hoisted(() => ({
+  mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn(), mockFetchDaily: vi.fn(),
 }))
 
 vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: mockUseAuth }))
 vi.mock('@/features/admin/AdminHallContext', () => ({ useAdminHall: mockUseAdminHall }))
 vi.mock('@/features/admin/dashboard/revenue', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/features/admin/dashboard/revenue')>(),
-  fetchRevenue: mockFetchRevenue,
+  fetchDailyRevenue: mockFetchDaily,
 }))
 vi.mock('@/features/admin/components/PennylaneSyncPanel', () => ({ PennylaneSyncPanel: () => <button>Synchroniser Pennylane</button> }))
 vi.mock('recharts', () => ({
@@ -136,113 +138,138 @@ describe('Dashboard page', () => {
     mockUseAdminHall.mockReturnValue({ halls: HALLS, selectedHallId: 'h1', loading: false })
   }
 
-  it('removes all fictional metrics and shows configuration errors explicitly', async () => {
+  const lastDate = parisYesterday()
+
+  /** Fake Popina backend: answers every requested range from a date → cents function. */
+  function backend(values: (date: string) => number | null) {
+    mockFetchDaily.mockImplementation(async (hallId: string, since: string, until: string) => ({
+      hallId, source: 'Popina', fetchedAt: '2026-10-12T09:00:00Z', since, until,
+      days: Array.from({ length: Math.round((Date.parse(until) - Date.parse(since)) / 86_400_000) + 1 }, (_, index) => {
+        const date = addDays(since, index)
+        return { date, cents: values(date) }
+      }),
+    }))
+  }
+
+  const weekdayLastYear = (date: string) => addDays(sameWeekLastYear(weekStart(date)), weekdayIndex(date))
+  const weekdayLastWeek = (date: string) => addDays(date, -7)
+
+  it('shows no fictional metrics and surfaces configuration errors explicitly', async () => {
     setup()
-    mockFetchRevenue.mockRejectedValue(new Error('Popina non configuré pour cette halle.'))
+    mockFetchDaily.mockRejectedValue(new Error('Popina non configuré pour cette halle.'))
     render(<AdminDashboardPage />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Popina non configuré')
     expect(screen.queryByText('84 250 €')).toBeNull()
     expect(screen.queryByText('À traiter')).toBeNull()
-    expect(screen.queryByText(/rupture prévue/i)).toBeNull()
     expect(screen.getByText('Suivi non activé')).toBeTruthy()
   })
 
-  const comparison = {
-    hallId: 'h1', source: 'Popina', fetchedAt: '2026-10-12T09:00:00Z', since: '2026-10-01', until: '2026-10-11',
-    totalCurrentCents: 12000, totalPreviousCents: 10000, comparableDays: 1,
-    comparableCurrentCents: 12000, comparablePreviousCents: 10000, trendPercent: 20,
-    daily: [{ date: '2026-10-01', previousDate: '2025-10-01', currentCents: 12000, previousCents: 10000 }],
-  }
-
-  it('renders real revenue and the N-1 comparison', async () => {
+  it('shows yesterday’s revenue in a compact card, with no daily table', async () => {
     setup()
-    mockFetchRevenue.mockResolvedValue(comparison)
+    backend((date) => (date === lastDate ? 12000 : date === weekdayLastYear(lastDate) ? 10000 : date === weekdayLastWeek(lastDate) ? 8000 : null))
     render(<AdminDashboardPage />)
+
     expect(await screen.findByText('+20 %')).toBeTruthy()
-    expect(screen.getByText('CA N‑1')).toBeTruthy()
-    expect(screen.getByText('01/10/2025')).toBeTruthy()
-    expect(screen.getAllByText('120,00 €')).toHaveLength(2)
-    expect(screen.getByRole('table', { name: 'CA quotidien et dates comparées' })).toBeTruthy()
-    expect(screen.queryByLabelText('Courbes du CA et du CA N‑1')).toBeNull()
+    expect(screen.getByText('CA de la veille')).toBeTruthy()
+    expect(screen.getByText('120,00 €')).toBeTruthy()
+    expect(screen.getByText('+50 %')).toBeTruthy()
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByLabelText('Date observée')).toBeNull()
   })
 
   it('does not invent zero revenue or a trend for missing data', async () => {
     setup()
-    mockFetchRevenue.mockResolvedValue({
-      ...comparison, totalCurrentCents: null, totalPreviousCents: null,
-      comparableDays: 0, comparableCurrentCents: null, comparablePreviousCents: null, trendPercent: null,
-      daily: [{ date: '2026-10-01', previousDate: '2025-10-01', currentCents: null, previousCents: null }],
-    })
+    backend(() => null)
     render(<AdminDashboardPage />)
-    expect(await screen.findByText('Non calculable')).toBeTruthy()
-    expect(screen.getByText('Aucun rapport de clôture disponible pour cette période.')).toBeTruthy()
+
+    expect(await screen.findAllByText('Non calculable')).toHaveLength(2)
+    expect(screen.getAllByText('Données non remontées')).toHaveLength(3)
     expect(screen.queryByText('0,00 €')).toBeNull()
   })
 
-  it('labels missing Mondays in Toulon as closed for both years without hiding recorded sales', async () => {
-    const hallId = '29a1b758-07c9-481e-bd54-c72b6a9949c4'
+  it('labels a missing Monday as closed in Toulon only', async () => {
+    const toulon = '29a1b758-07c9-481e-bd54-c72b6a9949c4'
+    const monday = addDays(weekStart(lastDate), -7)
     mockUseAuth.mockReturnValue({ profile: { id: 'u1', role: 'hall_manager' } })
-    mockUseAdminHall.mockReturnValue({ halls: [{ id: hallId, name: 'Halle Toulon' }], selectedHallId: hallId, loading: false })
-    mockFetchRevenue.mockResolvedValue({
-      ...comparison, hallId,
-      daily: [
-        { date: '2026-10-05', previousDate: '2025-10-05', currentCents: null, previousCents: 10000 },
-        { date: '2026-10-06', previousDate: '2025-10-06', currentCents: 12000, previousCents: null },
-        { date: '2026-10-07', previousDate: '2025-10-07', currentCents: null, previousCents: null },
-        { date: '2026-10-12', previousDate: '2025-10-12', currentCents: 0, previousCents: 1000 },
-        { date: '2024-02-29', previousDate: null, currentCents: 1000, previousCents: null },
-      ],
-    })
+    mockUseAdminHall.mockReturnValue({ halls: [{ id: toulon, name: 'Halle Toulon' }], selectedHallId: toulon, loading: false })
+    backend(() => null)
     render(<AdminDashboardPage />)
-    await screen.findByText('+20 %')
-    expect(screen.getAllByRole('cell', { name: 'Fermé · lundi' })).toHaveLength(2)
-    expect(screen.getAllByRole('cell', { name: 'Données non remontées' })).toHaveLength(2)
-    expect(screen.getByRole('cell', { name: /^0,00\s€$/ })).toBeTruthy()
-    expect(screen.getAllByRole('cell', { name: 'Sans équivalent' })).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: /CA de la veille/ }))
+    fireEvent.change(screen.getByLabelText('Date observée'), { target: { value: monday } })
+    expect(await screen.findAllByText('Fermé · lundi')).toHaveLength(3)
+    cleanup()
+
+    setup()
+    render(<AdminDashboardPage />)
+    fireEvent.click(screen.getByRole('button', { name: /CA de la veille/ }))
+    fireEvent.change(screen.getByLabelText('Date observée'), { target: { value: monday } })
+    await screen.findAllByText('Données non remontées')
+    expect(screen.queryByText('Fermé · lundi')).toBeNull()
   })
 
-  it('does not assume other halls are closed on Mondays', async () => {
+  it('compares a calendar week with the same week last year and the previous week', async () => {
     setup()
-    mockFetchRevenue.mockResolvedValue({
-      ...comparison,
-      daily: [{ date: '2026-10-05', previousDate: '2025-10-05', currentCents: null, previousCents: 10000 }],
-    })
+    const monday = addDays(weekStart(lastDate), -7)
+    const inWeek = (date: string, start: string) => date >= start && date <= addDays(start, 6)
+    backend((date) => (inWeek(date, monday) ? 1000 : inWeek(date, sameWeekLastYear(monday)) ? 500 : inWeek(date, addDays(monday, -7)) ? 800 : null))
     render(<AdminDashboardPage />)
-    await screen.findByText('+20 %')
-    expect(screen.queryByRole('cell', { name: 'Fermé · lundi' })).toBeNull()
-    expect(screen.getByRole('cell', { name: 'Données non remontées' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /CA de la veille/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Semaine' }))
+    fireEvent.change(screen.getByLabelText('Date observée'), { target: { value: monday } })
+
+    expect(await screen.findByText('+100 %')).toBeTruthy()
+    expect(screen.getByText('+25 %')).toBeTruthy()
+    expect(screen.getByText('70,00 €')).toBeTruthy()
+    expect(screen.getByText(/^CA de la semaine \d+ ·/)).toBeTruthy()
   })
 
   it('hides the previous hall revenue immediately when the selection changes', async () => {
     setup()
-    mockFetchRevenue.mockResolvedValueOnce(comparison)
+    backend((date) => (date === lastDate ? 12000 : null))
     const { rerender } = render(<AdminDashboardPage />)
-    expect(await screen.findByText('+20 %')).toBeTruthy()
-    mockFetchRevenue.mockImplementation(() => new Promise(() => {}))
+    expect(await screen.findByText('120,00 €')).toBeTruthy()
+    mockFetchDaily.mockImplementation(() => new Promise(() => {}))
     mockUseAdminHall.mockReturnValue({ halls: HALLS, selectedHallId: 'h2', loading: false })
     rerender(<AdminDashboardPage />)
-    expect(screen.queryByText('+20 %')).toBeNull()
+    expect(screen.queryByText('120,00 €')).toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent('Chargement du CA')
   })
 
-  it('rejects an overly long period without fetching it', async () => {
+  it('removes a widget with its cross', () => {
+    window.localStorage.clear()
     setup()
-    mockFetchRevenue.mockRejectedValue(new Error('Non configuré'))
+    mockFetchDaily.mockReturnValue(new Promise(() => {}))
     render(<AdminDashboardPage />)
-    await screen.findByRole('alert')
-    const calls = mockFetchRevenue.mock.calls.length
-    fireEvent.change(screen.getByLabelText('Début de période'), { target: { value: '2025-01-01' } })
-    fireEvent.change(screen.getByLabelText('Fin de période'), { target: { value: '2025-12-31' } })
-    fireEvent.submit(screen.getByRole('button', { name: 'Afficher / actualiser' }).closest('form')!)
-    expect(screen.getByText('Choisissez une période passée de 1 à 93 jours.')).toBeTruthy()
-    expect(mockFetchRevenue).toHaveBeenCalledTimes(calls)
+    expect(screen.getByText('Suivi non activé')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer Stock' }))
+    expect(screen.queryByText('Suivi non activé')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Stock' })).toBeNull()
+    window.localStorage.clear()
+  })
+
+  it('moves a widget with the keyboard or by drag and drop', () => {
+    window.localStorage.clear()
+    setup()
+    mockFetchDaily.mockReturnValue(new Promise(() => {}))
+    render(<AdminDashboardPage />)
+    const order = () => screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'))
+    expect(order()).toEqual(['Chiffre d’affaires', 'RH', 'Finances', 'Stock', 'Organisation'])
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Déplacer RH' }), { key: 'ArrowDown' })
+    expect(order()).toEqual(['Chiffre d’affaires', 'Finances', 'RH', 'Stock', 'Organisation'])
+
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Déplacer Organisation' }))
+    fireEvent.drop(screen.getByRole('region', { name: 'Chiffre d’affaires' }))
+    expect(order()).toEqual(['Organisation', 'Chiffre d’affaires', 'Finances', 'RH', 'Stock'])
+    window.localStorage.clear()
   })
 
   it('lets the user choose and reorder the widgets from the settings gear', () => {
     window.localStorage.clear()
     setup()
-    mockFetchRevenue.mockReturnValue(new Promise(() => {}))
+    mockFetchDaily.mockReturnValue(new Promise(() => {}))
     render(<AdminDashboardPage />)
     expect(screen.getByText('Suivi non activé')).toBeTruthy()
 
