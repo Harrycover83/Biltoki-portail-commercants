@@ -208,6 +208,112 @@ main button.revenue-headline:not(.brand-button) {
   border-radius: 14px !important;
 }
 
+/* Compact one-column dashboard cards: pictogram + status chip, small controls. */
+.dash-tile {
+  padding: 0.85rem 1rem;
+}
+
+.dash-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: #f7e7b8;
+  font-size: 1rem;
+}
+
+.dash-tile .brand-title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+main .dash-chip {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #efe7d6;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Pro account balance: a dark "bank card" tile with a green accent, compact and readable at a glance. */
+.treasury-tile {
+  position: relative;
+  overflow: hidden;
+  padding: 0.9rem 1.1rem 0.8rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #171511 0%, #2b2a24 100%);
+  color: #fffcf6;
+}
+
+.treasury-tile::after {
+  content: '';
+  position: absolute;
+  right: -28px;
+  top: -28px;
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  background: var(--leaf);
+  opacity: 0.35;
+}
+
+.treasury-tile__head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.treasury-tile__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d9d2c3;
+}
+
+.treasury-tile__amount {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.2rem;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.treasury-tile__foot {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  color: #b9b2a3;
+}
+
+main button.treasury-tile__refresh:not(.brand-button),
+main button.treasury-tile__refresh:not(.brand-button):hover {
+  border: 0 !important;
+  background: rgba(255, 252, 246, 0.14) !important;
+  color: #fffcf6 !important;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  line-height: 1;
+}
+
+main button.treasury-tile__refresh:not(.brand-button):hover {
+  background: var(--leaf) !important;
+}
+
 /* Icon-only controls of the dashboard cards: no pill, just the glyph. */
 main button.widget-control:not(.brand-button),
 main button.widget-control:not(.brand-button):hover {

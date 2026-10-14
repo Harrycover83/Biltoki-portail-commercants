@@ -11,13 +11,10 @@ import {
 } from '@/features/admin/dashboard/widgets'
 import { useAuth } from '@/features/auth/AuthProvider'
 
-const PLACEHOLDERS: Partial<Record<DashboardWidgetId, { subtitle: string; text: string }>> = {
-  hr: { subtitle: 'Skello : en attente de l’accès API', text: 'Aucun indicateur tant que Skello n’a pas ouvert l’accès. Rien n’est affiché de fictif.' },
-  finance: { subtitle: 'Compte pro Pennylane', text: '' },
-  stock: {
-    subtitle: 'Suivi non activé',
-    text: 'Un inventaire physique initial et la correspondance produits / recettes seront nécessaires avant de déduire les ventes Popina.',
-  },
+const PLACEHOLDERS: Partial<Record<DashboardWidgetId, { subtitle?: string; text: string }>> = {
+  hr: { subtitle: 'En attente de Skello', text: 'Aucun indicateur tant que l’accès API n’est pas ouvert.' },
+  finance: { text: '' },
+  stock: { subtitle: 'Suivi non activé', text: 'Il faut d’abord un inventaire physique initial.' },
   organisation: { subtitle: 'Notion non connecté', text: 'Aucune tâche ni alerte fictive.' },
 }
 
@@ -41,15 +38,17 @@ export function AdminDashboardPage() {
           <DashboardSettings role={profile?.role} layout={layout} onChange={save} onReset={reset} />
         </div>
         {shown.length === 0 && <p role="status">Aucun élément affiché. Utilisez la roue crantée pour en ajouter.</p>}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
           {shown.map(({ id }) => {
             const definition = definitions.get(id)!
             const placeholder = PLACEHOLDERS[id]
             return (
-              <div key={id} className={definition.size === 'full' ? 'md:col-span-2' : undefined}>
+              <div key={id} className={definition.size === 'wide' ? 'md:col-span-2' : undefined}>
                 <DashboardWidgetFrame
                   title={definition.title}
                   subtitle={placeholder?.subtitle}
+                  icon={definition.icon}
+                  compact={definition.size === 'tile'}
                   onRemove={() => save(hideWidget(layout, id))}
                   onMove={(direction) => save(moveVisibleWidget(layout, id, direction))}
                   onDragStart={() => { dragged.current = id }}
@@ -62,7 +61,7 @@ export function AdminDashboardPage() {
                     ? <RevenueCard hall={hall} loading={loading} />
                     : id === 'finance'
                       ? <TreasuryCard hall={hall} loading={loading} />
-                      : <p className="text-sm">{placeholder?.text}</p>}
+                      : <p className="text-xs text-[#615b51]">{placeholder?.text}</p>}
                 </DashboardWidgetFrame>
               </div>
             )

@@ -9,8 +9,10 @@ export type DashboardWidgetDefinition = {
   description: string
   /** Roles allowed to display this widget; data access itself stays enforced by the database and the API. */
   roles: UserRole[]
-  /** `full` spans the whole dashboard width, `half` shares a row. */
-  size: 'full' | 'half'
+  /** `wide` spans two columns (richer content); `tile` is a compact one-column card. */
+  size: 'wide' | 'tile'
+  /** Small pictogram shown next to the title. */
+  icon: string
 }
 
 export type WidgetPreference = { id: DashboardWidgetId; visible: boolean }
@@ -21,12 +23,13 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
     title: 'Chiffre d’affaires',
     description: 'CA Popina de la veille, d’un jour ou d’une semaine, comparé à N‑1 et à la semaine précédente.',
     roles: STAFF_ROLES,
-    size: 'half',
+    size: 'wide',
+    icon: '📈',
   },
-  { id: 'hr', title: 'RH', description: 'Indicateurs Skello (en attente de l’accès API).', roles: STAFF_ROLES, size: 'half' },
-  { id: 'finance', title: 'Finances', description: 'Solde du compte pro (Pennylane).', roles: STAFF_ROLES, size: 'half' },
-  { id: 'stock', title: 'Stock', description: 'Suivi du stock (non activé).', roles: STAFF_ROLES, size: 'half' },
-  { id: 'organisation', title: 'Organisation', description: 'Tâches Notion (non connecté).', roles: STAFF_ROLES, size: 'half' },
+  { id: 'hr', title: 'RH', description: 'Indicateurs Skello (en attente de l’accès API).', roles: STAFF_ROLES, size: 'tile', icon: '👥' },
+  { id: 'finance', title: 'Finances', description: 'Solde du compte pro (Pennylane).', roles: STAFF_ROLES, size: 'tile', icon: '🏦' },
+  { id: 'stock', title: 'Stock', description: 'Suivi du stock (non activé).', roles: STAFF_ROLES, size: 'tile', icon: '📦' },
+  { id: 'organisation', title: 'Organisation', description: 'Tâches Notion (non connecté).', roles: STAFF_ROLES, size: 'tile', icon: '🗂️' },
 ]
 
 export function availableWidgets(role: UserRole | null | undefined): DashboardWidgetDefinition[] {
