@@ -5,16 +5,6 @@ import { formatEuroFromCents } from '@/lib/money'
 
 type Loaded = { key: string; treasury?: Treasury; error?: string }
 
-function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-[#d6cebf] px-4 py-3 text-center">
-      <p className="text-sm font-semibold">{label}</p>
-      <p className="brand-display text-3xl leading-tight">{value}</p>
-      {hint && <p className="text-xs text-[#615b51]">{hint}</p>}
-    </div>
-  )
-}
-
 export function TreasuryCard({ hall, loading }: { hall: { id: string } | undefined; loading: boolean }) {
   const [refresh, setRefresh] = useState(0)
   const [result, setResult] = useState<Loaded | null>(null)
@@ -48,17 +38,26 @@ export function TreasuryCard({ hall, loading }: { hall: { id: string } | undefin
   const { proAccount } = loaded.treasury
 
   return (
-    <div className="space-y-3">
-      <div className="mx-auto max-w-sm">
-        <Tile
-          label="Solde du compte pro"
-          value={proAccount ? formatEuroFromCents(proAccount.balanceCents) : 'Indisponible'}
-          hint={proAccount ? `Mis à jour le ${formatDateTime(proAccount.updatedAt)}` : 'Compte pro introuvable dans Pennylane'}
-        />
+    <div className="treasury-tile">
+      <div className="treasury-tile__head">
+        <span className="treasury-tile__label">Solde du compte pro</span>
+        <button
+          type="button"
+          onClick={() => setRefresh((version) => version + 1)}
+          className="treasury-tile__refresh"
+          aria-label="Actualiser le solde"
+          title="Actualiser"
+        >
+          ↻
+        </button>
       </div>
-      <div className="flex items-center justify-between gap-2 text-xs text-[#615b51]">
-        <span>Source Pennylane · lu le {formatDateTime(loaded.treasury.fetchedAt)}.</span>
-        <button type="button" onClick={() => setRefresh((version) => version + 1)} className="text-sm font-bold underline">Actualiser</button>
+      <div className="treasury-tile__amount">
+        {proAccount ? formatEuroFromCents(proAccount.balanceCents) : 'Indisponible'}
+      </div>
+      <div className="treasury-tile__foot">
+        {proAccount
+          ? `Pennylane · mis à jour le ${formatDateTime(proAccount.updatedAt)}`
+          : 'Compte pro introuvable dans Pennylane'}
       </div>
     </div>
   )

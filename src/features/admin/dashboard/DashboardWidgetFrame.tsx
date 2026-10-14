@@ -3,6 +3,9 @@ import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 type Props = {
   title: string
   subtitle?: string
+  icon?: string
+  /** Compact one-column card: tighter padding and a status chip instead of a subtitle line. */
+  compact?: boolean
   children: ReactNode
   onRemove: () => void
   onMove: (direction: -1 | 1) => void
@@ -13,7 +16,7 @@ type Props = {
 const MOVE_KEYS: Record<string, -1 | 1> = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }
 
 /** A dashboard element with its controls: a handle to move it (drag or arrow keys) and a cross to remove it. */
-export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMove, onDragStart, onDropHere }: Props) {
+export function DashboardWidgetFrame({ title, subtitle, icon, compact, children, onRemove, onMove, onDragStart, onDropHere }: Props) {
   const frame = useRef<HTMLElement>(null)
   const [dragOver, setDragOver] = useState(false)
 
@@ -38,12 +41,17 @@ export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMo
         setDragOver(false)
         onDropHere()
       }}
-      className={`brand-card h-full ${dragOver ? 'outline outline-2 outline-[#d84d2c]' : ''}`}
+      className={`brand-card h-full ${compact ? 'dash-tile' : ''} ${dragOver ? 'outline outline-2 outline-[#d84d2c]' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="brand-title text-base font-semibold">{title}</h3>
-          {subtitle ? <p className="mt-1 text-sm text-[#615b51]">{subtitle}</p> : null}
+        <div className="flex min-w-0 items-center gap-2">
+          {icon ? <span aria-hidden="true" className="dash-icon">{icon}</span> : null}
+          <div className="min-w-0">
+            <h3 className="brand-title text-base font-semibold">{title}</h3>
+            {subtitle ? (
+              <p className={compact ? 'dash-chip' : 'mt-1 text-sm text-[#615b51]'}>{subtitle}</p>
+            ) : null}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 text-[#615b51]">
           <span
@@ -77,7 +85,7 @@ export function DashboardWidgetFrame({ title, subtitle, children, onRemove, onMo
           </button>
         </div>
       </div>
-      <div className="mt-4">{children}</div>
+      <div className={compact ? 'mt-3' : 'mt-4'}>{children}</div>
     </section>
   )
 }
