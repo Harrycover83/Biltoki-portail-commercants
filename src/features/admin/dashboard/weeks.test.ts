@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  comparePeriod, isoWeek, isoWeekMonday, isoWeeksInYear, observedDates, requiredRanges, sameWeekLastYear,
-  weekStart, weekdayIndex,
+  comparePeriod, isoWeek, isoWeekMonday, isoWeeksInYear, lastCompleteWeekDate, observedDates, requiredRanges,
+  sameWeekLastYear, weekStart, weekdayIndex,
 } from './weeks'
 
 describe('calendar weeks', () => {
@@ -26,6 +26,12 @@ describe('calendar weeks', () => {
     expect(sameWeekLastYear('2026-10-12')).toBe('2025-10-13')
     expect(sameWeekLastYear('2026-12-28')).toBe('2025-12-22')
     expect(sameWeekLastYear('2027-01-04')).toBe('2025-12-29')
+  })
+
+  it('opens a week on the last complete one', () => {
+    expect(lastCompleteWeekDate('2026-10-13')).toBe('2026-10-11')
+    expect(lastCompleteWeekDate('2026-10-12')).toBe('2026-10-11')
+    expect(lastCompleteWeekDate('2026-10-18')).toBe('2026-10-18')
   })
 
   it('only observes closed days', () => {

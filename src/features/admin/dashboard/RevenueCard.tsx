@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchDailyRevenue, parisYesterday } from '@/features/admin/dashboard/revenue'
-import { addDays, comparePeriod, isoWeek, requiredRanges, weekStart, type RevenueMode } from '@/features/admin/dashboard/weeks'
+import { addDays, comparePeriod, isoWeek, lastCompleteWeekDate, requiredRanges, weekStart, type RevenueMode } from '@/features/admin/dashboard/weeks'
 import { formatDateTime } from '@/lib/format'
 import { formatEuroFromCents } from '@/lib/money'
 
@@ -62,9 +62,16 @@ function referenceLabel(key: 'previousYear' | 'previousWeek', mode: RevenueMode,
 export function RevenueCard({ hall, loading }: { hall: { id: string } | undefined; loading: boolean }) {
   const lastDate = parisYesterday()
   const [mode, setMode] = useState<RevenueMode>('day')
-  const [anchor, setAnchor] = useState(lastDate)
+  // Each mode remembers its own selection and only offers closed periods: yesterday for a day, the last
+  // complete calendar week for a week (a running week would be a partial, misleading comparison).
+  const latestWeekDate = lastCompleteWeekDate(lastDate)
+  const [dayAnchor, setDayAnchor] = useState(lastDate)
+  const [weekAnchor, setWeekAnchor] = useState(latestWeekDate)
   const [open, setOpen] = useState(false)
   const [refresh, setRefresh] = useState(0)
+  const anchor = mode === 'day' ? dayAnchor : weekAnchor
+  const setAnchor = mode === 'day' ? setDayAnchor : setWeekAnchor
+  const latest = mode === 'day' ? lastDate : latestWeekDate
   const monday = weekStart(anchor)
   const loaded = useDailySeries(hall?.id, monday, lastDate, refresh)
 
@@ -75,9 +82,9 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
 
   const move = (direction: -1 | 1) => {
     const next = addDays(anchor, direction * (mode === 'day' ? 1 : 7))
-    setAnchor(next > lastDate ? lastDate : next)
+    setAnchor(next > latest ? latest : next)
   }
-  const canGoNext = mode === 'day' ? anchor < lastDate : addDays(monday, 7) <= lastDate
+  const canGoNext = mode === 'day' ? anchor < latest : monday < weekStart(latest)
   const unit = mode === 'day' ? 'Jour' : 'Semaine'
   const feminine = mode === 'day' ? '' : 'e'
 
@@ -113,7 +120,7 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
                 type="button"
                 aria-pressed={mode === value}
                 onClick={() => setMode(value)}
-                className={`border border-[#171511] px-3 py-1 text-sm font-bold ${mode === value ? 'bg-[#171511] text-white' : ''}`}
+                className={`border border-[#171511] px-3 py-1 text-sm font-bold ${mode === value ? 'segment-active' : ''}`}
               >
                 {value === 'day' ? 'Jour' : 'Semaine'}
               </button>
@@ -125,9 +132,10 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
               type="date"
               aria-label="Date observée"
               value={anchor}
-              max={lastDate}
+              max={latest}
               onChange={(event) => {
-                if (event.target.value && event.target.value <= lastDate) setAnchor(event.target.value)
+                const value = event.target.value
+                if (value) setAnchor(value > latest ? latest : value)
               }}
               className="border p-1 text-sm"
             />
@@ -135,7 +143,7 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
             <button type="button" onClick={() => setRefresh((version) => version + 1)} className="ml-auto text-sm font-bold underline">Actualiser</button>
           </div>
           {mode === 'week' && (
-            <p className="text-xs text-[#615b51]">Semaines calendaires, du lundi au dimanche : choisissez n’importe quelle date de la semaine.</p>
+            <p className="text-xs text-[#615b51]">Semaines calendaires complètes, du lundi au dimanche : choisissez n’importe quelle date de la semaine.</p>
           )}
         </div>
       )}
@@ -146,11 +154,6 @@ export function RevenueCard({ hall, loading }: { hall: { id: string } | undefine
         : loaded.error || !comparison ? <p role="alert" className="border border-[#d84d2c] bg-[#fdeee9] p-3">{loaded.error}</p>
         : (
           <div className="space-y-3">
-            {mode === 'week' && comparison.dates.length < 7 && (
-              <p className="text-xs text-[#615b51]">
-                Semaine en cours : {plural(comparison.dates.length, 'jour')} clôturé{comparison.dates.length > 1 ? 's' : ''}, comparé{comparison.dates.length > 1 ? 's' : ''} jour pour jour.
-              </p>
-            )}
             <ul className="space-y-2">
               {comparison.references.map((reference) => (
                 <li key={reference.key} className="border-t border-[#e4ddd1] pt-2 text-sm">

@@ -113,7 +113,8 @@ la base n'est supprimé. Les autres pages de CA historiques restent hors du pér
 - Le dashboard affiche une carte « CA de la veille » ; un clic permet de choisir un jour ou une semaine. Les
   tendances sont calculées sur les **semaines calendaires ISO** (lundi → dimanche) : semaine choisie contre la même
   semaine de N‑1 (même numéro, repli sur la semaine 52 si la 53 n'existe pas) et contre la semaine précédente,
-  jour par jour (par jour de semaine). Une semaine en cours n'est comparée que sur ses jours clôturés, et un jour
+  jour par jour (par jour de semaine). Seules les semaines **complètes** sont proposées (jamais la semaine en cours),
+  tout comme la carte du jour n'affiche que des jours clôturés ; un jour
   sans rapport n'est jamais compté comme zéro.
 - Une clé Popina couvre un établissement. `POPINA_HALL_ID` désigne la halle du portail (Toulon par défaut) et
   `POPINA_LOCATION_ID` l'établissement Popina, vérifié sur chaque rapport. Une autre halle ne réutilise jamais

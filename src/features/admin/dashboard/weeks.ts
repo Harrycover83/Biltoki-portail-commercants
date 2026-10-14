@@ -23,6 +23,11 @@ export function isoWeek(date: string): { year: number; week: number } {
   return { year, week }
 }
 
+/** A date inside the most recent calendar week that is entirely closed (Monday → Sunday all before today). */
+export function lastCompleteWeekDate(lastDate: string): string {
+  return addDays(weekStart(lastDate), 6) <= lastDate ? lastDate : addDays(weekStart(lastDate), -1)
+}
+
 export function isoWeeksInYear(year: number): number {
   return isoWeek(`${year}-12-28`).week
 }

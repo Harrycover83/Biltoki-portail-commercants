@@ -195,6 +195,14 @@ main button:not(.brand-button):hover {
   background: var(--sun) !important;
 }
 
+/* Selected option of a Jour / Semaine style toggle. */
+main button.segment-active:not(.brand-button),
+main button.segment-active:not(.brand-button):hover {
+  border-color: var(--ink) !important;
+  background: var(--ink) !important;
+  color: #fff !important;
+}
+
 /* Icon-only controls of the dashboard cards: no pill, just the glyph. */
 main button.widget-control:not(.brand-button),
 main button.widget-control:not(.brand-button):hover {

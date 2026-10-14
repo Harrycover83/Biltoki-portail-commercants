@@ -5,7 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import type { UserRole } from '@/types/domain'
 import { AdminDashboardPage } from './AdminDashboardPage'
 import { parisYesterday } from '@/features/admin/dashboard/revenue'
-import { addDays, sameWeekLastYear, weekStart, weekdayIndex } from '@/features/admin/dashboard/weeks'
+import { addDays, isoWeek, lastCompleteWeekDate, sameWeekLastYear, weekStart, weekdayIndex } from '@/features/admin/dashboard/weeks'
 
 const { mockUseAuth, mockUseAdminHall, mockFetchDaily } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(), mockUseAdminHall: vi.fn(), mockFetchDaily: vi.fn(),
@@ -206,6 +206,30 @@ describe('Dashboard page', () => {
     fireEvent.change(screen.getByLabelText('Date observée'), { target: { value: monday } })
     await screen.findAllByText('Données non remontées')
     expect(screen.queryByText('Fermé · lundi')).toBeNull()
+  })
+
+  it('opens a week on the last complete one and gives each mode its own selection', async () => {
+    setup()
+    backend(() => 1000)
+    render(<AdminDashboardPage />)
+    await screen.findByText('Source Popina', { exact: false })
+    fireEvent.click(screen.getByRole('button', { name: /CA de la veille/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Semaine' }))
+
+    const completeWeek = isoWeek(weekStart(lastCompleteWeekDate(lastDate))).week
+    expect(await screen.findByText(new RegExp(`^CA de la semaine ${completeWeek} ·`))).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Semaine' }).getAttribute('aria-pressed')).toBe('true')
+    expect((await screen.findAllByText('70,00 €')).length).toBeGreaterThan(0)
+
+    // The running week is never offered: a date inside it falls back to the last complete week.
+    fireEvent.change(screen.getByLabelText('Date observée'), { target: { value: lastDate } })
+    expect(screen.getByText(new RegExp(`^CA de la semaine ${completeWeek} ·`))).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Semaine suivante' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByText(/Semaine en cours/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Jour' }))
+    expect(await screen.findByText('CA de la veille')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Jour' }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('compares a calendar week with the same week last year and the previous week', async () => {
