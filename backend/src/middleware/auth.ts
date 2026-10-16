@@ -45,7 +45,7 @@ export function requirePortalUser(
     ])
 
     if (!profile || !access) {
-      logger.warn(`Forbidden API access by ${data.user.email} on ${req.method} ${req.path}`)
+      logger.warn(`Forbidden API access by ${data.user.id} on ${req.method} ${req.path}`)
       return res.status(403).json({ error: 'Forbidden' })
     }
 

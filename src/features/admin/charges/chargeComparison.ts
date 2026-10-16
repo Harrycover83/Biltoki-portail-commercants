@@ -2,7 +2,7 @@ import type { AdminChargeRow } from '@/features/admin/services/adminChargeServic
 import { adminChargeDate } from '@/features/admin/services/adminChargeService'
 
 export const UNKNOWN_SUPPLIER = 'Créancier inconnu'
-export const UNCATEGORIZED = 'Sans catégorie'
+const UNCATEGORIZED = 'Sans catégorie'
 
 export type Granularity = 'month' | 'year'
 export type GroupBy = 'supplier' | 'category'
@@ -11,7 +11,7 @@ export function chargeCents(row: AdminChargeRow): number {
   return Math.round(Number(row.amount_incl_tax) * 100)
 }
 
-export function supplierOf(row: AdminChargeRow): string {
+function supplierOf(row: AdminChargeRow): string {
   return row.supplier_name?.trim() || UNKNOWN_SUPPLIER
 }
 
@@ -20,7 +20,7 @@ function categoryOf(row: AdminChargeRow): string {
 }
 
 /** 'YYYY-MM' for a month, 'YYYY' for a year, taken from the ISO date of the invoice. */
-export function periodKeyOf(row: AdminChargeRow, granularity: Granularity): string {
+function periodKeyOf(row: AdminChargeRow, granularity: Granularity): string {
   return adminChargeDate(row).slice(0, granularity === 'month' ? 7 : 4)
 }
 
@@ -60,7 +60,7 @@ export function formatPeriodKey(key: string): string {
   return MONTH_FORMATTER.format(new Date(Date.UTC(year, month - 1, 1)))
 }
 
-export type ComparisonLine = {
+type ComparisonLine = {
   name: string
   currentCents: number
   referenceCents: number
@@ -82,7 +82,7 @@ export type PeriodComparison = {
   lines: ComparisonLine[]
 }
 
-export function percentChange(currentCents: number, referenceCents: number): number | null {
+function percentChange(currentCents: number, referenceCents: number): number | null {
   return referenceCents === 0 ? null : ((currentCents - referenceCents) / Math.abs(referenceCents)) * 100
 }
 

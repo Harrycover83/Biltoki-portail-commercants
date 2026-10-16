@@ -1,4 +1,4 @@
-export const POPINA_API_URL = 'https://api.pragma-project.dev'
+const POPINA_API_URL = 'https://api.pragma-project.dev'
 
 export type PopinaReport = {
   id: string

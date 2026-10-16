@@ -14,7 +14,7 @@ export type Declaration = {
   updated_at: string
 }
 
-export type StandRevenueRow = {
+type StandRevenueRow = {
   merchantId: string
   name: string
   stands: string

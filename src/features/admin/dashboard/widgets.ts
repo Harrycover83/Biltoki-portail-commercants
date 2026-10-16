@@ -17,7 +17,7 @@ export type DashboardWidgetDefinition = {
 
 export type WidgetPreference = { id: DashboardWidgetId; visible: boolean }
 
-export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
+const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
   {
     id: 'revenue',
     title: 'Chiffre d’affaires',

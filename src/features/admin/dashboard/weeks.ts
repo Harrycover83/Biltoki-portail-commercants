@@ -42,7 +42,7 @@ export function sameWeekLastYear(monday: string): string {
   return isoWeekMonday(year - 1, Math.min(week, isoWeeksInYear(year - 1)))
 }
 
-export type Reference = {
+type Reference = {
   key: 'previousYear' | 'previousWeek'
   /** Monday of the reference week. */
   monday: string

@@ -8,14 +8,6 @@ export function formatEuroFromCents(cents: number): string {
   }).format(euros)
 }
 
-export function formatEuroRounded(euros: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(euros)
-}
-
 /** Largest amount a declaration may hold, in cents (matches the database constraint). */
 export const MAX_DECLARED_CENTS = 100_000_000_000
 
