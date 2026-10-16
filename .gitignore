@@ -31,3 +31,6 @@ dist-ssr
 
 # Provisional credentials exported by scripts/provision-portal-users.mjs
 portal-credentials-*.csv
+
+# Données de stock locales (catalogue/ventes Popina)
+stock-local/
